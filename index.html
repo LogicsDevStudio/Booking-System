@@ -429,15 +429,21 @@
     }
 
     // --- 2. Views ---
-    function showPage(pid) {
+    // เปลี่ยนจาก function showPage(pid) {...} เป็น window.showPage = ...
+    window.showPage = (pid) => {
         ['page-auth', 'page-home', 'page-movie', 'page-event', 'page-profile', 'page-users'].forEach(id => {
-            document.getElementById(id).classList.add('hidden');
+            // เช็คว่ามี element จริงไหมก่อนสั่งซ่อน (เผื่อบางหน้ายังไม่ได้สร้าง)
+            const el = document.getElementById(id);
+            if(el) el.classList.add('hidden');
         });
-        document.getElementById(pid).classList.remove('hidden');
+        
+        const target = document.getElementById(pid);
+        if(target) target.classList.remove('hidden');
     }
+
     window.goHome = () => {
         if(currentType === 'movie' && tempSeatRef) cancelSelection();
-        showPage('page-home');
+        showPage('page-home'); // เรียกใช้แบบนี้ได้เหมือนเดิมเพราะอยู่ใน scope เดียวกัน
         renderHomeList();
     }
 
