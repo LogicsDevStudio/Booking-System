@@ -3,232 +3,421 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบจองตั๋ว Realtime</title>
+    <title>ระบบจองตั๋วภาพยนตร์และอีเวนต์</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Sarabun', sans-serif; background: #f4f4f9; padding: 20px; text-align: center; }
-        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        h1, h2 { color: #333; }
+        body { font-family: 'Sarabun', sans-serif; background: #f0f2f5; margin: 0; padding: 0; color: #333; }
+        .container { max-width: 900px; margin: 30px auto; padding: 20px; }
         
-        /* Tabs */
-        .tabs { margin-bottom: 20px; }
-        .tab-btn { padding: 10px 20px; cursor: pointer; border: none; background: #ddd; font-size: 16px; }
-        .tab-btn.active { background: #007bff; color: white; }
-        .section { display: none; }
-        .section.active { display: block; }
+        /* Header */
+        header { text-align: center; margin-bottom: 30px; }
+        h1 { color: #1a73e8; margin: 0; }
+        p.subtitle { color: #666; font-size: 0.9rem; }
 
-        /* Movie Seats */
-        .screen { background: #333; color: white; padding: 5px; margin: 10px 0 20px; font-size: 12px; }
-        .seat-map { display: grid; justify-content: center; gap: 8px; margin-bottom: 20px; }
+        /* Card Grid (Home Page) */
+        .grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+        .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: transform 0.2s; cursor: pointer; display: flex; flex-direction: column; justify-content: space-between; }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 5px 15px rgba(0,0,0,0.15); }
+        .card h3 { margin-top: 0; color: #333; }
+        .card .tag { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; margin-bottom: 10px; }
+        .tag.movie { background: #e8f0fe; color: #1a73e8; }
+        .tag.event { background: #fce8e6; color: #d93025; }
+
+        /* Navigation */
+        .nav-back { display: none; margin-bottom: 20px; cursor: pointer; color: #555; font-weight: bold; }
+        .nav-back:hover { color: #000; }
+
+        /* Movie Seat Map */
+        .screen { background: #444; color: white; text-align: center; padding: 5px; margin: 20px 0; border-radius: 5px; letter-spacing: 2px; box-shadow: 0 5px 10px rgba(0,0,0,0.3); }
+        .seat-map { display: grid; justify-content: center; gap: 10px; margin: 20px 0; overflow-x: auto; padding-bottom: 10px; }
         .seat { 
-            width: 35px; height: 35px; border-radius: 5px; cursor: pointer; 
-            display: flex; align-items: center; justify-content: center; font-size: 10px; color: white;
+            width: 40px; height: 40px; border-radius: 8px; cursor: pointer; 
+            display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; color: white;
+            transition: all 0.2s;
         }
-        .seat.available { background-color: #28a745; }
-        .seat.booked { background-color: #dc3545; cursor: not-allowed; }
-        .seat.blocked { background-color: #6c757d; cursor: not-allowed; opacity: 0.5; }
-        .seat:hover:not(.booked):not(.blocked) { opacity: 0.8; transform: scale(1.1); }
+        .seat.available { background-color: #ffffff; border: 2px solid #28a745; color: #28a745; }
+        .seat.available:hover { background-color: #28a745; color: white; }
+        .seat.booked { background-color: #dc3545; border: 2px solid #dc3545; cursor: not-allowed; opacity: 0.6; }
+        .seat.blocked { background-color: #e2e6ea; border: 2px solid #ced4da; color: #adb5bd; cursor: not-allowed; }
 
-        /* Event Card */
-        .event-card { border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px; }
-        .status { font-weight: bold; margin: 10px 0; }
-        button.book-btn { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
-        button.book-btn:disabled { background: #ccc; }
+        /* Event Detail */
+        .event-detail { background: white; padding: 30px; border-radius: 12px; text-align: center; }
+        .stat-box { display: flex; justify-content: center; gap: 40px; margin: 20px 0; }
+        .stat-item h2 { margin: 0; color: #1a73e8; }
+        
+        /* Modal (Booking Form) */
+        .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+        .modal-content { background-color: white; padding: 30px; border-radius: 12px; width: 90%; max-width: 450px; position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        .close-btn { position: absolute; right: 20px; top: 15px; font-size: 24px; cursor: pointer; color: #aaa; }
+        
+        /* Form Elements */
+        .form-group { margin-bottom: 15px; text-align: left; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.9rem; }
+        .form-group input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-family: 'Sarabun'; }
+        .btn-confirm { width: 100%; padding: 12px; background: #28a745; color: white; border: none; border-radius: 6px; font-size: 1rem; cursor: pointer; font-weight: bold; margin-top: 10px; }
+        .btn-confirm:hover { background: #218838; }
+        .btn-cancel { background: #dc3545; margin-top: 10px; }
+
+        .loading { text-align: center; padding: 50px; color: #666; }
+        
+        /* Pages Visibility */
+        #page-home, #page-movie, #page-event { display: none; }
+        .active-page { display: block !important; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>🎟️ ระบบจองตั๋วออนไลน์</h1>
-    
-    <div class="tabs">
-        <button class="tab-btn active" onclick="switchTab('movie')">🎬 จองตั๋วหนัง</button>
-        <button class="tab-btn" onclick="switchTab('event')">🎉 จองอีเวนต์</button>
+    <header>
+        <h1>🎟️ ระบบจองบัตรออนไลน์</h1>
+        <p class="subtitle">เลือกจองภาพยนตร์หรืออีเวนต์ที่คุณสนใจ</p>
+    </header>
+
+    <div class="nav-back" onclick="goHome()">⬅ ย้อนกลับไปหน้าหลัก</div>
+
+    <div id="page-home" class="active-page">
+        <div id="loading-spinner" class="loading">กำลังโหลดข้อมูล...</div>
+        <div id="movie-list" class="grid-container" style="margin-bottom: 30px;"></div>
+        <div id="event-list" class="grid-container"></div>
     </div>
 
-    <div id="movie-section" class="section active">
-        <h2 id="movie-title">กำลังโหลด...</h2>
-        <div class="screen">จอภาพยนตร์</div>
-        <div id="seat-map" class="seat-map"></div>
-        <div id="movie-info"></div>
-    </div>
-
-    <div id="event-section" class="section">
-        <h2 id="event-title">กำลังโหลด...</h2>
-        <div class="event-card">
-            <p id="event-time"></p>
-            <div class="status">
-                บัตรเหลือ: <span id="event-remaining">-</span> / <span id="event-capacity">-</span>
+    <div id="page-movie">
+        <div class="event-detail">
+            <h2 id="m-title">Title</h2>
+            <p>รอบ: <span id="m-time"></span></p>
+            <div class="screen">จอภาพยนตร์</div>
+            <div id="seat-map" class="seat-map"></div>
+            <div style="margin-top:20px; font-size: 0.9rem; color: #666;">
+                <span style="color:#28a745">⬜ ว่าง</span> &nbsp; 
+                <span style="color:#dc3545">🟥 จองแล้ว</span> &nbsp; 
+                <span style="color:#adb5bd">⬜ ไม่เปิดจอง</span>
             </div>
-            <button id="btn-book-event" class="book-btn" onclick="bookEvent()">จองบัตรเข้าร่วม</button>
         </div>
+    </div>
+
+    <div id="page-event">
+        <div class="event-detail">
+            <h2 id="e-title">Event Title</h2>
+            <p>วันที่: <span id="e-time"></span></p>
+            <div class="stat-box">
+                <div class="stat-item">
+                    <h2 id="e-remaining">-</h2>
+                    <span>ที่นั่งเหลือ</span>
+                </div>
+                <div class="stat-item">
+                    <h2 id="e-capacity">-</h2>
+                    <span>ทั้งหมด</span>
+                </div>
+            </div>
+            <button id="btn-event-book" class="btn-confirm" style="max-width: 200px;">ลงทะเบียนเข้าร่วม</button>
+        </div>
+    </div>
+</div>
+
+<div id="booking-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="closeModal()">&times;</span>
+        <h3 id="modal-title">ยืนยันการจอง</h3>
+        <p id="modal-subtitle" style="color:#666; margin-bottom: 20px;">กำลังเลือก: -</p>
+        
+        <form id="booking-form" onsubmit="submitBooking(event)">
+            <div class="form-group">
+                <label>ชื่อ (First Name)</label>
+                <input type="text" id="fname" required>
+            </div>
+            <div class="form-group">
+                <label>นามสกุล (Last Name)</label>
+                <input type="text" id="lname" required>
+            </div>
+            <div class="form-group">
+                <label>เบอร์โทรศัพท์ (Phone)</label>
+                <input type="tel" id="phone" required>
+            </div>
+            <div class="form-group">
+                <label>อีเมล (Email)</label>
+                <input type="email" id="email" required>
+            </div>
+            <div class="form-group">
+                <label>เลขบัตรประจำตัวประชาชน (ID Card)</label>
+                <input type="text" id="idcard" maxlength="13" required>
+            </div>
+            
+            <button type="submit" class="btn-confirm">ยืนยันการจอง</button>
+        </form>
     </div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, onValue, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getDatabase, ref, onValue, runTransaction, push, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    // -------------------------------------------------------------
-    // 1. ตั้งค่า Firebase Configuration (เอามาจาก Firebase Console)
-    // -------------------------------------------------------------
+    // --- ตั้งค่า Firebase (แก้ตรงนี้ให้เป็นของคุณ) ---
     const firebaseConfig = {
         databaseURL: "https://booking-system-c1ebd-default-rtdb.asia-southeast1.firebasedatabase.app/"
-        // ใส่แค่ databaseURL ก็พอสำหรับการเขียนแบบง่าย ถ้ามี API Key ใส่ด้วยก็ได้
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // Hardcode ID สำหรับตัวอย่าง (ในระบบจริงอาจรับจาก URL Parameter)
-    const MOVIE_ID = 'm01';
-    const EVENT_ID = 'e01';
+    // Global State
+    let currentType = ''; // 'movie' or 'event'
+    let currentId = '';
+    let selectedTarget = ''; // seatId (for movie) or eventId
+    let currentConfig = null;
 
-    // --- Logic ส่วนหนัง ---
-    const seatMap = document.getElementById('seat-map');
-    let movieConfig = null;
-
-    // ดึง Config หนัง
-    onValue(ref(db, `movies/${MOVIE_ID}/config`), (snapshot) => {
-        movieConfig = snapshot.val();
-        if(!movieConfig) return;
-        document.getElementById('movie-title').innerText = movieConfig.title;
-        renderSeatMap();
-    });
-
-    // ดึงข้อมูลการจองแบบ Realtime
-    onValue(ref(db, `movies/${MOVIE_ID}/bookings`), (snapshot) => {
-        const bookings = snapshot.val() || {};
-        updateSeatStatus(bookings);
-    });
-
-    function renderSeatMap() {
-        seatMap.innerHTML = '';
-        seatMap.style.gridTemplateColumns = `repeat(${movieConfig.cols}, 1fr)`;
+    // --- 1. โหลดรายการหนังและอีเวนต์ (หน้าแรก) ---
+    const homeRef = ref(db, '/');
+    onValue(homeRef, (snapshot) => {
+        const data = snapshot.val();
+        document.getElementById('loading-spinner').style.display = 'none';
         
-        const blocked = movieConfig.blocked || [];
+        const movieList = document.getElementById('movie-list');
+        const eventList = document.getElementById('event-list');
+        movieList.innerHTML = '';
+        eventList.innerHTML = '';
 
-        for (let r = 0; r < movieConfig.rows; r++) {
-            const rowLabel = String.fromCharCode(65 + r); // A, B, C...
-            for (let c = 1; c <= movieConfig.cols; c++) {
+        if(data && data.movies) {
+            Object.keys(data.movies).forEach(key => {
+                const m = data.movies[key].config;
+                if(!m) return;
+                const card = createCard(key, m, 'movie');
+                movieList.appendChild(card);
+            });
+        }
+
+        if(data && data.events) {
+            Object.keys(data.events).forEach(key => {
+                const e = data.events[key].config;
+                if(!e) return;
+                const card = createCard(key, e, 'event');
+                eventList.appendChild(card);
+            });
+        }
+    });
+
+    function createCard(id, data, type) {
+        const div = document.createElement('div');
+        div.className = 'card';
+        div.innerHTML = `
+            <div>
+                <span class="tag ${type}">${type === 'movie' ? 'ภาพยนตร์' : 'อีเวนต์'}</span>
+                <h3>${data.title}</h3>
+                <p style="color:#777; font-size:0.85rem;">📅 ${data.start}</p>
+            </div>
+            <div style="text-align:right; margin-top:10px; color:#1a73e8; font-weight:bold;">เลือก ></div>
+        `;
+        div.onclick = () => {
+            if(type === 'movie') openMoviePage(id);
+            else openEventPage(id);
+        }
+        return div;
+    }
+
+    // --- 2. หน้าจองหนัง ---
+    window.openMoviePage = (id) => {
+        currentType = 'movie';
+        currentId = id;
+        switchPage('page-movie');
+
+        // Load Config
+        onValue(ref(db, `movies/${id}/config`), (snap) => {
+            const conf = snap.val();
+            currentConfig = conf;
+            document.getElementById('m-title').innerText = conf.title;
+            document.getElementById('m-time').innerText = `${conf.start} - ${conf.end}`;
+            renderSeats(conf);
+        });
+
+        // Load Bookings (Realtime)
+        onValue(ref(db, `movies/${id}/bookings`), (snap) => {
+            updateSeatStatus(snap.val() || {});
+        });
+    }
+
+    function renderSeats(conf) {
+        const map = document.getElementById('seat-map');
+        map.innerHTML = '';
+        map.style.gridTemplateColumns = `repeat(${conf.cols}, 1fr)`;
+        const blocked = conf.blocked || [];
+
+        for(let r=0; r<conf.rows; r++) {
+            const rowLabel = String.fromCharCode(65 + r);
+            for(let c=1; c<=conf.cols; c++) {
                 const seatId = `${rowLabel}${c}`;
-                const div = document.createElement('div');
-                div.className = 'seat available';
-                div.id = `seat-${seatId}`;
-                div.innerText = seatId;
-                
-                // เช็คว่า Blocked หรือไม่
-                if (blocked.includes(seatId)) {
-                    div.classList.add('blocked');
-                    div.classList.remove('available');
+                const seat = document.createElement('div');
+                seat.className = 'seat available';
+                seat.id = `seat-${seatId}`;
+                seat.innerText = seatId;
+
+                if(blocked.includes(seatId)) {
+                    seat.classList.add('blocked');
+                    seat.classList.remove('available');
                 } else {
-                    div.onclick = () => bookSeat(seatId);
+                    seat.onclick = () => {
+                        if(!seat.classList.contains('booked') && !seat.classList.contains('blocked')) {
+                            openBookingForm(seatId);
+                        }
+                    };
                 }
-                seatMap.appendChild(div);
+                map.appendChild(seat);
             }
         }
     }
 
     function updateSeatStatus(bookings) {
-        document.querySelectorAll('.seat').forEach(el => {
-            const seatId = el.id.replace('seat-', '');
-            if (!el.classList.contains('blocked')) {
-                if (bookings[seatId]) {
-                    el.className = 'seat booked';
+        document.querySelectorAll('.seat').forEach(s => {
+            const sid = s.id.replace('seat-', '');
+            if(!s.classList.contains('blocked')) {
+                if(bookings[sid]) {
+                    s.className = 'seat booked';
+                    s.onclick = null; // Disable click
                 } else {
-                    el.className = 'seat available';
+                    s.className = 'seat available';
                 }
             }
         });
     }
 
-    window.bookSeat = (seatId) => {
-        if(!checkTime(movieConfig.start, movieConfig.end)) return;
+    // --- 3. หน้าจองอีเวนต์ ---
+    window.openEventPage = (id) => {
+        currentType = 'event';
+        currentId = id;
+        switchPage('page-event');
 
-        const seatRef = ref(db, `movies/${MOVIE_ID}/bookings/${seatId}`);
-        runTransaction(seatRef, (currentData) => {
-            if (currentData === null) {
-                return { userId: 'user_demo', timestamp: Date.now() }; // จองสำเร็จ
+        onValue(ref(db, `events/${id}`), (snap) => {
+            const data = snap.val();
+            if(!data) return;
+            currentConfig = data.config;
+            const booked = data.currentBooked || 0;
+            const cap = data.config.capacity;
+
+            document.getElementById('e-title').innerText = currentConfig.title;
+            document.getElementById('e-time').innerText = currentConfig.start;
+            document.getElementById('e-capacity').innerText = cap == -1 ? "ไม่จำกัด" : cap;
+            document.getElementById('e-remaining').innerText = cap == -1 ? "∞" : (cap - booked);
+
+            const btn = document.getElementById('btn-event-book');
+            if(cap != -1 && booked >= cap) {
+                btn.disabled = true;
+                btn.innerText = "บัตรหมดแล้ว";
+                btn.style.background = "#ccc";
             } else {
-                return; // มีคนจองแล้ว ยกเลิก
+                btn.disabled = false;
+                btn.innerText = "ลงทะเบียนเข้าร่วม";
+                btn.style.background = "#28a745";
+                btn.onclick = () => openBookingForm('ticket');
             }
-        }).then((result) => {
-            if (result.committed) alert(`จองที่นั่ง ${seatId} สำเร็จ!`);
-            else alert(`ที่นั่ง ${seatId} ไม่ว่าง`);
         });
+    }
+
+    // --- 4. จัดการ Modal และการส่งข้อมูล ---
+    window.openBookingForm = (target) => {
+        if(!checkTime(currentConfig.start, currentConfig.end)) return;
+
+        selectedTarget = target;
+        const modal = document.getElementById('booking-modal');
+        const title = document.getElementById('modal-subtitle');
+        
+        if(currentType === 'movie') {
+            title.innerText = `กำลังเลือกที่นั่ง: ${target}`;
+        } else {
+            title.innerText = `กำลังลงทะเบียนอีเวนต์: ${currentConfig.title}`;
+        }
+        
+        modal.classList.add('active');
+    }
+
+    window.closeModal = () => {
+        document.getElementById('booking-modal').classList.remove('active');
+        document.getElementById('booking-form').reset();
+    }
+
+    window.submitBooking = (e) => {
+        e.preventDefault();
+        
+        const userData = {
+            firstName: document.getElementById('fname').value,
+            lastName: document.getElementById('lname').value,
+            phone: document.getElementById('phone').value,
+            email: document.getElementById('email').value,
+            idCard: document.getElementById('idcard').value,
+            timestamp: Date.now()
+        };
+
+        if(currentType === 'movie') {
+            bookMovieSeat(selectedTarget, userData);
+        } else {
+            bookEventTicket(userData);
+        }
     };
 
-    // --- Logic ส่วนอีเวนต์ ---
-    let eventConfig = null;
-    let currentBookedCount = 0;
+    function bookMovieSeat(seatId, userData) {
+        const seatRef = ref(db, `movies/${currentId}/bookings/${seatId}`);
+        runTransaction(seatRef, (currentData) => {
+            if (currentData === null) {
+                return userData; // Save User Data
+            } else {
+                return; // Abort
+            }
+        }).then((result) => {
+            closeModal();
+            if (result.committed) alert("✅ จองที่นั่งสำเร็จ!");
+            else alert("❌ ขออภัย ที่นั่งนี้ถูกจองตัดหน้าไปแล้ว");
+        });
+    }
 
-    onValue(ref(db, `events/${EVENT_ID}`), (snapshot) => {
-        const data = snapshot.val();
-        if(!data || !data.config) return;
+    function bookEventTicket(userData) {
+        const eventRef = ref(db, `events/${currentId}`);
         
-        eventConfig = data.config;
-        currentBookedCount = data.currentBooked || 0; // ยอดจองปัจจุบัน
-
-        document.getElementById('event-title').innerText = eventConfig.title;
-        document.getElementById('event-time').innerText = `วันที่: ${eventConfig.start} ถึง ${eventConfig.end}`;
-        
-        const capacity = eventConfig.capacity == -1 ? 'ไม่จำกัด' : eventConfig.capacity;
-        document.getElementById('event-capacity').innerText = capacity;
-        document.getElementById('event-remaining').innerText = eventConfig.capacity == -1 ? 'ไม่จำกัด' : (eventConfig.capacity - currentBookedCount);
-
-        // ปิดปุ่มถ้าเต็ม
-        const btn = document.getElementById('btn-book-event');
-        if (eventConfig.capacity != -1 && currentBookedCount >= eventConfig.capacity) {
-            btn.disabled = true;
-            btn.innerText = "บัตรหมด";
-        } else {
-            btn.disabled = false;
-            btn.innerText = "จองบัตรเข้าร่วม";
-        }
-    });
-
-    window.bookEvent = () => {
-        if(!checkTime(eventConfig.start, eventConfig.end)) return;
-
-        const eventRef = ref(db, `events/${EVENT_ID}`);
         runTransaction(eventRef, (eventData) => {
             if (eventData) {
                 const max = eventData.config.capacity;
                 const current = eventData.currentBooked || 0;
-                
-                if (max !== -1 && current >= max) {
-                    return; // เต็มแล้ว Abort
-                }
+                if (max !== -1 && current >= max) return; // Full
                 
                 eventData.currentBooked = current + 1;
                 return eventData;
             }
             return eventData;
         }).then((result) => {
-            if (result.committed) alert("จองบัตรสำเร็จ!");
-            else alert("ขออภัย บัตรหมดหรือเกิดข้อผิดพลาด");
+            if (result.committed) {
+                // Save Detail to sub-collection
+                const bookingListRef = ref(db, `events/${currentId}/bookings`);
+                push(bookingListRef, userData);
+                
+                closeModal();
+                alert("✅ ลงทะเบียนสำเร็จ!");
+            } else {
+                closeModal();
+                alert("❌ ขออภัย บัตรหมดหรือเกิดข้อผิดพลาด");
+            }
         });
-    };
+    }
 
-    // Helper เช็คเวลา
+    // --- Helpers ---
+    window.switchPage = (pageId) => {
+        document.querySelectorAll('.active-page').forEach(el => el.classList.remove('active-page'));
+        document.getElementById(pageId).classList.add('active-page');
+        
+        const backBtn = document.querySelector('.nav-back');
+        if(pageId === 'page-home') backBtn.style.display = 'none';
+        else backBtn.style.display = 'block';
+    }
+
+    window.goHome = () => {
+        currentType = '';
+        currentId = '';
+        switchPage('page-home');
+    }
+
     function checkTime(start, end) {
         const now = new Date();
-        const startTime = new Date(start);
-        const endTime = new Date(end);
-        if (now < startTime) { alert("ยังไม่เปิดให้จอง"); return false; }
-        if (now > endTime) { alert("หมดเวลาจองแล้ว"); return false; }
+        if (now < new Date(start)) { alert("ยังไม่เปิดให้จอง"); return false; }
+        if (now > new Date(end)) { alert("หมดเวลาจองแล้ว"); return false; }
         return true;
     }
 </script>
 
-<script>
-    // Tab Switching Script (Pure UI)
-    function switchTab(tabName) {
-        document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
-        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-        
-        document.getElementById(tabName + '-section').classList.add('active');
-        event.target.classList.add('active');
-    }
-</script>
 </body>
 </html>
