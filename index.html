@@ -28,7 +28,8 @@
         header { text-align: center; margin-bottom: 20px; }
         h1 { color: #1a73e8; margin: 0; }
         .btn-primary { width: 100%; padding: 12px; background: #1a73e8; color: white; border: none; border-radius: 6px; font-size: 1rem; cursor: pointer; font-weight: bold; margin-top: 10px; }
-        
+        .btn-secondary { padding: 8px 15px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; }
+
         .grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
         .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); position: relative; }
         .tag { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; margin-bottom: 10px; }
@@ -37,9 +38,15 @@
 
         /* Admin Controls */
         .admin-actions { display: flex; gap: 5px; margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px; }
-        .btn-sm { padding: 5px 10px; font-size: 0.8rem; border-radius: 4px; cursor: pointer; border: none; color: white; flex: 1; }
+        .btn-sm { padding: 5px 10px; font-size: 0.8rem; border-radius: 4px; cursor: pointer; border: none; color: white; flex: 1; margin-right: 2px;}
         .btn-edit { background: #f39c12; } .btn-del { background: #e74c3c; } 
         .admin-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: #e8f0fe; padding: 15px; border-radius: 8px; }
+
+        /* Schedule List Styles */
+        .schedule-item { background: #fff; border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .schedule-info { flex: 1; }
+        .schedule-stats { font-size: 0.9em; color: #666; background: #f8f9fa; padding: 5px 10px; border-radius: 4px; margin-right: 10px; }
+        .stat-val { font-weight: bold; color: #333; }
 
         /* Tables */
         table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; border-radius: 8px; overflow: hidden; }
@@ -70,6 +77,11 @@
         .nav-back { margin-bottom: 20px; cursor: pointer; color: #555; font-weight: bold; }
         .legend { display: flex; gap: 15px; font-size: 0.9rem; justify-content: center; margin-top: 20px; flex-wrap: wrap;}
         .legend-item { display: flex; align-items: center; gap: 5px; } .dot { width: 15px; height: 15px; border-radius: 3px; }
+        
+        .form-group { margin-bottom: 15px; text-align: left; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 600; }
+        .form-group input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        .modal-buttons { margin-top: 20px; text-align: right; }
     </style>
 </head>
 <body>
@@ -155,24 +167,49 @@
     </div>
 
     <div id="page-movie" class="hidden">
-        <div class="nav-back" onclick="goHome()">⬅ ย้อนกลับ</div>
-        <h2 id="m-title" style="text-align:center;">Title</h2>
-        <div class="screen">จอภาพยนตร์</div>
-        <div id="seat-map" class="seat-map"></div>
-        <div class="legend">
-            <div class="legend-item"><div class="dot" style="border:2px solid #28a745;"></div> ว่าง</div>
-            <div class="legend-item"><div class="dot" style="background:#ffc107;"></div> กำลังถูกเลือก</div>
-            <div class="legend-item"><div class="dot" style="background:#dc3545;"></div> จองแล้ว</div>
-            <div class="legend-item"><div class="dot" style="background:#e2e6ea;"></div> ไม่เปิดจอง</div>
+        <button class="btn-secondary" onclick="goHome()">⬅ ย้อนกลับ</button>
+        
+        <h2 id="m-group-title" style="margin-top:10px;">ชื่อภาพยนตร์</h2>
+        
+        <div id="movie-schedule-section">
+            <h3>เลือกรอบฉาย</h3>
+            <div class="schedule-list" id="movie-schedule-list"></div>
+        </div>
+
+        <div id="movie-seat-section" class="hidden">
+            <div style="margin: 10px 0;">
+                <button class="btn-sm" onclick="backToSchedule()" style="background:#6c757d">⬅ เลือกรอบอื่น</button>
+                <span style="font-weight:bold; margin-left:10px;">รอบเวลา: <span id="m-round-time"></span></span>
+            </div>
+            <div class="screen">จอภาพยนตร์</div>
+            <div class="seat-map" id="seat-map"></div>
+            <div class="legend">
+                <div class="legend-item"><div class="dot" style="border:2px solid #28a745;"></div> ว่าง</div>
+                <div class="legend-item"><div class="dot" style="background:#ffc107;"></div> กำลังเลือก</div>
+                <div class="legend-item"><div class="dot" style="background:#dc3545;"></div> จองแล้ว</div>
+                <div class="legend-item"><div class="dot" style="background:#e2e6ea;"></div> ปิด</div>
+            </div>
         </div>
     </div>
 
     <div id="page-event" class="hidden">
-        <div class="nav-back" onclick="goHome()">⬅ ย้อนกลับ</div>
-        <div style="text-align:center; background:white; padding:30px; border-radius:12px;">
-            <h2 id="e-title">Event Title</h2>
-            <p>บัตรเหลือ: <span id="e-remaining" style="font-weight:bold; color:#d93025;">-</span> / <span id="e-capacity">-</span></p>
-            <button id="btn-event-book" class="btn-primary" style="max-width: 200px;">ลงทะเบียน</button>
+        <button class="btn-secondary" onclick="goHome()">⬅ ย้อนกลับ</button>
+        <h2 id="e-group-title" style="margin-top:10px;">ชื่ออีเวนต์</h2>
+
+        <div id="event-schedule-section">
+            <h3>เลือกรอบกิจกรรม</h3>
+            <div class="schedule-list" id="event-schedule-list"></div>
+        </div>
+
+        <div id="event-booking-section" class="hidden">
+             <div style="margin: 10px 0;">
+                <button class="btn-sm" onclick="backToSchedule()" style="background:#6c757d">⬅ เลือกรอบอื่น</button>
+                <span style="font-weight:bold; margin-left:10px;">รอบเวลา: <span id="e-round-time"></span></span>
+            </div>
+            <div class="card">
+                <p>ที่นั่งคงเหลือ: <span id="e-remaining" class="highlight"></span> / <span id="e-capacity"></span></p>
+                <button id="btn-event-book" class="btn-primary" style="width:100%; margin-top:15px;">ลงทะเบียนจอง</button>
+            </div>
         </div>
     </div>
 
@@ -291,7 +328,7 @@
     import { getDatabase, ref, onValue, runTransaction, push, set, remove, onDisconnect, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-    // --- Config เดิมของคุณ ---
+    // --- ใส่ Config เดิมของคุณ ---
     const firebaseConfig = {
         apiKey: "AIzaSyAJGlD_kNVgRHVAdmUUgZAerrjX8nJbMJE",
         authDomain: "booking-system-c1ebd.firebaseapp.com",
@@ -332,15 +369,12 @@
                 userData = snap.val() || {};
                 userRole = userData.role || 'user';
                 updateNavbarUI(true);
-                // ถ้าอยู่หน้า Login ให้เด้งกลับ Home
                 if(!document.getElementById('page-auth').classList.contains('hidden')) window.goHome();
-                // รีเฟรชหน้ารายการเพื่อให้ปุ่ม Admin ทำงานถูกต้อง
-                window.renderHomeList();
             });
         } else {
             userRole = 'guest'; userData = {}; updateNavbarUI(false);
             if(document.getElementById('page-auth').classList.contains('hidden')) {
-                // อยู่หน้าอื่น
+                // อยู่หน้าอื่น ไม่ต้องทำอะไร
             } else {
                 window.goHome(); 
             }
@@ -350,19 +384,12 @@
     onValue(ref(db, '/'), (snapshot) => {
         allData = snapshot.val() || {};
         window.renderHomeList();
-        
-        // Refresh หน้ารอบฉายถ้าเปิดอยู่
+        // ถ้ากำลังเปิดหน้ารอบฉายอยู่ ให้รีเฟรชสถานะ
         if(!document.getElementById('page-movie').classList.contains('hidden') && currentType === 'movie') {
-           const titleEl = document.getElementById('m-group-title');
-           if(titleEl && document.getElementById('movie-seat-section').classList.contains('hidden')) {
-               window.openGroupPage(titleEl.innerText, 'movie', false);
+           const title = document.getElementById('m-group-title').innerText;
+           if(document.getElementById('movie-seat-section').classList.contains('hidden')) {
+               window.openGroupPage(title, 'movie', false);
            }
-        }
-        if(!document.getElementById('page-event').classList.contains('hidden') && currentType === 'event') {
-            const titleEl = document.getElementById('e-group-title');
-            if(titleEl && document.getElementById('event-booking-section').classList.contains('hidden')) {
-                window.openGroupPage(titleEl.innerText, 'event', false);
-            }
         }
     });
 
@@ -396,7 +423,7 @@
         window.renderHomeList();
     }
 
-    // --- Home List ---
+    // --- Home List (Grouping Logic) ---
     window.renderHomeList = () => {
         const mList = document.getElementById('movie-list');
         const eList = document.getElementById('event-list');
@@ -408,7 +435,6 @@
             else adminPanel.classList.add('hidden');
         }
 
-        // Group Movies
         const moviesGrouped = {};
         if(allData.movies) {
             Object.entries(allData.movies).forEach(([id, m]) => {
@@ -420,7 +446,6 @@
             });
         }
 
-        // Group Events
         const eventsGrouped = {};
         if(allData.events) {
             Object.entries(allData.events).forEach(([id, e]) => {
@@ -546,11 +571,7 @@
                      </div>`;
                 }
 
-                // --- แก้ไข Logic ปุ่มกด: Admin จองได้แม้เต็ม ---
                 const isFull = (cap !== -1 && cur >= cap);
-                const isDisabled = isFull && userRole !== 'admin';
-                const btnText = isFull ? (userRole==='admin' ? 'จองเกิน (Admin)' : 'เต็ม') : 'จอง';
-                const btnStyle = isDisabled ? 'disabled style="background:#ccc"' : (isFull && userRole==='admin' ? 'style="background:#f39c12"' : '');
 
                 list.innerHTML += `
                      <div class="schedule-item">
@@ -562,7 +583,7 @@
                             </div>
                             ${adminBtns}
                         </div>
-                        <button class="btn-primary" ${btnStyle} onclick="selectShowtime('${item.id}', 'event')">${btnText}</button>
+                        <button class="btn-primary" ${isFull && userRole !== 'admin' ? 'disabled style="background:#ccc"' : ''} onclick="selectShowtime('${item.id}', 'event')">${isFull ? (userRole==='admin'?'จองเกิน (Admin)':'เต็ม') : 'จอง'}</button>
                     </div>
                 `;
             });
@@ -606,7 +627,6 @@
                 document.getElementById('e-remaining').innerText = cap==-1 ? '∞' : (cap - cur);
                 document.getElementById('e-capacity').innerText = cap==-1 ? 'ไม่จำกัด' : cap;
 
-                // ตรวจสอบสิทธิ์ที่หน้า Booking อีกครั้ง
                 const btn = document.getElementById('btn-event-book');
                 const isFull = (cap!=-1 && cur>=cap);
                 
@@ -614,11 +634,11 @@
                     btn.disabled=true; btn.innerText="เต็ม"; btn.style.background="#ccc"; 
                 } else { 
                     btn.disabled=false; 
-                    btn.innerText = (isFull && userRole==='admin') ? "ยืนยันจองเกิน (Admin)" : "ลงทะเบียน";
-                    btn.style.background = (isFull && userRole==='admin') ? "#f39c12" : "#1a73e8";
+                    btn.innerText = (isFull && userRole==='admin') ? "จองเกิน (Admin)" : "ลงทะเบียน";
+                    btn.style.background = (isFull && userRole==='admin') ? "#f39c12" : "#1a73e8"; 
                     
                     btn.onclick=()=> {
-                         if(!checkTime(currentConfig.start, currentConfig.end) && userRole !== 'admin') return;
+                         if(!checkTime(currentConfig.start, currentConfig.end)) return;
                          window.openBookingModal("บัตรเข้าร่วมงาน");
                     }
                 }
@@ -671,8 +691,7 @@
     }
 
     window.selectSeat = (seatId) => {
-        if(!checkTime(currentConfig.start, currentConfig.end) && userRole !== 'admin') return;
-        
+        if(!checkTime(currentConfig.start, currentConfig.end)) return;
         const tempRef = ref(db, `movies/${currentId}/temp_selections/${seatId}`);
         const userIdToUse = currentUser ? currentUser.uid : guestId;
         runTransaction(tempRef, (curr) => {
@@ -727,7 +746,6 @@
         }
     }
 
-    // --- SUBMIT BOOKING (with DUPLICATE CHECK) ---
     window.submitBooking = () => {
         const bName = document.getElementById('inp-conf-name').value.trim();
         const bPhone = document.getElementById('inp-conf-phone').value.trim();
@@ -745,7 +763,7 @@
 
         let isDup = false;
         Object.values(existingBookings).forEach(b => {
-            // เช็คจาก Email (ทั้ง Guest และ User)
+            // เช็คจาก Email
             if(b.email === bEmail) isDup = true;
             // เช็คจาก UID (ถ้าล็อกอิน)
             if(currentUser && b.uid === currentUser.uid && b.uid !== 'guest') isDup = true;
@@ -753,7 +771,7 @@
 
         if(isDup) {
             if(userRole === 'admin') {
-                if(!confirm("⚠️ ผู้ใช้นี้เคยจองรอบนี้แล้ว (Admin Override) ยืนยันจองเพิ่มหรือไม่?")) return;
+                if(!confirm("⚠️ บัญชีหรืออีเมลนี้เคยจองรอบนี้แล้ว (Admin Override) ยืนยันจองเพิ่มหรือไม่?")) return;
                 // ถ้า Admin กด OK ก็ให้ทำงานต่อ
             } else {
                 alert("❌ คุณได้ทำการจองรอบนี้ไปแล้ว (จำกัด 1 สิทธิ์ต่อรอบ)");
@@ -855,8 +873,8 @@
 
     // --- Helpers & Admin ---
     function checkTime(s, e) {
+        if(userRole === 'admin') return true; // Admin จองได้ตลอดเวลา
         const n = new Date();
-        if(userRole === 'admin') return true; // Admin ข้ามเรื่องเวลา
         if(n < new Date(s)) { alert("ยังไม่ถึงเวลาเปิดจอง"); return false; }
         if(n > new Date(e)) { alert("หมดเวลาจองแล้ว"); return false; }
         return true;
