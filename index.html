@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบจองตั๋ว Realtime</title>
+    <style>
+        body { font-family: 'Sarabun', sans-serif; background: #f4f4f9; padding: 20px; text-align: center; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1, h2 { color: #333; }
+        
+        /* Tabs */
+        .tabs { margin-bottom: 20px; }
+        .tab-btn { padding: 10px 20px; cursor: pointer; border: none; background: #ddd; font-size: 16px; }
+        .tab-btn.active { background: #007bff; color: white; }
+        .section { display: none; }
+        .section.active { display: block; }
+
+        /* Movie Seats */
+        .screen { background: #333; color: white; padding: 5px; margin: 10px 0 20px; font-size: 12px; }
+        .seat-map { display: grid; justify-content: center; gap: 8px; margin-bottom: 20px; }
+        .seat { 
+            width: 35px; height: 35px; border-radius: 5px; cursor: pointer; 
+            display: flex; align-items: center; justify-content: center; font-size: 10px; color: white;
+        }
+        .seat.available { background-color: #28a745; }
+        .seat.booked { background-color: #dc3545; cursor: not-allowed; }
+        .seat.blocked { background-color: #6c757d; cursor: not-allowed; opacity: 0.5; }
+        .seat:hover:not(.booked):not(.blocked) { opacity: 0.8; transform: scale(1.1); }
+
+        /* Event Card */
+        .event-card { border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px; }
+        .status { font-weight: bold; margin: 10px 0; }
+        button.book-btn { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
+        button.book-btn:disabled { background: #ccc; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🎟️ ระบบจองตั๋วออนไลน์</h1>
+    
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('movie')">🎬 จองตั๋วหนัง</button>
+        <button class="tab-btn" onclick="switchTab('event')">🎉 จองอีเวนต์</button>
+    </div>
+
+    <div id="movie-section" class="section active">
+        <h2 id="movie-title">กำลังโหลด...</h2>
+        <div class="screen">จอภาพยนตร์</div>
+        <div id="seat-map" class="seat-map"></div>
+        <div id="movie-info"></div>
+    </div>
+
+    <div id="event-section" class="section">
+        <h2 id="event-title">กำลังโหลด...</h2>
+        <div class="event-card">
+            <p id="event-time"></p>
+            <div class="status">
+                บัตรเหลือ: <span id="event-remaining">-</span> / <span id="event-capacity">-</span>
+            </div>
+            <button id="btn-book-event" class="book-btn" onclick="bookEvent()">จองบัตรเข้าร่วม</button>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref, onValue, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+    // -------------------------------------------------------------
+    // 1. ตั้งค่า Firebase Configuration (เอามาจาก Firebase Console)
+    // -------------------------------------------------------------
+    const firebaseConfig = {
+        databaseURL: "https://booking-system-c1ebd-default-rtdb.asia-southeast1.firebasedatabase.app/"
+        // ใส่แค่ databaseURL ก็พอสำหรับการเขียนแบบง่าย ถ้ามี API Key ใส่ด้วยก็ได้
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // Hardcode ID สำหรับตัวอย่าง (ในระบบจริงอาจรับจาก URL Parameter)
+    const MOVIE_ID = 'm01';
+    const EVENT_ID = 'e01';
+
+    // --- Logic ส่วนหนัง ---
+    const seatMap = document.getElementById('seat-map');
+    let movieConfig = null;
+
+    // ดึง Config หนัง
+    onValue(ref(db, `movies/${MOVIE_ID}/config`), (snapshot) => {
+        movieConfig = snapshot.val();
+        if(!movieConfig) return;
+        document.getElementById('movie-title').innerText = movieConfig.title;
+        renderSeatMap();
+    });
+
+    // ดึงข้อมูลการจองแบบ Realtime
+    onValue(ref(db, `movies/${MOVIE_ID}/bookings`), (snapshot) => {
+        const bookings = snapshot.val() || {};
+        updateSeatStatus(bookings);
+    });
+
+    function renderSeatMap() {
+        seatMap.innerHTML = '';
+        seatMap.style.gridTemplateColumns = `repeat(${movieConfig.cols}, 1fr)`;
+        
+        const blocked = movieConfig.blocked || [];
+
+        for (let r = 0; r < movieConfig.rows; r++) {
+            const rowLabel = String.fromCharCode(65 + r); // A, B, C...
+            for (let c = 1; c <= movieConfig.cols; c++) {
+                const seatId = `${rowLabel}${c}`;
+                const div = document.createElement('div');
+                div.className = 'seat available';
+                div.id = `seat-${seatId}`;
+                div.innerText = seatId;
+                
+                // เช็คว่า Blocked หรือไม่
+                if (blocked.includes(seatId)) {
+                    div.classList.add('blocked');
+                    div.classList.remove('available');
+                } else {
+                    div.onclick = () => bookSeat(seatId);
+                }
+                seatMap.appendChild(div);
+            }
+        }
+    }
+
+    function updateSeatStatus(bookings) {
+        document.querySelectorAll('.seat').forEach(el => {
+            const seatId = el.id.replace('seat-', '');
+            if (!el.classList.contains('blocked')) {
+                if (bookings[seatId]) {
+                    el.className = 'seat booked';
+                } else {
+                    el.className = 'seat available';
+                }
+            }
+        });
+    }
+
+    window.bookSeat = (seatId) => {
+        if(!checkTime(movieConfig.start, movieConfig.end)) return;
+
+        const seatRef = ref(db, `movies/${MOVIE_ID}/bookings/${seatId}`);
+        runTransaction(seatRef, (currentData) => {
+            if (currentData === null) {
+                return { userId: 'user_demo', timestamp: Date.now() }; // จองสำเร็จ
+            } else {
+                return; // มีคนจองแล้ว ยกเลิก
+            }
+        }).then((result) => {
+            if (result.committed) alert(`จองที่นั่ง ${seatId} สำเร็จ!`);
+            else alert(`ที่นั่ง ${seatId} ไม่ว่าง`);
+        });
+    };
+
+    // --- Logic ส่วนอีเวนต์ ---
+    let eventConfig = null;
+    let currentBookedCount = 0;
+
+    onValue(ref(db, `events/${EVENT_ID}`), (snapshot) => {
+        const data = snapshot.val();
+        if(!data || !data.config) return;
+        
+        eventConfig = data.config;
+        currentBookedCount = data.currentBooked || 0; // ยอดจองปัจจุบัน
+
+        document.getElementById('event-title').innerText = eventConfig.title;
+        document.getElementById('event-time').innerText = `วันที่: ${eventConfig.start} ถึง ${eventConfig.end}`;
+        
+        const capacity = eventConfig.capacity == -1 ? 'ไม่จำกัด' : eventConfig.capacity;
+        document.getElementById('event-capacity').innerText = capacity;
+        document.getElementById('event-remaining').innerText = eventConfig.capacity == -1 ? 'ไม่จำกัด' : (eventConfig.capacity - currentBookedCount);
+
+        // ปิดปุ่มถ้าเต็ม
+        const btn = document.getElementById('btn-book-event');
+        if (eventConfig.capacity != -1 && currentBookedCount >= eventConfig.capacity) {
+            btn.disabled = true;
+            btn.innerText = "บัตรหมด";
+        } else {
+            btn.disabled = false;
+            btn.innerText = "จองบัตรเข้าร่วม";
+        }
+    });
+
+    window.bookEvent = () => {
+        if(!checkTime(eventConfig.start, eventConfig.end)) return;
+
+        const eventRef = ref(db, `events/${EVENT_ID}`);
+        runTransaction(eventRef, (eventData) => {
+            if (eventData) {
+                const max = eventData.config.capacity;
+                const current = eventData.currentBooked || 0;
+                
+                if (max !== -1 && current >= max) {
+                    return; // เต็มแล้ว Abort
+                }
+                
+                eventData.currentBooked = current + 1;
+                return eventData;
+            }
+            return eventData;
+        }).then((result) => {
+            if (result.committed) alert("จองบัตรสำเร็จ!");
+            else alert("ขออภัย บัตรหมดหรือเกิดข้อผิดพลาด");
+        });
+    };
+
+    // Helper เช็คเวลา
+    function checkTime(start, end) {
+        const now = new Date();
+        const startTime = new Date(start);
+        const endTime = new Date(end);
+        if (now < startTime) { alert("ยังไม่เปิดให้จอง"); return false; }
+        if (now > endTime) { alert("หมดเวลาจองแล้ว"); return false; }
+        return true;
+    }
+</script>
+
+<script>
+    // Tab Switching Script (Pure UI)
+    function switchTab(tabName) {
+        document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        
+        document.getElementById(tabName + '-section').classList.add('active');
+        event.target.classList.add('active');
+    }
+</script>
+</body>
+</html>
