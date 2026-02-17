@@ -74,17 +74,18 @@
 </head>
 <body>
 
-<nav id="main-nav" class="hidden">
-    <div class="nav-container">
-        <div class="nav-logo">🎬 Booking System</div>
-        <ul class="nav-menu">
-            <li><a href="#" onclick="goHome()">หน้าแรก</a></li>
-            <li id="nav-profile"><a href="#" onclick="showProfile()">โปรไฟล์ & ประวัติ</a></li>
-            <li id="nav-admin-users" class="hidden"><a href="#" onclick="showUserManagement()">จัดการสมาชิก</a></li>
-            
-            <li id="nav-login-btn"><a href="#" onclick="showPage('page-auth')">เข้าสู่ระบบ</a></li>
-            <li id="nav-logout-btn" class="hidden"><a href="#" onclick="doLogout()">ออกจากระบบ</a></li>
-        </ul>
+<nav class="navbar hidden" id="main-nav">
+    <div class="brand" onclick="goHome()">🎟️ TicketSystem</div>
+    <div class="nav-menu">
+        <span class="nav-item" onclick="goHome()">หน้าหลัก</span>
+
+        <span id="nav-profile" class="nav-item hidden" onclick="showProfile()">ข้อมูลส่วนตัว</span>
+
+        <span id="nav-admin-users" class="nav-item hidden" onclick="showUserManagement()" style="color:#d93025;">จัดการสมาชิก</span>
+
+        <span id="nav-login" class="nav-item" onclick="showPage('page-auth')">เข้าสู่ระบบ</span>
+
+        <span id="nav-logout" class="btn-logout hidden" onclick="doLogout()">ออกจากระบบ</span>
     </div>
 </nav>
 
@@ -358,21 +359,27 @@
     });
 
     function updateNavbarUI(isLoggedIn) {
+        // แสดง Navbar เสมอ (ลบ class hidden)
         document.getElementById('main-nav').classList.remove('hidden');
         
-        // ปุ่ม Admin
-        if(userRole === 'admin') document.getElementById('nav-admin-users').classList.remove('hidden');
-        else document.getElementById('nav-admin-users').classList.add('hidden');
-
-        // ปุ่ม Profile & Logout
-        if(isLoggedIn) {
-            document.getElementById('nav-profile').classList.remove('hidden');
-            document.getElementById('nav-logout-btn').classList.remove('hidden');
-            document.getElementById('nav-login-btn').classList.add('hidden');
+        // --- จัดการปุ่ม Admin ---
+        if(userRole === 'admin') {
+            document.getElementById('nav-admin-users').classList.remove('hidden');
         } else {
-            document.getElementById('nav-profile').classList.add('hidden');
-            document.getElementById('nav-logout-btn').classList.add('hidden');
-            document.getElementById('nav-login-btn').classList.remove('hidden');
+            document.getElementById('nav-admin-users').classList.add('hidden');
+        }
+
+        // --- จัดการปุ่ม User vs Guest ---
+        if(isLoggedIn) {
+            // กรณี: เข้าสู่ระบบแล้ว
+            document.getElementById('nav-profile').classList.remove('hidden'); // โชว์โปรไฟล์
+            document.getElementById('nav-logout').classList.remove('hidden');  // โชว์ปุ่มออก
+            document.getElementById('nav-login').classList.add('hidden');      // ซ่อนปุ่มเข้า
+        } else {
+            // กรณี: ยังไม่เข้าสู่ระบบ (Guest)
+            document.getElementById('nav-profile').classList.add('hidden');    // ซ่อนโปรไฟล์
+            document.getElementById('nav-logout').classList.add('hidden');     // ซ่อนปุ่มออก
+            document.getElementById('nav-login').classList.remove('hidden');   // โชว์ปุ่มเข้า
         }
     }
 
