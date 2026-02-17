@@ -419,39 +419,50 @@
         const eList = document.getElementById('event-list');
         mList.innerHTML = ''; eList.innerHTML = '';
 
-        if(userRole === 'admin') document.getElementById('admin-panel-home').classList.remove('hidden');
-        else document.getElementById('admin-panel-home').classList.add('hidden');
+        // แสดงปุ่ม Admin ถ้ามีสิทธิ์
+        const adminPanel = document.getElementById('admin-panel-home');
+        if(adminPanel) {
+            if(userRole === 'admin') adminPanel.classList.remove('hidden');
+            else adminPanel.classList.add('hidden');
+        }
 
-        // Group Movies by Title
+        // --- Logic ใหม่: รวมกลุ่มหนังตามชื่อเรื่อง (Group by Title) ---
         const moviesGrouped = {};
         if(allData.movies) {
             Object.entries(allData.movies).forEach(([id, m]) => {
-                const title = m.config.title;
-                if(!moviesGrouped[title]) moviesGrouped[title] = [];
-                moviesGrouped[title].push({id, ...m});
+                // ป้องกัน Error ถ้าข้อมูลไม่ครบ
+                if(m.config && m.config.title) {
+                    const title = m.config.title;
+                    if(!moviesGrouped[title]) moviesGrouped[title] = [];
+                    moviesGrouped[title].push({id, ...m});
+                }
             });
         }
 
-        // Group Events by Title
+        // --- Logic ใหม่: รวมกลุ่ม Event ตามชื่อเรื่อง ---
         const eventsGrouped = {};
         if(allData.events) {
             Object.entries(allData.events).forEach(([id, e]) => {
-                const title = e.config.title;
-                if(!eventsGrouped[title]) eventsGrouped[title] = [];
-                eventsGrouped[title].push({id, ...e});
+                if(e.config && e.config.title) {
+                    const title = e.config.title;
+                    if(!eventsGrouped[title]) eventsGrouped[title] = [];
+                    eventsGrouped[title].push({id, ...e});
+                }
             });
         }
 
-        // Render Groups
+        // --- สร้างการ์ด (แสดงแค่ 1 ใบต่อเรื่อง) ---
         Object.keys(moviesGrouped).forEach(title => {
-            // ส่งตัวแทน 1 อันไปสร้างการ์ด (เอาอันแรกสุดก็ได้)
-            const rep = moviesGrouped[title][0]; 
-            mList.appendChild(createCard(title, rep.config, 'movie', moviesGrouped[title].length));
+            const rounds = moviesGrouped[title]; 
+            const rep = rounds[0]; // ใช้ข้อมูลของรอบแรกมาแสดงเป็นตัวอย่าง
+            // ส่ง title และ จำนวนรอบ (rounds.length) ไปให้ createCard
+            mList.appendChild(createCard(title, rep.config, 'movie', rounds.length));
         });
 
         Object.keys(eventsGrouped).forEach(title => {
-            const rep = eventsGrouped[title][0];
-            eList.appendChild(createCard(title, rep.config, 'event', eventsGrouped[title].length));
+            const rounds = eventsGrouped[title];
+            const rep = rounds[0];
+            eList.appendChild(createCard(title, rep.config, 'event', rounds.length));
         });
     }
 
@@ -534,8 +545,9 @@
         div.innerHTML = `
             <span class="tag ${type}">${type==='movie'?'ภาพยนตร์':'อีเวนต์'}</span>
             <h3>${title}</h3>
-            <p>มีทั้งหมด <strong>${count}</strong> รอบ</p>
+            <p style="color:#666; font-size:0.9rem;">มีทั้งหมด <strong>${count}</strong> รอบ</p>
         `;
+        // เมื่อกดการ์ด ให้เปิดหน้ารวมรอบ (Open Group Page)
         div.onclick = () => window.openGroupPage(title, type, true);
         return div;
     }
