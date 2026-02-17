@@ -70,6 +70,29 @@
         .nav-back { margin-bottom: 20px; cursor: pointer; color: #555; font-weight: bold; }
         .legend { display: flex; gap: 15px; font-size: 0.9rem; justify-content: center; margin-top: 20px; flex-wrap: wrap;}
         .legend-item { display: flex; align-items: center; gap: 5px; } .dot { width: 15px; height: 15px; border-radius: 3px; }
+        .schedule-item {
+            background: #fff;
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .schedule-info { flex: 1; }
+        .schedule-stats { 
+            font-size: 0.9em; 
+            color: #666; 
+            background: #f8f9fa; 
+            padding: 5px 10px; 
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+        .stat-box { display: inline-block; margin-right: 10px; }
+        .stat-val { font-weight: bold; color: #333; }
     </style>
 </head>
 <body>
@@ -154,25 +177,51 @@
         </table>
     </div>
 
-    <div id="page-movie" class="hidden">
-        <div class="nav-back" onclick="goHome()">⬅ ย้อนกลับ</div>
-        <h2 id="m-title" style="text-align:center;">Title</h2>
-        <div class="screen">จอภาพยนตร์</div>
-        <div id="seat-map" class="seat-map"></div>
-        <div class="legend">
-            <div class="legend-item"><div class="dot" style="border:2px solid #28a745;"></div> ว่าง</div>
-            <div class="legend-item"><div class="dot" style="background:#ffc107;"></div> กำลังถูกเลือก</div>
-            <div class="legend-item"><div class="dot" style="background:#dc3545;"></div> จองแล้ว</div>
-            <div class="legend-item"><div class="dot" style="background:#e2e6ea;"></div> ไม่เปิดจอง</div>
+    <div id="page-movie" class="container hidden">
+        <button class="btn-secondary" onclick="goHome()">⬅ ย้อนกลับ</button>
+        
+        <h2 id="m-group-title" style="margin-top:10px;">ชื่อภาพยนตร์</h2>
+        
+        <div id="movie-schedule-section">
+            <h3>เลือกรอบฉาย</h3>
+            <div class="schedule-list" id="movie-schedule-list">
+                </div>
+        </div>
+
+        <div id="movie-seat-section" class="hidden">
+            <div style="margin: 10px 0;">
+                <button class="btn-sm" onclick="backToSchedule()">⬅ เลือกรอบอื่น</button>
+                <span style="font-weight:bold; margin-left:10px;">รอบเวลา: <span id="m-round-time"></span></span>
+            </div>
+            <div class="screen">จอภาพยนตร์</div>
+            <div class="seat-map" id="seat-map"></div>
+            <div class="legend">
+                <div class="seat available"></div> ว่าง
+                <div class="seat selecting"></div> กำลังเลือก
+                <div class="seat booked"></div> จองแล้ว
+                <div class="seat blocked"></div> ปิด
+            </div>
         </div>
     </div>
 
-    <div id="page-event" class="hidden">
-        <div class="nav-back" onclick="goHome()">⬅ ย้อนกลับ</div>
-        <div style="text-align:center; background:white; padding:30px; border-radius:12px;">
-            <h2 id="e-title">Event Title</h2>
-            <p>บัตรเหลือ: <span id="e-remaining" style="font-weight:bold; color:#d93025;">-</span> / <span id="e-capacity">-</span></p>
-            <button id="btn-event-book" class="btn-primary" style="max-width: 200px;">ลงทะเบียน</button>
+    <div id="page-event" class="container hidden">
+        <button class="btn-secondary" onclick="goHome()">⬅ ย้อนกลับ</button>
+        <h2 id="e-group-title" style="margin-top:10px;">ชื่ออีเวนต์</h2>
+
+        <div id="event-schedule-section">
+            <h3>เลือกรอบกิจกรรม</h3>
+            <div class="schedule-list" id="event-schedule-list"></div>
+        </div>
+
+        <div id="event-booking-section" class="hidden">
+            <div style="margin: 10px 0;">
+                <button class="btn-sm" onclick="backToSchedule()">⬅ เลือกรอบอื่น</button>
+                <span style="font-weight:bold; margin-left:10px;">รอบเวลา: <span id="e-round-time"></span></span>
+            </div>
+            <div class="card">
+                <p>ที่นั่งคงเหลือ: <span id="e-remaining" class="highlight"></span> / <span id="e-capacity"></span></p>
+                <button id="btn-event-book" class="btn-primary" style="width:100%; margin-top:15px;">ลงทะเบียนจอง</button>
+            </div>
         </div>
     </div>
 
@@ -308,79 +357,102 @@
 
     // --- Global State ---
     let currentUser = null;
-    let userRole = 'guest'; // default คือ guest
-    let userData = {}; // เก็บข้อมูล User ถ้า Login
+    let userRole = 'guest';
+    let userData = {};
     let isRegistering = false;
-    let allData = {}; // เก็บข้อมูลหนัง/Event ทั้งหมด (ใช้สำหรับแสดงผล + ค้นหาประวัติ)
-
-    // สร้าง ID ชั่วคราวให้ Guest (เก็บใน LocalStorage เพื่อให้ Session ต่อเนื่อง)
-    let guestId = localStorage.getItem('guest_uid');
-    if (!guestId) {
-        guestId = 'guest_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-        localStorage.setItem('guest_uid', guestId);
-    }
+    let allData = {}; 
+    let guestId = localStorage.getItem('guest_uid') || 'guest_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    if (!localStorage.getItem('guest_uid')) localStorage.setItem('guest_uid', guestId);
 
     let currentType = ''; 
-    let currentId = '';
+    let currentId = ''; 
     let selectedTarget = '';
     let currentConfig = null;
     let tempSeatRef = null;
 
-    // --- 1. Authentication & Initialization ---
+    // --- Auth & Init ---
     onAuthStateChanged(auth, (user) => {
         currentUser = user;
         if (user) {
-            // --- กรณี Login แล้ว ---
             onValue(ref(db, 'users/' + user.uid), (snap) => {
                 userData = snap.val() || {};
                 userRole = userData.role || 'user';
                 updateNavbarUI(true);
-                // ถ้ายังอยู่หน้า Login ให้เด้งไปหน้าแรก
-                if(!document.getElementById('page-auth').classList.contains('hidden')) goHome();
             });
         } else {
-            // --- กรณี Guest (ไม่ได้ Login) ---
-            userRole = 'guest';
-            userData = {};
-            updateNavbarUI(false);
-            // ไม่บังคับเด้งไปหน้า Login แล้ว ให้ดูหน้าแรกได้เลย
-            if(document.getElementById('page-auth').classList.contains('hidden')) {
-                // ถ้าไม่ได้อยู่หน้า Auth ก็ปล่อยไว้
-            } else {
-                goHome(); // ถ้าอยู่หน้า Auth ให้กลับมา Home (หรือจะค้างไว้ก็ได้)
-            }
+            userRole = 'guest'; userData = {}; updateNavbarUI(false);
         }
     });
-    
-    // โหลดข้อมูลหนัง/Event ตลอดเวลา (เพื่อให้ Guest เห็น Real-time)
+
     onValue(ref(db, '/'), (snapshot) => {
         allData = snapshot.val() || {};
         renderHomeList();
+        // ถ้ากำลังเปิดหน้ารอบฉายอยู่ ให้รีเฟรชสถานะที่นั่งแบบ Realtime ด้วย
+        if(!document.getElementById('page-movie').classList.contains('hidden') && currentType === 'movie') {
+           // กรณีดูรายการรอบ: refresh list
+           const title = document.getElementById('m-group-title').innerText;
+           if(document.getElementById('movie-seat-section').classList.contains('hidden')) {
+               openGroupPage(title, 'movie', false); // false = ไม่ switch page แค่ update data
+           }
+        }
     });
 
     function updateNavbarUI(isLoggedIn) {
-        // แสดง Navbar เสมอ (ลบ class hidden)
         document.getElementById('main-nav').classList.remove('hidden');
-        
-        // --- จัดการปุ่ม Admin ---
-        if(userRole === 'admin') {
-            document.getElementById('nav-admin-users').classList.remove('hidden');
+        if(userRole === 'admin') document.getElementById('nav-admin-users').classList.remove('hidden');
+        else document.getElementById('nav-admin-users').classList.add('hidden');
+
+        if(isLoggedIn) {
+            document.getElementById('nav-profile').classList.remove('hidden');
+            document.getElementById('nav-logout').classList.remove('hidden');
+            document.getElementById('nav-login').classList.add('hidden');
         } else {
-            document.getElementById('nav-admin-users').classList.add('hidden');
+            document.getElementById('nav-profile').classList.add('hidden');
+            document.getElementById('nav-logout').classList.add('hidden');
+            document.getElementById('nav-login').classList.remove('hidden');
+        }
+    }
+
+    // --- Home List (Grouping Logic) ---
+    window.renderHomeList = () => {
+        const mList = document.getElementById('movie-list');
+        const eList = document.getElementById('event-list');
+        mList.innerHTML = ''; eList.innerHTML = '';
+
+        if(userRole === 'admin') document.getElementById('admin-panel-home').classList.remove('hidden');
+        else document.getElementById('admin-panel-home').classList.add('hidden');
+
+        // Group Movies by Title
+        const moviesGrouped = {};
+        if(allData.movies) {
+            Object.entries(allData.movies).forEach(([id, m]) => {
+                const title = m.config.title;
+                if(!moviesGrouped[title]) moviesGrouped[title] = [];
+                moviesGrouped[title].push({id, ...m});
+            });
         }
 
-        // --- จัดการปุ่ม User vs Guest ---
-        if(isLoggedIn) {
-            // กรณี: เข้าสู่ระบบแล้ว
-            document.getElementById('nav-profile').classList.remove('hidden'); // โชว์โปรไฟล์
-            document.getElementById('nav-logout').classList.remove('hidden');  // โชว์ปุ่มออก
-            document.getElementById('nav-login').classList.add('hidden');      // ซ่อนปุ่มเข้า
-        } else {
-            // กรณี: ยังไม่เข้าสู่ระบบ (Guest)
-            document.getElementById('nav-profile').classList.add('hidden');    // ซ่อนโปรไฟล์
-            document.getElementById('nav-logout').classList.add('hidden');     // ซ่อนปุ่มออก
-            document.getElementById('nav-login').classList.remove('hidden');   // โชว์ปุ่มเข้า
+        // Group Events by Title
+        const eventsGrouped = {};
+        if(allData.events) {
+            Object.entries(allData.events).forEach(([id, e]) => {
+                const title = e.config.title;
+                if(!eventsGrouped[title]) eventsGrouped[title] = [];
+                eventsGrouped[title].push({id, ...e});
+            });
         }
+
+        // Render Groups
+        Object.keys(moviesGrouped).forEach(title => {
+            // ส่งตัวแทน 1 อันไปสร้างการ์ด (เอาอันแรกสุดก็ได้)
+            const rep = moviesGrouped[title][0]; 
+            mList.appendChild(createCard(title, rep.config, 'movie', moviesGrouped[title].length));
+        });
+
+        Object.keys(eventsGrouped).forEach(title => {
+            const rep = eventsGrouped[title][0];
+            eList.appendChild(createCard(title, rep.config, 'event', eventsGrouped[title].length));
+        });
     }
 
     window.handleAuth = (e) => {
@@ -428,22 +500,17 @@
         else document.getElementById('nav-admin-users').classList.add('hidden');
     }
 
-    // --- 2. Views ---
-    // เปลี่ยนจาก function showPage(pid) {...} เป็น window.showPage = ...
+    // --- Other Views (Profile, Users, etc.) ---
     window.showPage = (pid) => {
         ['page-auth', 'page-home', 'page-movie', 'page-event', 'page-profile', 'page-users'].forEach(id => {
-            // เช็คว่ามี element จริงไหมก่อนสั่งซ่อน (เผื่อบางหน้ายังไม่ได้สร้าง)
-            const el = document.getElementById(id);
-            if(el) el.classList.add('hidden');
+            const el = document.getElementById(id); if(el) el.classList.add('hidden');
         });
-        
-        const target = document.getElementById(pid);
-        if(target) target.classList.remove('hidden');
+        const t = document.getElementById(pid); if(t) t.classList.remove('hidden');
     }
-
+    
     window.goHome = () => {
         if(currentType === 'movie' && tempSeatRef) cancelSelection();
-        showPage('page-home'); // เรียกใช้แบบนี้ได้เหมือนเดิมเพราะอยู่ใน scope เดียวกัน
+        showPage('page-home');
         renderHomeList();
     }
 
@@ -461,35 +528,192 @@
         if(allData.events) Object.keys(allData.events).forEach(k => eList.appendChild(createCard(k, allData.events[k].config, 'event')));
     }
 
-    function createCard(id, data, type) {
-        if(!data) return document.createElement('div');
+    function createCard(title, config, type, count) {
         const div = document.createElement('div');
         div.className = 'card';
-        
-        let adminHtml = '';
-        if(userRole === 'admin') {
-            adminHtml = `
-                <div class="admin-actions">
-                    <button class="btn-sm" style="background:#8e44ad; color:white;" onclick="viewBookings('${id}','${type}')">👥 ดูยอดจอง</button>
-                    <button class="btn-sm btn-edit" onclick="editItem('${id}','${type}')">แก้ไข</button>
-                    <button class="btn-sm btn-del" onclick="deleteItem('${id}','${type}')">ลบ</button>
-                </div>
-            `;
-        }
-
         div.innerHTML = `
             <span class="tag ${type}">${type==='movie'?'ภาพยนตร์':'อีเวนต์'}</span>
-            <h3>${data.title}</h3>
-            <p>📅 ${new Date(data.start).toLocaleString()}</p>
-            ${adminHtml}
+            <h3>${title}</h3>
+            <p>มีทั้งหมด <strong>${count}</strong> รอบ</p>
         `;
-        div.onclick = (e) => {
-            if(e.target.tagName !== 'BUTTON') {
-                if(type === 'movie') openMoviePage(id);
-                else openEventPage(id);
-            }
-        }
+        div.onclick = () => window.openGroupPage(title, type, true);
         return div;
+    }
+
+    // --- Group Details & Schedule List ---
+    window.openGroupPage = (title, type, switchPage = true) => {
+        currentType = type;
+        if(switchPage) showPage(type === 'movie' ? 'page-movie' : 'page-event');
+
+        if(type === 'movie') {
+            document.getElementById('m-group-title').innerText = title;
+            // ซ่อน Seat Map โชว์ Schedule ก่อน
+            document.getElementById('movie-schedule-section').classList.remove('hidden');
+            document.getElementById('movie-seat-section').classList.add('hidden');
+            
+            const list = document.getElementById('movie-schedule-list');
+            list.innerHTML = '';
+            
+            // หาหนังที่มีชื่อตรงกัน
+            const items = [];
+            if(allData.movies) {
+                Object.entries(allData.movies).forEach(([id, m]) => {
+                    if(m.config.title === title) items.push({id, ...m});
+                });
+            }
+            // เรียงตามเวลา
+            items.sort((a,b) => new Date(a.config.start) - new Date(b.config.start));
+
+            items.forEach(item => {
+                // คำนวณ Stats
+                const total = (item.config.rows * item.config.cols) - (item.config.blocked ? item.config.blocked.length : 0);
+                const booked = item.bookings ? Object.keys(item.bookings).length : 0;
+                
+                // นับ Temp Selection ที่ยังไม่หมดเวลา
+                let selecting = 0;
+                if(item.temp_selections) {
+                    Object.values(item.temp_selections).forEach(t => {
+                        if(Date.now() - t.timestamp < 5 * 60 * 1000) selecting++;
+                    });
+                }
+                const available = total - booked - selecting;
+                const timeStr = new Date(item.config.start).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' });
+
+                // ปุ่ม Admin (ลบ/แก้ไข) จะใส่ตรงนี้ก็ได้ ถ้าต้องการ
+                let adminBtns = '';
+                if(userRole === 'admin') {
+                     adminBtns = `<div style="margin-top:5px;">
+                        <button class="btn-sm btn-edit" onclick="editItem('${item.id}','movie')">แก้ไข</button>
+                        <button class="btn-sm btn-del" onclick="deleteItem('${item.id}','movie')">ลบ</button>
+                        <button class="btn-sm" style="background:#8e44ad; color:white;" onclick="viewBookings('${item.id}','movie')">รายชื่อ</button>
+                     </div>`;
+                }
+
+                list.innerHTML += `
+                    <div class="schedule-item">
+                        <div class="schedule-info">
+                            <strong>🕒 ${timeStr}</strong>
+                            <div style="margin-top:5px;">
+                                <span class="schedule-stats"><span class="stat-val" style="color:green">${available}</span> ว่าง</span>
+                                <span class="schedule-stats"><span class="stat-val" style="color:red">${booked}</span> จองแล้ว</span>
+                                <span class="schedule-stats"><span class="stat-val" style="color:orange">${selecting}</span> กำลังจอง</span>
+                            </div>
+                            ${adminBtns}
+                        </div>
+                        <button class="btn-primary" onclick="selectShowtime('${item.id}', 'movie')">จองที่นั่ง</button>
+                    </div>
+                `;
+            });
+
+        } else {
+            // Event Logic (คล้าย Movie)
+            document.getElementById('e-group-title').innerText = title;
+            document.getElementById('event-schedule-section').classList.remove('hidden');
+            document.getElementById('event-booking-section').classList.add('hidden');
+            
+            const list = document.getElementById('event-schedule-list');
+            list.innerHTML = '';
+            
+            const items = [];
+            if(allData.events) {
+                Object.entries(allData.events).forEach(([id, e]) => {
+                    if(e.config.title === title) items.push({id, ...e});
+                });
+            }
+            items.sort((a,b) => new Date(a.config.start) - new Date(b.config.start));
+
+            items.forEach(item => {
+                const cap = item.config.capacity;
+                const cur = item.currentBooked || 0;
+                const remain = cap === -1 ? '∞' : (cap - cur);
+                const timeStr = new Date(item.config.start).toLocaleString();
+                
+                let adminBtns = '';
+                if(userRole === 'admin') {
+                     adminBtns = `<div style="margin-top:5px;">
+                        <button class="btn-sm btn-edit" onclick="editItem('${item.id}','event')">แก้ไข</button>
+                        <button class="btn-sm btn-del" onclick="deleteItem('${item.id}','event')">ลบ</button>
+                         <button class="btn-sm" style="background:#8e44ad; color:white;" onclick="viewBookings('${item.id}','event')">รายชื่อ</button>
+                     </div>`;
+                }
+
+                const isFull = (cap !== -1 && cur >= cap);
+
+                list.innerHTML += `
+                     <div class="schedule-item">
+                        <div class="schedule-info">
+                            <strong>🕒 ${timeStr}</strong>
+                            <div style="margin-top:5px;">
+                                <span class="schedule-stats">ว่าง: <span class="stat-val">${remain}</span></span>
+                                <span class="schedule-stats">รับได้: ${cap === -1 ? 'ไม่จำกัด' : cap}</span>
+                            </div>
+                            ${adminBtns}
+                        </div>
+                        <button class="btn-primary" ${isFull ? 'disabled style="background:#ccc"' : ''} onclick="selectShowtime('${item.id}', 'event')">${isFull ? 'เต็ม' : 'จอง'}</button>
+                    </div>
+                `;
+            });
+        }
+    }
+
+    // --- Select Specific Showtime ---
+    window.selectShowtime = (id, type) => {
+        currentId = id;
+        currentType = type;
+        
+        if(type === 'movie') {
+            document.getElementById('movie-schedule-section').classList.add('hidden');
+            document.getElementById('movie-seat-section').classList.remove('hidden');
+
+            // Load Config & Render Map (ใช้ Logic เดิม)
+            onValue(ref(db, `movies/${id}/config`), (snap) => {
+                currentConfig = snap.val();
+                if(!currentConfig) return;
+                document.getElementById('m-round-time').innerText = new Date(currentConfig.start).toLocaleString();
+                renderSeatsBase(currentConfig);
+            }, { onlyOnce: true });
+
+            onValue(ref(db, `movies/${id}`), (snap) => {
+                const data = snap.val() || {};
+                // เช็คว่ายังอยู่ในหน้านี้ไหม ถ้า user กด back ไปแล้วไม่ต้อง render
+                if(currentId === id && !document.getElementById('movie-seat-section').classList.contains('hidden')) {
+                     updateSeatStatus(data.bookings || {}, data.temp_selections || {});
+                }
+            });
+
+        } else {
+            document.getElementById('event-schedule-section').classList.add('hidden');
+            document.getElementById('event-booking-section').classList.remove('hidden');
+            
+            onValue(ref(db, `events/${id}`), (snap) => {
+                const d = snap.val(); if(!d) return;
+                currentConfig = d.config;
+                const cap = d.config.capacity;
+                const cur = d.currentBooked || 0;
+                
+                document.getElementById('e-round-time').innerText = new Date(currentConfig.start).toLocaleString();
+                document.getElementById('e-remaining').innerText = cap==-1 ? '∞' : (cap - cur);
+                document.getElementById('e-capacity').innerText = cap==-1 ? 'ไม่จำกัด' : cap;
+
+                const btn = document.getElementById('btn-event-book');
+                if(cap!=-1 && cur>=cap) { btn.disabled=true; btn.innerText="เต็ม"; btn.style.background="#ccc"; }
+                else { 
+                    btn.disabled=false; btn.innerText="ลงทะเบียน"; btn.style.background="#1a73e8"; 
+                    btn.onclick=()=> {
+                         if(!checkTime(currentConfig.start, currentConfig.end)) return;
+                         openBookingModal("บัตรเข้าร่วมงาน");
+                    }
+                }
+            });
+        }
+    }
+
+    window.backToSchedule = () => {
+        if(tempSeatRef) cancelSelection(); // เคลียร์ที่นั่งที่เลือกค้างไว้
+        // กลับไปหน้า Group Page (List)
+        // ใช้ currentConfig.title เพื่อเปิดหน้าเดิม
+        const title = currentConfig ? currentConfig.title : document.getElementById('m-group-title').innerText;
+        openGroupPage(title, currentType, false);
     }
 
     // --- Feature: ดูรายการจอง (Admin) ---
@@ -704,10 +928,7 @@
     window.selectSeat = (seatId) => {
         if(!checkTime(currentConfig.start, currentConfig.end)) return;
         const tempRef = ref(db, `movies/${currentId}/temp_selections/${seatId}`);
-        
-        // ใช้ currentUser.uid หรือ guestId ในการจองชั่วคราว
         const userIdToUse = currentUser ? currentUser.uid : guestId;
-
         runTransaction(tempRef, (curr) => {
             if (curr === null || Date.now() - curr.timestamp > 5 * 60 * 1000) {
                 return { timestamp: Date.now(), user_uid: userIdToUse };
@@ -811,44 +1032,36 @@
     }
 
     window.submitBooking = () => {
-        // ดึงค่าจาก Input (ไม่ว่าจะ Login หรือ Guest ก็ดึงจาก Input ที่โชว์ใน Modal)
         const bName = document.getElementById('inp-conf-name').value.trim();
         const bPhone = document.getElementById('inp-conf-phone').value.trim();
         const bEmail = document.getElementById('inp-conf-email').value.trim();
         const bIdCard = document.getElementById('inp-conf-idcard').value.trim();
-
-        if(!bName || !bPhone || !bEmail) {
-            alert("กรุณากรอกข้อมูลให้ครบถ้วน"); return;
-        }
+        if(!bName || !bPhone || !bEmail) { alert("กรุณากรอกข้อมูลให้ครบ"); return; }
 
         const bookingData = {
-            // ถ้า Login ใช้ uid จริง, ถ้า Guest ใช้ 'guest' (หรือจะไม่เก็บ uid เลยก็ได้ แต่ใส่ไว้เพื่อแยกแยะ)
             uid: currentUser ? currentUser.uid : 'guest', 
-            name: bName,
-            phone: bPhone,
-            email: bEmail,
-            idCard: bIdCard,
-            timestamp: Date.now()
+            name: bName, phone: bPhone, email: bEmail, idCard: bIdCard, timestamp: Date.now()
         };
 
         if(currentType === 'movie') {
-            set(ref(db, `movies/${currentId}/bookings/${selectedTarget}`), bookingData)
-                .then(() => {
-                    finalizeBooking();
-                });
+            set(ref(db, `movies/${currentId}/bookings/${selectedTarget}`), bookingData).then(() => {
+                if(tempSeatRef) remove(tempSeatRef);
+                cancelSelection(); alert("✅ จองสำเร็จ");
+                backToSchedule(); // จองเสร็จกลับไปหน้าตาราง
+            });
         } else {
             const eventRef = ref(db, `events/${currentId}`);
             runTransaction(eventRef, (data) => {
                 if(data) {
                     if(data.config.capacity != -1 && (data.currentBooked||0) >= data.config.capacity) return;
                     data.currentBooked = (data.currentBooked || 0) + 1;
-                }
-                return data;
+                } return data;
             }).then((res) => {
                 if(res.committed) {
                     push(ref(db, `events/${currentId}/bookings`), bookingData);
-                    finalizeBooking();
-                } else { alert("❌ เต็มแล้ว"); }
+                    cancelSelection(); alert("✅ จองสำเร็จ");
+                    backToSchedule(); 
+                } else alert("❌ เต็มแล้ว");
             });
         }
     }
@@ -940,6 +1153,35 @@
         if(n < new Date(s)) { alert("ยังไม่ถึงเวลาเปิดจอง"); return false; }
         if(n > new Date(e)) { alert("หมดเวลาจองแล้ว"); return false; }
         return true;
+    }
+
+    // --- Modal & Form Logic (เหมือนเดิม) ---
+    window.openBookingModal = (detail) => {
+        document.getElementById('modal-subtitle').innerText = detail;
+        const modal = document.getElementById('booking-modal');
+        if(currentUser) {
+            document.getElementById('inp-conf-name').value = userData.name || '';
+            document.getElementById('inp-conf-phone').value = userData.phone || '';
+            document.getElementById('inp-conf-email').value = userData.email || currentUser.email;
+            document.getElementById('inp-conf-idcard').value = userData.idCard || '';
+            
+            document.getElementById('inp-conf-name').readOnly = true;
+            document.getElementById('inp-conf-phone').readOnly = true;
+            document.getElementById('inp-conf-email').readOnly = true;
+            document.getElementById('inp-conf-idcard').readOnly = true;
+             ['name','phone','email','idcard'].forEach(k => document.getElementById(`inp-conf-${k}`).style.backgroundColor = '#f0f0f0');
+        } else {
+            document.getElementById('inp-conf-name').value = '';
+            document.getElementById('inp-conf-phone').value = '';
+            document.getElementById('inp-conf-email').value = '';
+            document.getElementById('inp-conf-idcard').value = '';
+             ['name','phone','email','idcard'].forEach(k => {
+                 const el = document.getElementById(`inp-conf-${k}`);
+                 el.readOnly = false;
+                 el.style.backgroundColor = '#fff';
+             });
+        }
+        modal.classList.add('active');
     }
 
     function finalizeBooking() {
