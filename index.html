@@ -74,13 +74,17 @@
 </head>
 <body>
 
-<nav class="navbar hidden" id="main-nav">
-    <div class="brand" onclick="goHome()">🎟️ TicketSystem</div>
-    <div class="nav-menu">
-        <span class="nav-item" onclick="goHome()">หน้าหลัก</span>
-        <span class="nav-item" onclick="showProfile()">ข้อมูลส่วนตัว</span>
-        <span id="nav-admin-users" class="nav-item hidden" onclick="showUserManagement()" style="color:#d93025;">จัดการสมาชิก</span>
-        <span class="btn-logout" onclick="doLogout()">ออกจากระบบ</span>
+<nav id="main-nav" class="hidden">
+    <div class="nav-container">
+        <div class="nav-logo">🎬 Booking System</div>
+        <ul class="nav-menu">
+            <li><a href="#" onclick="goHome()">หน้าแรก</a></li>
+            <li id="nav-profile"><a href="#" onclick="showProfile()">โปรไฟล์ & ประวัติ</a></li>
+            <li id="nav-admin-users" class="hidden"><a href="#" onclick="showUserManagement()">จัดการสมาชิก</a></li>
+            
+            <li id="nav-login-btn"><a href="#" onclick="showPage('page-auth')">เข้าสู่ระบบ</a></li>
+            <li id="nav-logout-btn" class="hidden"><a href="#" onclick="doLogout()">ออกจากระบบ</a></li>
+        </ul>
     </div>
 </nav>
 
@@ -175,15 +179,30 @@
 
 <div id="booking-modal" class="modal">
     <div class="modal-content">
-        <span class="close-btn" onclick="cancelSelection()">&times;</span>
-        <h3 id="modal-title">ยืนยันการจอง</h3>
-        <p id="modal-subtitle" style="color:#666; margin-bottom: 20px;">-</p>
-        <div style="background:#f9f9f9; padding:10px; border-radius:6px; margin-bottom:15px; font-size:0.9rem;">
-            <p><strong>ชื่อ:</strong> <span id="conf-name"></span></p>
-            <p><strong>เบอร์โทร:</strong> <span id="conf-phone"></span></p>
-            <p><strong>อีเมล:</strong> <span id="conf-email"></span></p>
+        <h3>ยืนยันการจอง</h3>
+        <p id="modal-subtitle" style="margin-bottom: 15px; font-weight: bold; color: #1a73e8;"></p>
+        
+        <div class="form-group">
+            <label>ชื่อ-นามสกุล</label>
+            <input type="text" id="inp-conf-name" placeholder="กรุณากรอกชื่อ">
         </div>
-        <button onclick="submitBooking()" class="btn-primary" style="background:#28a745;">ยืนยันการจองทันที</button>
+        <div class="form-group">
+            <label>เบอร์โทรศัพท์</label>
+            <input type="tel" id="inp-conf-phone" placeholder="08x-xxx-xxxx">
+        </div>
+        <div class="form-group">
+            <label>อีเมล (สำคัญสำหรับดูประวัติย้อนหลัง)</label>
+            <input type="email" id="inp-conf-email" placeholder="email@example.com">
+        </div>
+        <div class="form-group">
+            <label>เลขบัตรประชาชน (ถ้ามี)</label>
+            <input type="text" id="inp-conf-idcard" placeholder="เลข 13 หลัก">
+        </div>
+
+        <div class="modal-buttons">
+            <button class="btn-secondary" onclick="cancelSelection()">ยกเลิก</button>
+            <button class="btn-primary" onclick="submitBooking()">ยืนยันการจอง</button>
+        </div>
     </div>
 </div>
 
@@ -286,12 +305,19 @@
     const db = getDatabase(app);
     const auth = getAuth(app);
 
-    // Global State
+    // --- Global State ---
     let currentUser = null;
-    let userRole = 'user';
-    let userData = {};
+    let userRole = 'guest'; // default คือ guest
+    let userData = {}; // เก็บข้อมูล User ถ้า Login
     let isRegistering = false;
-    let allData = {};
+    let allData = {}; // เก็บข้อมูลหนัง/Event ทั้งหมด (ใช้สำหรับแสดงผล + ค้นหาประวัติ)
+
+    // สร้าง ID ชั่วคราวให้ Guest (เก็บใน LocalStorage เพื่อให้ Session ต่อเนื่อง)
+    let guestId = localStorage.getItem('guest_uid');
+    if (!guestId) {
+        guestId = 'guest_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('guest_uid', guestId);
+    }
 
     let currentType = ''; 
     let currentId = '';
@@ -299,30 +325,56 @@
     let currentConfig = null;
     let tempSeatRef = null;
 
-    // --- 1. Authentication ---
+    // --- 1. Authentication & Initialization ---
     onAuthStateChanged(auth, (user) => {
         currentUser = user;
         if (user) {
+            // --- กรณี Login แล้ว ---
             onValue(ref(db, 'users/' + user.uid), (snap) => {
                 userData = snap.val() || {};
                 userRole = userData.role || 'user';
-                renderNavbar();
-                renderHomeList(); 
+                updateNavbarUI(true);
+                // ถ้ายังอยู่หน้า Login ให้เด้งไปหน้าแรก
                 if(!document.getElementById('page-auth').classList.contains('hidden')) goHome();
-                
-                // ถ้าอยู่ในหน้าจัดการสมาชิก ให้รีเฟรชตารางด้วย
-                if(!document.getElementById('page-users').classList.contains('hidden')) showUserManagement();
-            });
-            onValue(ref(db, '/'), (snapshot) => {
-                allData = snapshot.val() || {};
-                renderHomeList();
             });
         } else {
-            userRole = 'user';
-            showPage('page-auth');
-            document.getElementById('main-nav').classList.add('hidden');
+            // --- กรณี Guest (ไม่ได้ Login) ---
+            userRole = 'guest';
+            userData = {};
+            updateNavbarUI(false);
+            // ไม่บังคับเด้งไปหน้า Login แล้ว ให้ดูหน้าแรกได้เลย
+            if(document.getElementById('page-auth').classList.contains('hidden')) {
+                // ถ้าไม่ได้อยู่หน้า Auth ก็ปล่อยไว้
+            } else {
+                goHome(); // ถ้าอยู่หน้า Auth ให้กลับมา Home (หรือจะค้างไว้ก็ได้)
+            }
         }
     });
+    
+    // โหลดข้อมูลหนัง/Event ตลอดเวลา (เพื่อให้ Guest เห็น Real-time)
+    onValue(ref(db, '/'), (snapshot) => {
+        allData = snapshot.val() || {};
+        renderHomeList();
+    });
+
+    function updateNavbarUI(isLoggedIn) {
+        document.getElementById('main-nav').classList.remove('hidden');
+        
+        // ปุ่ม Admin
+        if(userRole === 'admin') document.getElementById('nav-admin-users').classList.remove('hidden');
+        else document.getElementById('nav-admin-users').classList.add('hidden');
+
+        // ปุ่ม Profile & Logout
+        if(isLoggedIn) {
+            document.getElementById('nav-profile').classList.remove('hidden');
+            document.getElementById('nav-logout-btn').classList.remove('hidden');
+            document.getElementById('nav-login-btn').classList.add('hidden');
+        } else {
+            document.getElementById('nav-profile').classList.add('hidden');
+            document.getElementById('nav-logout-btn').classList.add('hidden');
+            document.getElementById('nav-login-btn').classList.remove('hidden');
+        }
+    }
 
     window.handleAuth = (e) => {
         e.preventDefault();
@@ -342,11 +394,19 @@
                 });
             }).catch(err => alert("Error: " + err.message));
         } else {
-            signInWithEmailAndPassword(auth, email, pass).catch(err => alert("Error: " + err.message));
+            signInWithEmailAndPassword(auth, email, pass).then(()=>{
+                goHome();
+            }).catch(err => alert("Error: " + err.message));
         }
     };
 
-    window.doLogout = () => signOut(auth);
+    window.doLogout = () => {
+        signOut(auth).then(() => {
+            alert("ออกจากระบบแล้ว");
+            goHome();
+        });
+    };
+
     window.toggleAuthMode = () => {
         isRegistering = !isRegistering;
         document.getElementById('auth-title').innerText = isRegistering ? "สมัครสมาชิกใหม่" : "เข้าสู่ระบบ";
@@ -394,7 +454,6 @@
         div.className = 'card';
         
         let adminHtml = '';
-        // เพิ่มปุ่ม "ดูรายการจอง" สำหรับ Admin
         if(userRole === 'admin') {
             adminHtml = `
                 <div class="admin-actions">
@@ -425,49 +484,25 @@
         if(userRole !== 'admin') return;
         const targetData = type === 'movie' ? allData.movies[id] : allData.events[id];
         const bookings = targetData.bookings || {};
-        
         document.getElementById('booking-list-modal').classList.add('active');
         document.getElementById('bl-title').innerText = targetData.config.title;
         const tbody = document.getElementById('bl-list');
         tbody.innerHTML = '';
-
         if(Object.keys(bookings).length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">ยังไม่มีการจอง</td></tr>';
-            return;
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">ยังไม่มีการจอง</td></tr>'; return;
         }
-
         Object.entries(bookings).forEach(([key, val]) => {
-            // key: สำหรับ movie คือเลขที่นั่ง, สำหรับ event คือ pushId
             const seatLabel = type === 'movie' ? key : 'บัตรเข้าร่วม';
-            
-            // ปุ่มลบการจอง (Cancel Booking)
-            // path: movies/id/bookings/key หรือ events/id/bookings/key
             const deletePath = `${type==='movie'?'movies':'events'}/${id}/bookings/${key}`;
-            
-            tbody.innerHTML += `
-                <tr>
-                    <td><span class="tag movie">${seatLabel}</span></td>
-                    <td>${val.name}</td>
-                    <td>${val.phone}</td>
-                    <td>${new Date(val.timestamp).toLocaleDateString()}</td>
-                    <td>
-                        <button class="btn-sm btn-del" onclick="cancelBookingAdmin('${deletePath}', '${type}', '${id}')">ยกเลิก</button>
-                    </td>
-                </tr>
-            `;
+            tbody.innerHTML += `<tr><td><span class="tag movie">${seatLabel}</span></td><td>${val.name}</td><td>${val.phone}</td><td>${new Date(val.timestamp).toLocaleDateString()}</td><td><button class="btn-sm btn-del" onclick="cancelBookingAdmin('${deletePath}', '${type}', '${id}')">ยกเลิก</button></td></tr>`;
         });
     }
 
     window.cancelBookingAdmin = (path, type, id) => {
-        if(confirm("ต้องการยกเลิกการจองนี้ใช่ไหม?")) {
+        if(confirm("ยกเลิกการจองนี้?")) {
             remove(ref(db, path)).then(() => {
-                // ถ้าเป็น Event ต้องลด Counter
-                if(type === 'event') {
-                    runTransaction(ref(db, `events/${id}/currentBooked`), (c) => (c || 1) - 1);
-                }
-                alert("ลบการจองสำเร็จ");
-                // Modal จะไม่อัปเดต Auto จนกว่าจะเปิดใหม่ หรือใช้ onValue (ในที่นี้ให้กดปิดแล้วเปิดใหม่เพื่อความง่าย)
-                document.getElementById('booking-list-modal').classList.remove('active');
+                if(type === 'event') runTransaction(ref(db, `events/${id}/currentBooked`), (c) => (c || 1) - 1);
+                alert("ลบสำเร็จ"); document.getElementById('booking-list-modal').classList.remove('active');
             });
         }
     }
@@ -601,11 +636,15 @@
     // --- Booking Logic ---
     window.openMoviePage = (id) => {
         currentType = 'movie'; currentId = id; showPage('page-movie');
+        // ใช้ onValue ดึงข้อมูล Config แบบ Realtime
         onValue(ref(db, `movies/${id}/config`), (snap) => {
             currentConfig = snap.val();
-            document.getElementById('m-title').innerText = currentConfig.title;
-            renderSeatsBase(currentConfig);
+            if(currentConfig) {
+                document.getElementById('m-title').innerText = currentConfig.title;
+                renderSeatsBase(currentConfig);
+            }
         });
+        // ใช้ onValue ดึงข้อมูลการจอง
         onValue(ref(db, `movies/${id}`), (snap) => {
             const data = snap.val() || {};
             updateSeatStatus(data.bookings || {}, data.temp_selections || {});
@@ -652,8 +691,14 @@
     window.selectSeat = (seatId) => {
         if(!checkTime(currentConfig.start, currentConfig.end)) return;
         const tempRef = ref(db, `movies/${currentId}/temp_selections/${seatId}`);
+        
+        // ใช้ currentUser.uid หรือ guestId ในการจองชั่วคราว
+        const userIdToUse = currentUser ? currentUser.uid : guestId;
+
         runTransaction(tempRef, (curr) => {
-            if (curr === null || Date.now() - curr.timestamp > 5 * 60 * 1000) return { timestamp: Date.now(), user_uid: currentUser.uid };
+            if (curr === null || Date.now() - curr.timestamp > 5 * 60 * 1000) {
+                return { timestamp: Date.now(), user_uid: userIdToUse };
+            }
             return;
         }).then((res) => {
             if (res.committed) {
@@ -689,10 +734,58 @@
 
     function openBookingModal(detail) {
         document.getElementById('modal-subtitle').innerText = detail;
-        document.getElementById('conf-name').innerText = userData.name;
-        document.getElementById('conf-phone').innerText = userData.phone;
-        document.getElementById('conf-email').innerText = userData.email;
-        document.getElementById('booking-modal').classList.add('active');
+        const modal = document.getElementById('booking-modal');
+        
+        // --- ส่วนที่ปรับแก้: Guest ต้องกรอกเอง ---
+        const fName = document.getElementById('conf-name');
+        const fPhone = document.getElementById('conf-phone');
+        const fEmail = document.getElementById('conf-email');
+        const fIdCard = document.getElementById('conf-idcard'); // สมมติว่าเพิ่ม input นี้ใน HTML Modal
+
+        // สร้าง Input ID Card ถ้ายังไม่มีใน HTML (หรือคุณไปเพิ่มใน HTML Modal ก็ได้)
+        // เพื่อความชัวร์ ควรมี <span id="conf-idcard-val"> หรือ <input>
+        // ในที่นี้ผมจะปรับ HTML ของ Modal ให้เป็น Input เสมอ แต่ถ้า Login แล้วจะ Disabled
+
+        // Helper: เปลี่ยน span เป็น input (ถ้าโค้ด HTML เก่ายังเป็น span)
+        // เพื่อความง่าย ให้แก้ HTML ของ Modal เป็น <input> ทั้งหมดก่อนนะครับ (ดูส่วนแก้ HTML ด้านล่างสุดของคำตอบนี้)
+
+        if(currentUser) {
+            // Login แล้ว: เติมค่า + ห้ามแก้
+            document.getElementById('inp-conf-name').value = userData.name || '';
+            document.getElementById('inp-conf-phone').value = userData.phone || '';
+            document.getElementById('inp-conf-email').value = userData.email || currentUser.email;
+            document.getElementById('inp-conf-idcard').value = userData.idCard || '';
+            
+            // ล็อกไม่ให้แก้
+            document.getElementById('inp-conf-name').readOnly = true;
+            document.getElementById('inp-conf-phone').readOnly = true;
+            document.getElementById('inp-conf-email').readOnly = true;
+            document.getElementById('inp-conf-idcard').readOnly = true;
+            
+            // สไตล์ให้ดูว่าเป็น Readonly
+            ['name','phone','email','idcard'].forEach(k => {
+                document.getElementById(`inp-conf-${k}`).style.backgroundColor = '#f0f0f0';
+            });
+
+        } else {
+            // Guest: ให้กรอกเอง
+            document.getElementById('inp-conf-name').value = '';
+            document.getElementById('inp-conf-phone').value = '';
+            document.getElementById('inp-conf-email').value = '';
+            document.getElementById('inp-conf-idcard').value = '';
+            
+            // ปลดล็อก
+            document.getElementById('inp-conf-name').readOnly = false;
+            document.getElementById('inp-conf-phone').readOnly = false;
+            document.getElementById('inp-conf-email').readOnly = false;
+            document.getElementById('inp-conf-idcard').readOnly = false;
+
+            ['name','phone','email','idcard'].forEach(k => {
+                document.getElementById(`inp-conf-${k}`).style.backgroundColor = '#fff';
+            });
+        }
+        
+        modal.classList.add('active');
     }
 
     window.cancelSelection = () => {
@@ -705,13 +798,31 @@
     }
 
     window.submitBooking = () => {
-        const bookingData = { uid: currentUser.uid, name: userData.name, phone: userData.phone, email: userData.email, idCard: userData.idCard, timestamp: Date.now() };
+        // ดึงค่าจาก Input (ไม่ว่าจะ Login หรือ Guest ก็ดึงจาก Input ที่โชว์ใน Modal)
+        const bName = document.getElementById('inp-conf-name').value.trim();
+        const bPhone = document.getElementById('inp-conf-phone').value.trim();
+        const bEmail = document.getElementById('inp-conf-email').value.trim();
+        const bIdCard = document.getElementById('inp-conf-idcard').value.trim();
+
+        if(!bName || !bPhone || !bEmail) {
+            alert("กรุณากรอกข้อมูลให้ครบถ้วน"); return;
+        }
+
+        const bookingData = {
+            // ถ้า Login ใช้ uid จริง, ถ้า Guest ใช้ 'guest' (หรือจะไม่เก็บ uid เลยก็ได้ แต่ใส่ไว้เพื่อแยกแยะ)
+            uid: currentUser ? currentUser.uid : 'guest', 
+            name: bName,
+            phone: bPhone,
+            email: bEmail,
+            idCard: bIdCard,
+            timestamp: Date.now()
+        };
+
         if(currentType === 'movie') {
-            set(ref(db, `movies/${currentId}/bookings/${selectedTarget}`), bookingData).then(() => {
-                if(tempSeatRef) remove(tempSeatRef);
-                saveHistory(currentConfig.title, `ที่นั่ง ${selectedTarget}`);
-                cancelSelection(); alert("✅ จองสำเร็จ");
-            });
+            set(ref(db, `movies/${currentId}/bookings/${selectedTarget}`), bookingData)
+                .then(() => {
+                    finalizeBooking();
+                });
         } else {
             const eventRef = ref(db, `events/${currentId}`);
             runTransaction(eventRef, (data) => {
@@ -723,9 +834,8 @@
             }).then((res) => {
                 if(res.committed) {
                     push(ref(db, `events/${currentId}/bookings`), bookingData);
-                    saveHistory(currentConfig.title, "บัตรเข้าร่วมงาน");
-                    cancelSelection(); alert("✅ ลงทะเบียนสำเร็จ");
-                } else alert("❌ เต็มแล้ว");
+                    finalizeBooking();
+                } else { alert("❌ เต็มแล้ว"); }
             });
         }
     }
@@ -736,21 +846,80 @@
 
     window.updateUserProfile = (e) => {
         e.preventDefault();
-        update(ref(db, `users/${currentUser.uid}`), { name: document.getElementById('p-name').value, phone: document.getElementById('p-phone').value }).then(() => alert("บันทึกข้อมูลสำเร็จ"));
+        update(ref(db, `users/${currentUser.uid}`), {
+            name: document.getElementById('p-name').value,
+            phone: document.getElementById('p-phone').value
+        }).then(() => alert("บันทึกข้อมูลสำเร็จ"));
     }
 
     window.showProfile = () => {
+        if(!currentUser) return; // Guest เข้าหน้านี้ไม่ได้อยู่แล้ว (ปุ่มซ่อน)
+        
         showPage('page-profile');
         document.getElementById('p-name').value = userData.name || '';
         document.getElementById('p-phone').value = userData.phone || '';
         document.getElementById('p-idcard').value = userData.idCard || '';
+
         const hList = document.getElementById('history-list');
+        hList.innerHTML = '<tr><td colspan="3" style="text-align:center;">กำลังโหลดประวัติ...</td></tr>';
+        
+        // Global Search Logic:
+        // วนลูป Movies และ Events ทั้งหมดที่มีในเครื่อง (allData)
+        // หา Booking ที่ email ตรงกับ currentUser.email
+        
+        const myHistory = [];
+        const myEmail = currentUser.email; // ใช้ Email เป็น Key หลักในการเชื่อมข้อมูล
+
+        // 1. หาใน Movies
+        if(allData.movies) {
+            Object.values(allData.movies).forEach(m => {
+                if(m.bookings) {
+                    Object.entries(m.bookings).forEach(([seatId, b]) => {
+                        if(b.email === myEmail) {
+                            myHistory.push({
+                                timestamp: b.timestamp,
+                                itemTitle: m.config.title,
+                                detail: `ที่นั่ง ${seatId}`
+                            });
+                        }
+                    });
+                }
+            });
+        }
+
+        // 2. หาใน Events
+        if(allData.events) {
+            Object.values(allData.events).forEach(e => {
+                if(e.bookings) {
+                    Object.values(e.bookings).forEach(b => {
+                        if(b.email === myEmail) {
+                            myHistory.push({
+                                timestamp: b.timestamp,
+                                itemTitle: e.config.title,
+                                detail: "บัตรเข้าร่วมงาน"
+                            });
+                        }
+                    });
+                }
+            });
+        }
+
+        // เรียงลำดับล่าสุดขึ้นก่อน
+        myHistory.sort((a,b) => b.timestamp - a.timestamp);
+
+        // Render
         hList.innerHTML = '';
-        const history = userData.history || {};
-        if(Object.keys(history).length === 0) hList.innerHTML = '<tr><td colspan="3" style="text-align:center;">ยังไม่มีประวัติการจอง</td></tr>';
-        else Object.values(history).reverse().forEach(h => {
-            hList.innerHTML += `<tr><td>${new Date(h.timestamp).toLocaleDateString()}</td><td>${h.itemTitle}</td><td>${h.detail}</td></tr>`;
-        });
+        if(myHistory.length === 0) {
+            hList.innerHTML = '<tr><td colspan="3" style="text-align:center;">ไม่พบประวัติการจองในอีเมลนี้</td></tr>';
+        } else {
+            myHistory.forEach(h => {
+                hList.innerHTML += `<tr>
+                    <td>${new Date(h.timestamp).toLocaleDateString()} ${new Date(h.timestamp).toLocaleTimeString()}</td>
+                    <td>${h.itemTitle}</td>
+                    <td>${h.detail}</td>
+                </tr>`;
+            });
+        }
     }
 
     function checkTime(s, e) {
@@ -758,6 +927,16 @@
         if(n < new Date(s)) { alert("ยังไม่ถึงเวลาเปิดจอง"); return false; }
         if(n > new Date(e)) { alert("หมดเวลาจองแล้ว"); return false; }
         return true;
+    }
+
+    function finalizeBooking() {
+        if(tempSeatRef) remove(tempSeatRef);
+        // ไม่ต้อง saveHistory ลง users/... แล้ว เพราะ Guest ไม่มี User Node
+        // เราจะใช้วิธี Global Search แทนตอนดู Profile
+        cancelSelection(); 
+        alert("✅ จองสำเร็จ! ตรวจสอบอีเมลของคุณสำหรับการยืนยัน (จำลอง)");
+        // ถ้าเป็น Guest อาจจะ redirect กลับ Home
+        if(!currentUser) goHome(); 
     }
 </script>
 
