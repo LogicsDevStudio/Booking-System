@@ -49,8 +49,8 @@
         .stat-val { font-weight: bold; color: #333; }
 
         /* Tables */
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; border-radius: 8px; overflow: hidden; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; border-radius: 8px; overflow: hidden; font-size: 0.9rem; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
         th { background-color: #f8f9fa; font-weight: 600; }
 
         /* Seat Styles */
@@ -90,13 +90,9 @@
     <div class="brand" onclick="goHome()">🎟️ TicketSystem</div>
     <div class="nav-menu">
         <span class="nav-item" onclick="goHome()">หน้าหลัก</span>
-
         <span id="nav-profile" class="nav-item hidden" onclick="showProfile()">ข้อมูลส่วนตัว</span>
-
         <span id="nav-admin-users" class="nav-item hidden" onclick="showUserManagement()" style="color:#d93025;">จัดการสมาชิก</span>
-
         <span id="nav-login" class="nav-item" onclick="showPage('page-auth')">เข้าสู่ระบบ</span>
-
         <span id="nav-logout" class="btn-logout hidden" onclick="doLogout()">ออกจากระบบ</span>
     </div>
 </nav>
@@ -108,7 +104,6 @@
         <form id="auth-form" onsubmit="handleAuth(event)">
             <input type="email" id="auth-email" class="auth-input" placeholder="อีเมล" required>
             <input type="password" id="auth-pass" class="auth-input" placeholder="รหัสผ่าน" required>
-            
             <div id="register-fields" class="hidden">
                 <input type="text" id="reg-name" class="auth-input" placeholder="ชื่อ-นามสกุล">
                 <input type="tel" id="reg-phone" class="auth-input" placeholder="เบอร์โทรศัพท์">
@@ -119,7 +114,6 @@
                     <small>* ใส่รหัส "ADMIN999" เพื่อรับสิทธิ์ Admin</small>
                 </div>
             </div>
-
             <button type="submit" class="btn-primary" id="btn-auth-submit">เข้าสู่ระบบ</button>
         </form>
         <span class="link-text" id="toggle-auth" onclick="toggleAuthMode()">ยังไม่มีบัญชี? สมัครสมาชิก</span>
@@ -133,7 +127,6 @@
                 <button class="btn-sm" style="background:#2ecc71; padding:8px 15px;" onclick="openAdminModal('event')">+ เพิ่มอีเวนต์</button>
             </div>
         </div>
-
         <header><h1>รายการที่เปิดจอง</h1></header>
         <div id="movie-list" class="grid-container" style="margin-bottom: 30px;"></div>
         <div id="event-list" class="grid-container"></div>
@@ -161,21 +154,18 @@
         <div class="nav-back" onclick="goHome()">⬅ ย้อนกลับ</div>
         <h2>👥 จัดการบัญชีผู้ใช้</h2>
         <table>
-            <thead><tr><th>ชื่อ</th><th>อีเมล</th><th>เบอร์โทร</th><th>Role</th></tr></thead>
+            <thead><tr><th>ชื่อ</th><th>อีเมล</th><th>เบอร์โทร</th><th>ID Card</th><th>Role</th><th>จัดการ</th></tr></thead>
             <tbody id="user-list-admin"></tbody>
         </table>
     </div>
 
     <div id="page-movie" class="hidden">
         <button class="btn-secondary" onclick="goHome()">⬅ ย้อนกลับ</button>
-        
         <h2 id="m-group-title" style="margin-top:10px;">ชื่อภาพยนตร์</h2>
-        
         <div id="movie-schedule-section">
             <h3>เลือกรอบฉาย</h3>
             <div class="schedule-list" id="movie-schedule-list"></div>
         </div>
-
         <div id="movie-seat-section" class="hidden">
             <div style="margin: 10px 0;">
                 <button class="btn-sm" onclick="backToSchedule()" style="background:#6c757d">⬅ เลือกรอบอื่น</button>
@@ -195,12 +185,10 @@
     <div id="page-event" class="hidden">
         <button class="btn-secondary" onclick="goHome()">⬅ ย้อนกลับ</button>
         <h2 id="e-group-title" style="margin-top:10px;">ชื่ออีเวนต์</h2>
-
         <div id="event-schedule-section">
             <h3>เลือกรอบกิจกรรม</h3>
             <div class="schedule-list" id="event-schedule-list"></div>
         </div>
-
         <div id="event-booking-section" class="hidden">
              <div style="margin: 10px 0;">
                 <button class="btn-sm" onclick="backToSchedule()" style="background:#6c757d">⬅ เลือกรอบอื่น</button>
@@ -219,24 +207,10 @@
     <div class="modal-content">
         <h3>ยืนยันการจอง</h3>
         <p id="modal-subtitle" style="margin-bottom: 15px; font-weight: bold; color: #1a73e8;"></p>
-        
-        <div class="form-group">
-            <label>ชื่อ-นามสกุล</label>
-            <input type="text" id="inp-conf-name" placeholder="กรุณากรอกชื่อ">
-        </div>
-        <div class="form-group">
-            <label>เบอร์โทรศัพท์</label>
-            <input type="tel" id="inp-conf-phone" placeholder="08x-xxx-xxxx">
-        </div>
-        <div class="form-group">
-            <label>อีเมล (สำคัญสำหรับดูประวัติย้อนหลัง)</label>
-            <input type="email" id="inp-conf-email" placeholder="email@example.com">
-        </div>
-        <div class="form-group">
-            <label>เลขบัตรประชาชน (ถ้ามี)</label>
-            <input type="text" id="inp-conf-idcard" placeholder="เลข 13 หลัก">
-        </div>
-
+        <div class="form-group"><label>ชื่อ-นามสกุล</label><input type="text" id="inp-conf-name" placeholder="กรุณากรอกชื่อ"></div>
+        <div class="form-group"><label>เบอร์โทรศัพท์</label><input type="tel" id="inp-conf-phone" placeholder="08x-xxx-xxxx"></div>
+        <div class="form-group"><label>อีเมล (สำคัญสำหรับดูประวัติย้อนหลัง)</label><input type="email" id="inp-conf-email" placeholder="email@example.com"></div>
+        <div class="form-group"><label>เลขบัตรประชาชน (ถ้ามี)</label><input type="text" id="inp-conf-idcard" placeholder="เลข 13 หลัก"></div>
         <div class="modal-buttons">
             <button class="btn-secondary" onclick="cancelSelection()">ยกเลิก</button>
             <button class="btn-primary" onclick="submitBooking()">ยืนยันการจอง</button>
@@ -251,11 +225,9 @@
         <form onsubmit="saveAdminItem(event)">
             <input type="hidden" id="adm-id">
             <input type="hidden" id="adm-type">
-            
             <label>ชื่อรายการ:</label><input type="text" id="adm-title" class="auth-input" required>
             <label>เริ่ม:</label><input type="datetime-local" id="adm-start" class="auth-input" required>
             <label>สิ้นสุด:</label><input type="datetime-local" id="adm-end" class="auth-input" required>
-
             <div id="adm-movie-fields" class="hidden">
                 <div style="display:flex; gap:10px;">
                     <div style="width:50%"><label>แถว:</label><input type="number" id="adm-rows" class="auth-input"></div>
@@ -263,11 +235,9 @@
                 </div>
                 <label>Blocked (ex: A1,A2):</label><input type="text" id="adm-blocked" class="auth-input">
             </div>
-
             <div id="adm-event-fields" class="hidden">
                 <label>ความจุ (-1=ไม่จำกัด):</label><input type="number" id="adm-cap" class="auth-input">
             </div>
-
             <button type="submit" class="btn-primary" style="background:#2ecc71;">บันทึก</button>
         </form>
     </div>
@@ -277,14 +247,9 @@
     <div class="modal-content">
         <h3>จัดการข้อมูลสมาชิก</h3>
         <input type="hidden" id="edit-u-uid">
-        <div class="form-group">
-            <label>ชื่อ-นามสกุล</label>
-            <input type="text" id="edit-u-name">
-        </div>
-        <div class="form-group">
-            <label>เบอร์โทร</label>
-            <input type="text" id="edit-u-phone">
-        </div>
+        <div class="form-group"><label>ชื่อ-นามสกุล</label><input type="text" id="edit-u-name"></div>
+        <div class="form-group"><label>เบอร์โทร</label><input type="text" id="edit-u-phone"></div>
+        <div class="form-group"><label>เลขบัตรประชาชน</label><input type="text" id="edit-u-idcard"></div>
         <div class="form-group">
             <label>สิทธิ์การใช้งาน (Role)</label>
             <select id="edit-u-role" style="width:100%; padding:10px; margin-top:5px;">
@@ -304,17 +269,8 @@
         <h3>รายการจอง: <span id="bl-title"></span></h3>
         <div style="overflow-x:auto; max-height: 400px; overflow-y:auto;">
             <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>ที่นั่ง/บัตร</th>
-                        <th>ชื่อผู้จอง</th>
-                        <th>เบอร์โทร</th>
-                        <th>เวลา</th>
-                        <th>จัดการ</th>
-                    </tr>
-                </thead>
-                <tbody id="bl-list">
-                    </tbody>
+                <thead><tr><th>ที่นั่ง/บัตร</th><th>ชื่อผู้จอง</th><th>เบอร์โทร</th><th>เวลา</th><th>จัดการ</th></tr></thead>
+                <tbody id="bl-list"></tbody>
             </table>
         </div>
         <div class="modal-buttons" style="margin-top:20px;">
@@ -328,7 +284,7 @@
     import { getDatabase, ref, onValue, runTransaction, push, set, remove, onDisconnect, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-    // --- ใส่ Config เดิมของคุณ ---
+    // --- Config เดิมของคุณ ---
     const firebaseConfig = {
         apiKey: "AIzaSyAJGlD_kNVgRHVAdmUUgZAerrjX8nJbMJE",
         authDomain: "booking-system-c1ebd.firebaseapp.com",
@@ -370,26 +326,30 @@
                 userRole = userData.role || 'user';
                 updateNavbarUI(true);
                 if(!document.getElementById('page-auth').classList.contains('hidden')) window.goHome();
+                // Refresh Admin List if open
+                if(!document.getElementById('page-users').classList.contains('hidden')) window.showUserManagement();
             });
         } else {
             userRole = 'guest'; userData = {}; updateNavbarUI(false);
-            if(document.getElementById('page-auth').classList.contains('hidden')) {
-                // อยู่หน้าอื่น ไม่ต้องทำอะไร
-            } else {
-                window.goHome(); 
-            }
+            if(!document.getElementById('page-auth').classList.contains('hidden')) {} else { window.goHome(); }
         }
     });
 
     onValue(ref(db, '/'), (snapshot) => {
         allData = snapshot.val() || {};
         window.renderHomeList();
-        // ถ้ากำลังเปิดหน้ารอบฉายอยู่ ให้รีเฟรชสถานะ
+        
         if(!document.getElementById('page-movie').classList.contains('hidden') && currentType === 'movie') {
-           const title = document.getElementById('m-group-title').innerText;
-           if(document.getElementById('movie-seat-section').classList.contains('hidden')) {
-               window.openGroupPage(title, 'movie', false);
+           const titleEl = document.getElementById('m-group-title');
+           if(titleEl && document.getElementById('movie-seat-section').classList.contains('hidden')) {
+               window.openGroupPage(titleEl.innerText, 'movie', false);
            }
+        }
+        if(!document.getElementById('page-event').classList.contains('hidden') && currentType === 'event') {
+            const titleEl = document.getElementById('e-group-title');
+            if(titleEl && document.getElementById('event-booking-section').classList.contains('hidden')) {
+                window.openGroupPage(titleEl.innerText, 'event', false);
+            }
         }
     });
 
@@ -423,7 +383,7 @@
         window.renderHomeList();
     }
 
-    // --- Home List (Grouping Logic) ---
+    // --- Home List (Grouping) ---
     window.renderHomeList = () => {
         const mList = document.getElementById('movie-list');
         const eList = document.getElementById('event-list');
@@ -482,10 +442,12 @@
         return div;
     }
 
-    // --- Group Details & Schedule List ---
+    // --- Group Details & Schedule List (เพิ่ม Time Check Logic) ---
     window.openGroupPage = (title, type, switchPage = true) => {
         currentType = type;
         if(switchPage) window.showPage(type === 'movie' ? 'page-movie' : 'page-event');
+
+        const now = Date.now();
 
         if(type === 'movie') {
             document.getElementById('m-group-title').innerText = title;
@@ -513,7 +475,30 @@
                     });
                 }
                 const available = total - booked - selecting;
+                const startTime = new Date(item.config.start).getTime();
+                const endTime = new Date(item.config.end).getTime();
                 const timeStr = new Date(item.config.start).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' });
+
+                // --- Logic การเปิด/ปิด ปุ่มตามเวลา ---
+                let btnDisabled = '';
+                let btnText = 'จองที่นั่ง';
+                let btnStyle = '';
+
+                if (userRole !== 'admin') { // ถ้าไม่ใช่ Admin ต้องเช็คเวลา
+                    if (now < startTime) {
+                        btnDisabled = 'disabled';
+                        btnText = 'ยังไม่เปิด';
+                        btnStyle = 'background:#ccc; cursor:not-allowed;';
+                    } else if (now > endTime) {
+                        btnDisabled = 'disabled';
+                        btnText = 'หมดเวลา';
+                        btnStyle = 'background:#ccc; cursor:not-allowed;';
+                    }
+                } else {
+                    // Admin เห็นสถานะแต่กดได้
+                    if (now < startTime) btnText = 'ยังไม่เปิด (Admin)';
+                    else if (now > endTime) btnText = 'หมดเวลา (Admin)';
+                }
 
                 let adminBtns = '';
                 if(userRole === 'admin') {
@@ -535,7 +520,7 @@
                             </div>
                             ${adminBtns}
                         </div>
-                        <button class="btn-primary" onclick="selectShowtime('${item.id}', 'movie')">จองที่นั่ง</button>
+                        <button class="btn-primary" ${btnDisabled} style="${btnStyle}" onclick="selectShowtime('${item.id}', 'movie')">${btnText}</button>
                     </div>
                 `;
             });
@@ -560,8 +545,30 @@
                 const cap = item.config.capacity;
                 const cur = item.currentBooked || 0;
                 const remain = cap === -1 ? '∞' : (cap - cur);
+                const startTime = new Date(item.config.start).getTime();
+                const endTime = new Date(item.config.end).getTime();
                 const timeStr = new Date(item.config.start).toLocaleString();
                 
+                // --- Logic การเปิด/ปิด ปุ่มตามเวลา + ความจุ ---
+                const isFull = (cap !== -1 && cur >= cap);
+                let btnDisabled = '';
+                let btnText = 'จอง';
+                let btnStyle = '';
+
+                if (userRole !== 'admin') {
+                    if (now < startTime) {
+                        btnDisabled = 'disabled'; btnText = 'ยังไม่เปิด'; btnStyle = 'background:#ccc; cursor:not-allowed;';
+                    } else if (now > endTime) {
+                        btnDisabled = 'disabled'; btnText = 'หมดเวลา'; btnStyle = 'background:#ccc; cursor:not-allowed;';
+                    } else if (isFull) {
+                        btnDisabled = 'disabled'; btnText = 'เต็ม'; btnStyle = 'background:#ccc; cursor:not-allowed;';
+                    }
+                } else {
+                    if (now < startTime) btnText = 'ยังไม่เปิด (Admin)';
+                    else if (now > endTime) btnText = 'หมดเวลา (Admin)';
+                    else if (isFull) { btnText = 'จองเกิน (Admin)'; btnStyle = 'background:#f39c12'; }
+                }
+
                 let adminBtns = '';
                 if(userRole === 'admin') {
                      adminBtns = `<div style="margin-top:5px;">
@@ -570,8 +577,6 @@
                          <button class="btn-sm" style="background:#8e44ad; color:white;" onclick="viewBookings('${item.id}','event')">รายชื่อ</button>
                      </div>`;
                 }
-
-                const isFull = (cap !== -1 && cur >= cap);
 
                 list.innerHTML += `
                      <div class="schedule-item">
@@ -583,7 +588,7 @@
                             </div>
                             ${adminBtns}
                         </div>
-                        <button class="btn-primary" ${isFull && userRole !== 'admin' ? 'disabled style="background:#ccc"' : ''} onclick="selectShowtime('${item.id}', 'event')">${isFull ? (userRole==='admin'?'จองเกิน (Admin)':'เต็ม') : 'จอง'}</button>
+                        <button class="btn-primary" ${btnDisabled} style="${btnStyle}" onclick="selectShowtime('${item.id}', 'event')">${btnText}</button>
                     </div>
                 `;
             });
@@ -630,15 +635,17 @@
                 const btn = document.getElementById('btn-event-book');
                 const isFull = (cap!=-1 && cur>=cap);
                 
+                // Logic ปุ่มในหน้า Event Detail
                 if(isFull && userRole !== 'admin') { 
                     btn.disabled=true; btn.innerText="เต็ม"; btn.style.background="#ccc"; 
                 } else { 
                     btn.disabled=false; 
-                    btn.innerText = (isFull && userRole==='admin') ? "จองเกิน (Admin)" : "ลงทะเบียน";
+                    btn.innerText = (isFull && userRole==='admin') ? "ยืนยันจองเกิน (Admin)" : "ลงทะเบียน";
                     btn.style.background = (isFull && userRole==='admin') ? "#f39c12" : "#1a73e8"; 
                     
                     btn.onclick=()=> {
-                         if(!checkTime(currentConfig.start, currentConfig.end)) return;
+                         // Check time again just in case
+                         if(!checkTime(currentConfig.start, currentConfig.end) && userRole !== 'admin') return;
                          window.openBookingModal("บัตรเข้าร่วมงาน");
                     }
                 }
@@ -691,7 +698,8 @@
     }
 
     window.selectSeat = (seatId) => {
-        if(!checkTime(currentConfig.start, currentConfig.end)) return;
+        if(!checkTime(currentConfig.start, currentConfig.end) && userRole !== 'admin') return;
+        
         const tempRef = ref(db, `movies/${currentId}/temp_selections/${seatId}`);
         const userIdToUse = currentUser ? currentUser.uid : guestId;
         runTransaction(tempRef, (curr) => {
@@ -753,7 +761,6 @@
         const bIdCard = document.getElementById('inp-conf-idcard').value.trim();
         if(!bName || !bPhone || !bEmail) { alert("กรุณากรอกข้อมูลให้ครบ"); return; }
 
-        // --- แก้ไข: ตรวจสอบการจองซ้ำ (Duplicate Check) ---
         let existingBookings = {};
         if(currentType === 'movie') {
             existingBookings = (allData.movies[currentId] && allData.movies[currentId].bookings) || {};
@@ -763,22 +770,18 @@
 
         let isDup = false;
         Object.values(existingBookings).forEach(b => {
-            // เช็คจาก Email
             if(b.email === bEmail) isDup = true;
-            // เช็คจาก UID (ถ้าล็อกอิน)
             if(currentUser && b.uid === currentUser.uid && b.uid !== 'guest') isDup = true;
         });
 
         if(isDup) {
             if(userRole === 'admin') {
                 if(!confirm("⚠️ บัญชีหรืออีเมลนี้เคยจองรอบนี้แล้ว (Admin Override) ยืนยันจองเพิ่มหรือไม่?")) return;
-                // ถ้า Admin กด OK ก็ให้ทำงานต่อ
             } else {
                 alert("❌ คุณได้ทำการจองรอบนี้ไปแล้ว (จำกัด 1 สิทธิ์ต่อรอบ)");
-                return; // หยุดการทำงาน
+                return;
             }
         }
-        // ----------------------------------------------
 
         const bookingData = {
             uid: currentUser ? currentUser.uid : 'guest', 
@@ -873,7 +876,7 @@
 
     // --- Helpers & Admin ---
     function checkTime(s, e) {
-        if(userRole === 'admin') return true; // Admin จองได้ตลอดเวลา
+        if(userRole === 'admin') return true; 
         const n = new Date();
         if(n < new Date(s)) { alert("ยังไม่ถึงเวลาเปิดจอง"); return false; }
         if(n > new Date(e)) { alert("หมดเวลาจองแล้ว"); return false; }
@@ -920,7 +923,7 @@
         }).then(() => alert("บันทึกข้อมูลสำเร็จ"));
     }
     
-    // --- Admin Functions ---
+    // --- Admin Functions (User Mgmt with ID Card) ---
     window.showUserManagement = () => {
         if(userRole !== 'admin') return;
         window.showPage('page-users');
@@ -930,7 +933,18 @@
             snap.forEach(child => {
                 const u = child.val();
                 const uid = child.key;
-                list.innerHTML += `<tr><td>${u.name}</td><td>${u.email}</td><td>${u.phone}</td><td><span class="tag ${u.role==='admin'?'event':'movie'}">${u.role}</span></td><td><button class="btn-sm btn-edit" onclick="editUserAdmin('${uid}')">แก้ไข</button><button class="btn-sm btn-del" onclick="deleteUserAdmin('${uid}')">ลบ</button></td></tr>`;
+                // เพิ่ม ID Card ในตาราง
+                list.innerHTML += `<tr>
+                    <td>${u.name || '-'}</td>
+                    <td>${u.email}</td>
+                    <td>${u.phone || '-'}</td>
+                    <td>${u.idCard || '-'}</td>
+                    <td><span class="tag ${u.role==='admin'?'event':'movie'}">${u.role}</span></td>
+                    <td>
+                        <button class="btn-sm btn-edit" onclick="editUserAdmin('${uid}')">แก้ไข</button>
+                        <button class="btn-sm btn-del" onclick="deleteUserAdmin('${uid}')">ลบ</button>
+                    </td>
+                </tr>`;
             });
         });
     }
@@ -938,16 +952,25 @@
         onValue(ref(db, 'users/' + uid), (snap) => {
             const u = snap.val();
             document.getElementById('edit-u-uid').value = uid;
-            document.getElementById('edit-u-name').value = u.name;
-            document.getElementById('edit-u-phone').value = u.phone;
+            document.getElementById('edit-u-name').value = u.name || '';
+            document.getElementById('edit-u-phone').value = u.phone || '';
+            document.getElementById('edit-u-idcard').value = u.idCard || ''; // ดึง ID Card มาใส่ Modal
             document.getElementById('edit-u-role').value = u.role || 'user';
             document.getElementById('user-edit-modal').classList.add('active');
         }, { onlyOnce: true });
     }
     window.saveUserAdmin = () => {
         const uid = document.getElementById('edit-u-uid').value;
-        const updates = { name: document.getElementById('edit-u-name').value, phone: document.getElementById('edit-u-phone').value, role: document.getElementById('edit-u-role').value };
-        update(ref(db, 'users/' + uid), updates).then(() => { document.getElementById('user-edit-modal').classList.remove('active'); alert("อัปเดตข้อมูลสมาชิกเรียบร้อย"); });
+        const updates = { 
+            name: document.getElementById('edit-u-name').value, 
+            phone: document.getElementById('edit-u-phone').value, 
+            idCard: document.getElementById('edit-u-idcard').value, // บันทึก ID Card
+            role: document.getElementById('edit-u-role').value 
+        };
+        update(ref(db, 'users/' + uid), updates).then(() => { 
+            document.getElementById('user-edit-modal').classList.remove('active'); 
+            alert("อัปเดตข้อมูลสมาชิกเรียบร้อย"); 
+        });
     }
     window.deleteUserAdmin = (uid) => {
         if(confirm("ยืนยันการลบ?")) remove(ref(db, 'users/' + uid));
@@ -1014,6 +1037,3 @@
         }
     }
 </script>
-
-</body>
-</html>
