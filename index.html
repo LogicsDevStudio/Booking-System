@@ -6,6 +6,7 @@
     <title>ระบบจองตั๋ว Realtime (ครบวงจร)</title>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         body { font-family: 'Sarabun', sans-serif; background: #f0f2f5; margin: 0; padding: 0; color: #333; }
         .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
@@ -93,10 +94,20 @@
         .form-group input, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-family: 'Sarabun'; }
         .modal-buttons { margin-top: 20px; text-align: right; }
 
-        /* Payment UI */
+        /* Payment & Ticket UI */
         .payment-qr-container { background: #f8f9fa; border: 1px solid #ddd; border-radius: 8px; padding: 15px; text-align: center; margin-bottom: 15px; }
         .payment-qr-container img { width: 200px; height: 200px; object-fit: contain; margin: 10px 0; }
         .timer-text { font-size: 1.5rem; font-weight: bold; color: #e74c3c; margin: 5px 0; animation: pulse 1s infinite; }
+
+        .ticket-card { background: #fff; border: 2px dashed #1a73e8; border-radius: 12px; padding: 20px; text-align: center; margin-top: 15px; position: relative; }
+        .ticket-card::before, .ticket-card::after { content: ''; position: absolute; top: 50%; width: 20px; height: 20px; background: white; border-radius: 50%; transform: translateY(-50%); border: 2px solid #1a73e8; }
+        .ticket-card::before { left: -12px; border-left: transparent; border-top: transparent; border-bottom: transparent; }
+        .ticket-card::after { right: -12px; border-right: transparent; border-top: transparent; border-bottom: transparent; }
+        .ticket-title { font-size: 1.3rem; font-weight: bold; color: #1a73e8; margin-bottom: 10px; }
+        .ticket-info { text-align: left; background: #f8f9fa; padding: 15px; border-radius: 8px; font-size: 0.95rem; margin-top: 15px; }
+        .ticket-info p { margin: 8px 0; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        .ticket-qr { margin-top: 15px; }
+        .ticket-qr img { width: 150px; height: 150px; }
     </style>
 </head>
 <body>
@@ -160,7 +171,7 @@
         </div>
         <h3>📜 ประวัติการจอง</h3>
         <table id="history-table">
-            <thead><tr><th>วันที่</th><th>รายการ</th><th>สถานะ/ลิ้งค์สลิป</th></tr></thead>
+            <thead><tr><th>วันที่</th><th>รายการ</th><th>สถานะ / การจัดการ</th></tr></thead>
             <tbody id="history-list"></tbody>
         </table>
     </div>
@@ -205,7 +216,7 @@
             <div class="seat-map" id="seat-map"></div>
             <div class="legend">
                 <div class="legend-item"><div class="dot" style="border:2px solid #28a745;"></div> ว่าง</div>
-                <div class="legend-item"><div class="dot" style="background:#f39c12;"></div> รอชำระเงิน (คลิกเพื่อจ่าย)</div>
+                <div class="legend-item"><div class="dot" style="background:#f39c12;"></div> รอชำระเงิน</div>
                 <div class="legend-item"><div class="dot" style="background:#dc3545;"></div> จองแล้ว</div>
                 <div class="legend-item"><div class="dot" style="background:#e2e6ea;"></div> ปิด</div>
             </div>
@@ -275,7 +286,6 @@
             <div class="form-group">
                 <label>แนบลิ้งค์หลักฐานการโอนเงิน (URL รูปภาพ)</label>
                 <input type="url" id="inp-slip-url" placeholder="https://...">
-                <small style="color:#666;">*ฝากรูปในเว็บฝากรูปแล้วนำลิ้งค์มาวาง หรือกด "ชำระเงินภายหลัง" เพื่อจ่ายผ่านหน้าประวัติ</small>
             </div>
 
             <div class="modal-buttons" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
@@ -309,6 +319,34 @@
         </div>
     </div>
 </div>
+
+<div id="eticket-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="document.getElementById('eticket-modal').classList.remove('active')">&times;</span>
+        
+        <div id="ticket-content" class="ticket-card">
+            <div class="ticket-title">🎟️ E-TICKET</div>
+            <h3 id="t-title" style="margin-bottom:5px;">ชื่อเรื่อง</h3>
+            
+            <div class="ticket-qr">
+                <img id="t-qrcode" alt="Ticket QR">
+                <div style="font-size:0.8rem; color:#888; margin-top:5px;">สแกนเพื่อเข้างาน</div>
+            </div>
+
+            <div class="ticket-info">
+                <p>👤 <strong>ชื่อ:</strong> <span id="t-name"></span></p>
+                <p>📍 <strong>สถานที่:</strong> <span id="t-location"></span></p>
+                <p>📅 <strong>วันที่/เวลา:</strong> <span id="t-datetime"></span></p>
+                <p>💺 <strong>ที่นั่ง/บัตร:</strong> <span id="t-seat"></span></p>
+            </div>
+        </div>
+
+        <div class="modal-buttons" style="display:flex; justify-content:center; gap:15px; margin-top:20px;">
+            <button class="btn-primary" onclick="downloadTicketPDF()" style="background:#8e44ad; width:100%;">📥 ดาวน์โหลดตั๋ว PDF</button>
+        </div>
+    </div>
+</div>
+
 
 <div id="admin-modal" class="modal">
     <div class="modal-content">
@@ -406,7 +444,6 @@
     import { getDatabase, ref, onValue, runTransaction, push, set, remove, onDisconnect, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-    // --- Config เดิมของคุณ ---
     const firebaseConfig = {
         apiKey: "AIzaSyAJGlD_kNVgRHVAdmUUgZAerrjX8nJbMJE",
         authDomain: "booking-system-c1ebd.firebaseapp.com",
@@ -439,7 +476,7 @@
     let currentConfig = null;
     let tempSeatRef = null;
     let paymentTimerInterval = null; 
-    let payLaterData = null; // เก็บข้อมูลตอนจะจ่ายย้อนหลัง
+    let payLaterData = null; 
 
     const PROMPTPAY_NUMBER = "0812345678"; 
 
@@ -481,11 +518,9 @@
         }
     });
 
-    // --- Auto Cleanup 10 Minutes Script ---
-    // ระบบจะลบการจองที่ "รอชำระเงิน" ทิ้งอัตโนมัติหากเกิน 10 นาที
     setInterval(() => {
         const now = Date.now();
-        const expireTime = 10 * 60 * 1000; // 10 นาที
+        const expireTime = 10 * 60 * 1000; 
 
         if(allData.movies) {
             Object.entries(allData.movies).forEach(([mId, m]) => {
@@ -496,7 +531,6 @@
                         }
                     });
                 }
-                // ล้าง temp selection เผื่อค้าง
                 if(m.temp_selections) {
                     Object.entries(m.temp_selections).forEach(([seatId, t]) => {
                         if(now - t.timestamp > expireTime) {
@@ -519,9 +553,8 @@
                 }
             });
         }
-        // อัปเดตเวลาในหน้า Profile ถ้ายเปิดค้างอยู่
         if(!document.getElementById('page-profile').classList.contains('hidden')) window.showProfile();
-    }, 15000); // เช็คทุกๆ 15 วินาที
+    }, 15000);
 
     function updateNavbarUI(isLoggedIn) {
         document.getElementById('main-nav').classList.remove('hidden');
@@ -553,7 +586,7 @@
         window.renderHomeList();
     }
 
-    // --- Home List (Grouping) ---
+    // --- Home List ---
     window.renderHomeList = () => {
         const mList = document.getElementById('movie-list');
         const eList = document.getElementById('event-list');
@@ -648,7 +681,6 @@
                 document.getElementById('m-group-price').innerText = rep.price || '0';
                 document.getElementById('m-group-detail').innerText = rep.detail || '';
 
-                // สร้าง Minimap
                 const minimap = document.getElementById('m-group-minimap');
                 minimap.innerHTML = '<strong style="font-size:0.9rem; color:#333;">ผังที่นั่งคร่าวๆ (อ้างอิงจากรอบแรก):</strong><br>';
                 const grid = document.createElement('div');
@@ -807,7 +839,6 @@
         }
     }
 
-    // --- Helper Time Check (ปรับเป็น window) ---
     window.checkTime = (s, e) => {
         if(userRole === 'admin') return true; 
         const n = new Date();
@@ -878,7 +909,6 @@
         window.openGroupPage(title, currentType, false);
     }
 
-    // --- Booking Logic ---
     function renderSeatsBase(conf) {
         const map = document.getElementById('seat-map');
         map.innerHTML = '';
@@ -919,7 +949,6 @@
             s.onclick = () => window.selectSeat(sid);
 
             if(bookings[sid]) {
-                // ถ้าเป็นที่นั่งที่จองแล้ว แต่รอชำระเงิน และเป็นของผู้ใช้คนนี้ ให้กดเพื่อเปิดหน้าจ่ายตังได้
                 if(bookings[sid].paymentStatus === 'รอชำระเงิน' && bookings[sid].uid === myUid) {
                     s.className = 'seat pending';
                     s.onclick = () => { window.openPayLaterModal('movie', currentId, sid, currentConfig.price || 0); };
@@ -997,7 +1026,6 @@
         }
     }
 
-    // --- PAYMENT FLOW ---
     window.proceedToPayment = () => {
         const bName = document.getElementById('inp-conf-name').value.trim();
         const bPhone = document.getElementById('inp-conf-phone').value.trim();
@@ -1034,7 +1062,7 @@
         document.getElementById('pay-amount').innerText = price;
         document.getElementById('pay-qrcode').src = `https://promptpay.io/${PROMPTPAY_NUMBER}/${price}.png`;
 
-        startPaymentTimer(10 * 60); // 10 mins
+        startPaymentTimer(10 * 60); 
     }
 
     function startPaymentTimer(durationInSeconds) {
@@ -1063,7 +1091,6 @@
         processFinalBooking(slipUrl);
     }
 
-    // เมื่อกดปุ่ม "ชำระเงินภายหลัง" จะบันทึกแบบไม่มีสลิป แต่เปลี่ยนสถานะเป็น "รอชำระเงิน"
     window.payLater = () => {
         processFinalBooking("", "รอชำระเงิน");
     }
@@ -1091,7 +1118,7 @@
                 if(tempSeatRef) remove(tempSeatRef);
                 window.cancelSelection(); 
                 if(status === 'รอชำระเงิน') alert("✅ บันทึกที่นั่งแล้ว กรุณาชำระเงินที่หน้าประวัติ ภายใน 10 นาที");
-                else alert("✅ การจองสำเร็จ ระบบได้รับข้อมูลของคุณแล้ว");
+                else alert("✅ การจองสำเร็จ ระบบได้รับข้อมูลของคุณแล้ว สามารถดู E-Ticket ได้ที่หน้าประวัติการจอง");
                 window.backToSchedule(); 
             });
         } else {
@@ -1106,14 +1133,14 @@
                     push(ref(db, `events/${currentId}/bookings`), bookingData);
                     window.cancelSelection(); 
                     if(status === 'รอชำระเงิน') alert("✅ บันทึกที่นั่งแล้ว กรุณาชำระเงินที่หน้าประวัติ ภายใน 10 นาที");
-                    else alert("✅ การจองสำเร็จ ระบบได้รับข้อมูลของคุณแล้ว");
+                    else alert("✅ การจองสำเร็จ ระบบได้รับข้อมูลของคุณแล้ว สามารถดู E-Ticket ได้ที่หน้าประวัติการจอง");
                     window.backToSchedule(); 
                 } else alert("❌ ขออภัย บัตรเต็มในขณะที่คุณทำรายการ");
             });
         }
     }
 
-    // --- PAY LATER MODAL ACTIONS ---
+    // --- PAY LATER & E-TICKET ---
     window.openPayLaterModal = (type, itemId, bookingKey, price) => {
         payLaterData = { type, itemId, bookingKey };
         document.getElementById('pl-amount').innerText = price;
@@ -1136,8 +1163,32 @@
             alert("✅ บันทึกสลิปสำเร็จ โปรดรอแอดมินตรวจสอบ");
             document.getElementById('pay-later-modal').classList.remove('active');
             if(!document.getElementById('page-profile').classList.contains('hidden')) window.showProfile();
-            // ถ้าหน้าผังที่นั่งเปิดอยู่ มันจะอัปเดตอัตโนมัติจาก onValue
         });
+    };
+
+    window.viewTicket = (title, location, dateStr, timeStr, seatLabel, userName, qrData) => {
+        document.getElementById('t-title').innerText = title;
+        document.getElementById('t-location').innerText = location || '-';
+        document.getElementById('t-datetime').innerText = `${dateStr} เวลา ${timeStr}`;
+        document.getElementById('t-seat').innerText = seatLabel;
+        document.getElementById('t-name').innerText = userName;
+        
+        // ใช้ API สร้าง QR Code (ใส่ข้อมูลอะไรลงไปก็ได้ที่ใช้ยืนยัน)
+        document.getElementById('t-qrcode').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrData)}`;
+        
+        document.getElementById('eticket-modal').classList.add('active');
+    };
+
+    window.downloadTicketPDF = () => {
+        const element = document.getElementById('ticket-content');
+        const opt = {
+            margin:       0.5,
+            filename:     'E-Ticket.pdf',
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2 },
+            jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+        };
+        html2pdf().set(opt).from(element).save();
     };
     
     // --- Profile & History ---
@@ -1161,7 +1212,8 @@
                         if(b.email === myEmail) {
                             myHistory.push({ 
                                 timestamp: b.timestamp, itemTitle: m.config.title, detail: `ที่นั่ง ${seatId}`, 
-                                slip: b.slipUrl, status: b.paymentStatus, type: 'movie', itemId: mId, bookingKey: seatId, price: m.config.price || 0 
+                                slip: b.slipUrl, status: b.paymentStatus, type: 'movie', itemId: mId, bookingKey: seatId, 
+                                price: m.config.price || 0, location: m.config.location, userName: b.name, eventDate: m.config.start
                             });
                         }
                     });
@@ -1176,7 +1228,8 @@
                         if(b.email === myEmail) {
                             myHistory.push({ 
                                 timestamp: b.timestamp, itemTitle: e.config.title, detail: "บัตรเข้าร่วมงาน", 
-                                slip: b.slipUrl, status: b.paymentStatus, type: 'event', itemId: eId, bookingKey: bId, price: e.config.price || 0 
+                                slip: b.slipUrl, status: b.paymentStatus, type: 'event', itemId: eId, bookingKey: bId, 
+                                price: e.config.price || 0, location: e.config.location, userName: b.name, eventDate: e.config.start 
                             });
                         }
                     });
@@ -1193,7 +1246,6 @@
             myHistory.forEach(h => {
                 let actionHtml = '';
                 
-                // ถ้ารอชำระเงิน ให้แสดงปุ่มจ่าย + เวลาเหลือ
                 if (h.status === 'รอชำระเงิน') {
                     const timeLeftMin = Math.floor((10 * 60 * 1000 - (Date.now() - h.timestamp)) / 60000);
                     if (timeLeftMin >= 0) {
@@ -1201,8 +1253,21 @@
                     } else {
                         actionHtml = `<span style="color:red; font-size:0.8rem; display:block; margin-top:5px;">หมดเวลาชำระเงิน</span>`;
                     }
-                } else if (h.slip) {
-                    actionHtml = `<br><a href="${h.slip}" target="_blank" style="font-size:0.85rem; color:#1a73e8; display:block; margin-top:5px;">ดูสลิปของฉัน</a>`;
+                } else {
+                    // ถ้าไม่ใช่ "รอชำระเงิน" แปลว่าจองสมบูรณ์ (รอตรวจ หรือ ยืนยันแล้ว หรือ ฟรี)
+                    // ให้สร้าง QR Code Data เพื่อแนบในตั๋ว
+                    const qrDataStr = `TICKET|${h.type}|${h.itemId}|${h.bookingKey}|${h.userName}`;
+                    const dateStr = new Date(h.eventDate).toLocaleDateString();
+                    const timeStr = new Date(h.eventDate).toLocaleTimeString([], {timeStyle: 'short'});
+                    
+                    actionHtml = `
+                        <button class="btn-sm" style="background:#8e44ad; color:white; margin-top:5px; font-weight:bold;" 
+                        onclick="viewTicket('${h.itemTitle}', '${h.location || ''}', '${dateStr}', '${timeStr}', '${h.detail}', '${h.userName}', '${qrDataStr}')">
+                        🎫 ดู E-Ticket</button>
+                    `;
+                    if (h.slip) {
+                        actionHtml += `<a href="${h.slip}" target="_blank" style="font-size:0.8rem; color:#1a73e8; display:block; margin-top:5px;">ดูสลิปของฉัน</a>`;
+                    }
                 }
 
                 let badgeColor = h.status === 'รอชำระเงิน' ? '#f39c12' : (h.status === 'ฟรี' ? '#2ecc71' : '#17a2b8');
@@ -1212,14 +1277,14 @@
                     <td>${h.itemTitle} <br><small style="color:#666;">${h.detail}</small></td>
                     <td>
                         <span style="background:${badgeColor}; color:white; padding:3px 8px; border-radius:10px; font-size:0.8rem;">${h.status || 'ยืนยันแล้ว'}</span>
-                        ${actionHtml}
+                        <div style="margin-top:5px;">${actionHtml}</div>
                     </td>
                 </tr>`;
             });
         }
     }
 
-    // --- Admin View Bookings ---
+    // --- Admin Views ---
     window.viewBookings = (id, type) => {
         if(userRole !== 'admin') return;
         const targetData = type === 'movie' ? allData.movies[id] : allData.events[id];
@@ -1236,7 +1301,7 @@
             const statBadge = val.paymentStatus === 'รอชำระเงิน' ? `<span style="color:#f39c12; font-size:0.8rem;">(รอชำระ)</span>` : '';
             
             tbody.innerHTML += `<tr>
-                <td><span class="tag movie">${seatLabel}</span> ${statBadge}</td>
+                <td><span class="tag movie">${seatLabel}</span> <br>${statBadge}</td>
                 <td>${val.name}</td>
                 <td>${val.phone}</td>
                 <td>${slipLink}</td>
@@ -1302,8 +1367,7 @@
         }
     }
 
-
-    // --- Other Helpers & Admin ---
+    // --- Other Handlers ---
     window.handleAuth = (e) => {
         e.preventDefault();
         const email = document.getElementById('auth-email').value;
@@ -1469,7 +1533,6 @@
         
         (isNew ? set(targetRef, updateData) : update(targetRef, { config: payload })).then(() => window.closeAdminModal());
     }
-
 </script>
 
 </body>
