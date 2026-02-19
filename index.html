@@ -43,7 +43,6 @@
         .item-details img { width: 220px; height: 320px; object-fit: cover; border-radius: 8px; flex-shrink: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.1);}
         .item-info { flex: 1; min-width: 250px; }
         .item-info p { margin: 8px 0; }
-        @media (max-width: 600px) { .item-details img { width: 100%; height: auto; max-height: 400px; } }
 
         /* Admin Controls */
         .admin-actions { display: flex; gap: 5px; margin-top: auto; border-top: 1px solid #eee; padding-top: 15px; }
@@ -75,6 +74,8 @@
         .seat.booked { background-color: #dc3545; border: 2px solid #dc3545; cursor: not-allowed; opacity: 0.6; }
         .seat.selecting { background-color: #ffc107; border: 2px solid #ffc107; color: #333; cursor: not-allowed; animation: pulse 1.5s infinite; }
         .seat.blocked { background-color: #e2e6ea; border: 2px solid #ced4da; color: #adb5bd; cursor: not-allowed; }
+        .seat.pending { background-color: #f39c12; border: 2px solid #e67e22; color: white; cursor: pointer; animation: pulse 2s infinite; }
+        
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
 
         /* Modal & Helpers */
@@ -104,7 +105,7 @@
     <div class="brand" onclick="goHome()">🎟️ TicketSystem</div>
     <div class="nav-menu">
         <span class="nav-item" onclick="goHome()">หน้าหลัก</span>
-        <span id="nav-profile" class="nav-item hidden" onclick="showProfile()">ข้อมูลส่วนตัว</span>
+        <span id="nav-profile" class="nav-item hidden" onclick="showProfile()">ข้อมูลส่วนตัว/ประวัติ</span>
         <span id="nav-admin-users" class="nav-item hidden" onclick="showUserManagement()" style="color:#d93025;">จัดการสมาชิก</span>
         <span id="nav-login" class="nav-item" onclick="showPage('page-auth')">เข้าสู่ระบบ</span>
         <span id="nav-logout" class="btn-logout hidden" onclick="doLogout()">ออกจากระบบ</span>
@@ -179,7 +180,7 @@
         <button class="btn-secondary" onclick="goHome()">⬅ ย้อนกลับ</button>
         
         <div class="item-details">
-            <img id="m-group-img" alt="Poster">
+            <img id="m-group-img" alt="Poster" style="display:none;">
             <div class="item-info">
                 <h2 id="m-group-title" style="margin-top:0; color:#1a73e8;">ชื่อภาพยนตร์</h2>
                 <p>📍 <strong>สถานที่:</strong> <span id="m-group-location">-</span></p>
@@ -204,7 +205,7 @@
             <div class="seat-map" id="seat-map"></div>
             <div class="legend">
                 <div class="legend-item"><div class="dot" style="border:2px solid #28a745;"></div> ว่าง</div>
-                <div class="legend-item"><div class="dot" style="background:#ffc107;"></div> กำลังเลือก/จ่ายเงิน</div>
+                <div class="legend-item"><div class="dot" style="background:#f39c12;"></div> รอชำระเงิน (คลิกเพื่อจ่าย)</div>
                 <div class="legend-item"><div class="dot" style="background:#dc3545;"></div> จองแล้ว</div>
                 <div class="legend-item"><div class="dot" style="background:#e2e6ea;"></div> ปิด</div>
             </div>
@@ -215,7 +216,7 @@
         <button class="btn-secondary" onclick="goHome()">⬅ ย้อนกลับ</button>
         
         <div class="item-details">
-            <img id="e-group-img" alt="Poster">
+            <img id="e-group-img" alt="Poster" style="display:none;">
             <div class="item-info">
                 <h2 id="e-group-title" style="margin-top:0; color:#d93025;">ชื่ออีเวนต์</h2>
                 <p>📍 <strong>สถานที่:</strong> <span id="e-group-location">-</span></p>
@@ -266,9 +267,7 @@
             <div class="payment-qr-container">
                 <p style="font-size: 1.2rem; margin:0;">ยอดที่ต้องชำระ</p>
                 <p style="font-size: 2rem; color:#28a745; font-weight:bold; margin:5px 0;">฿<span id="pay-amount">0</span></p>
-                
                 <img id="pay-qrcode" alt="PromptPay QR">
-                
                 <p style="color:#e74c3c; font-weight:bold; margin-top:10px;">กรุณาชำระเงินและแนบสลิปภายใน</p>
                 <div class="timer-text" id="pay-countdown">10:00</div>
             </div>
@@ -276,13 +275,37 @@
             <div class="form-group">
                 <label>แนบลิ้งค์หลักฐานการโอนเงิน (URL รูปภาพ)</label>
                 <input type="url" id="inp-slip-url" placeholder="https://...">
-                <small style="color:#666;">*กรุณาฝากรูปสลิปเว็บฝากรูปแล้วนำลิ้งค์มาวาง</small>
+                <small style="color:#666;">*ฝากรูปในเว็บฝากรูปแล้วนำลิ้งค์มาวาง หรือกด "ชำระเงินภายหลัง" เพื่อจ่ายผ่านหน้าประวัติ</small>
             </div>
 
-            <div class="modal-buttons" style="display:flex; justify-content:space-between; align-items:center;">
-                <button class="btn-secondary" onclick="cancelSelection()" style="background:#dc3545;">ยกเลิกการจอง</button>
-                <button class="btn-primary" onclick="confirmPayment()" style="width:auto;">ยืนยันการชำระเงิน</button>
+            <div class="modal-buttons" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                <button class="btn-secondary" onclick="cancelSelection()" style="background:#dc3545;">ยกเลิก</button>
+                <div>
+                    <button class="btn-secondary" onclick="payLater()" style="background:#f39c12; color:white; border:none; margin-right:5px;">ชำระเงินภายหลัง</button>
+                    <button class="btn-primary" onclick="confirmPayment()" style="width:auto; margin:0;">ยืนยันสลิป</button>
+                </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<div id="pay-later-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="document.getElementById('pay-later-modal').classList.remove('active')">&times;</span>
+        <h3 style="color: #f39c12; text-align: center;">ชำระเงินการจองย้อนหลัง</h3>
+        <div class="payment-qr-container">
+            <p style="font-size: 1.2rem; margin:0;">ยอดที่ต้องชำระ</p>
+            <p style="font-size: 2rem; color:#28a745; font-weight:bold; margin:5px 0;">฿<span id="pl-amount">0</span></p>
+            <img id="pl-qrcode" alt="PromptPay QR">
+            <p style="color:#e74c3c; font-weight:bold; margin-top:10px;">*กรุณาแนบสลิปก่อนหมดเวลา 10 นาที*</p>
+        </div>
+        <div class="form-group">
+            <label>แนบลิ้งค์หลักฐานการโอนเงิน (URL รูปภาพ)</label>
+            <input type="url" id="pl-slip-url" placeholder="https://...">
+        </div>
+        <div class="modal-buttons">
+            <button class="btn-secondary" onclick="document.getElementById('pay-later-modal').classList.remove('active')">ปิด</button>
+            <button class="btn-primary" onclick="submitPayLater()" style="width:auto;">บันทึกสลิป</button>
         </div>
     </div>
 </div>
@@ -416,6 +439,7 @@
     let currentConfig = null;
     let tempSeatRef = null;
     let paymentTimerInterval = null; 
+    let payLaterData = null; // เก็บข้อมูลตอนจะจ่ายย้อนหลัง
 
     const PROMPTPAY_NUMBER = "0812345678"; 
 
@@ -452,7 +476,52 @@
                 window.openGroupPage(titleEl.innerText, 'event', false);
             }
         }
+        if(!document.getElementById('page-profile').classList.contains('hidden')) {
+            window.showProfile();
+        }
     });
+
+    // --- Auto Cleanup 10 Minutes Script ---
+    // ระบบจะลบการจองที่ "รอชำระเงิน" ทิ้งอัตโนมัติหากเกิน 10 นาที
+    setInterval(() => {
+        const now = Date.now();
+        const expireTime = 10 * 60 * 1000; // 10 นาที
+
+        if(allData.movies) {
+            Object.entries(allData.movies).forEach(([mId, m]) => {
+                if(m.bookings) {
+                    Object.entries(m.bookings).forEach(([seatId, b]) => {
+                        if(b.paymentStatus === 'รอชำระเงิน' && (now - b.timestamp > expireTime)) {
+                            remove(ref(db, `movies/${mId}/bookings/${seatId}`));
+                        }
+                    });
+                }
+                // ล้าง temp selection เผื่อค้าง
+                if(m.temp_selections) {
+                    Object.entries(m.temp_selections).forEach(([seatId, t]) => {
+                        if(now - t.timestamp > expireTime) {
+                            remove(ref(db, `movies/${mId}/temp_selections/${seatId}`));
+                        }
+                    });
+                }
+            });
+        }
+        if(allData.events) {
+            Object.entries(allData.events).forEach(([eId, e]) => {
+                if(e.bookings) {
+                    Object.entries(e.bookings).forEach(([bId, b]) => {
+                        if(b.paymentStatus === 'รอชำระเงิน' && (now - b.timestamp > expireTime)) {
+                            remove(ref(db, `events/${eId}/bookings/${bId}`)).then(() => {
+                                runTransaction(ref(db, `events/${eId}/currentBooked`), (c) => (c || 1) - 1);
+                            });
+                        }
+                    });
+                }
+            });
+        }
+        // อัปเดตเวลาในหน้า Profile ถ้ายเปิดค้างอยู่
+        if(!document.getElementById('page-profile').classList.contains('hidden')) window.showProfile();
+    }, 15000); // เช็คทุกๆ 15 วินาที
 
     function updateNavbarUI(isLoggedIn) {
         document.getElementById('main-nav').classList.remove('hidden');
@@ -588,7 +657,6 @@
                 grid.style.gap = '2px';
                 grid.style.marginTop = '8px';
                 
-                // --- แก้ไขจุดที่ 1.1 ป้องกัน Error Minimap ---
                 let blocked = [];
                 if (rep.blocked) {
                     blocked = Array.isArray(rep.blocked) ? rep.blocked : String(rep.blocked).split(',').map(s => s.trim());
@@ -609,7 +677,6 @@
             }
 
             items.forEach(item => {
-                // --- แก้ไขจุดที่ 1.2 ป้องกันนับที่นั่งผิด ---
                 let bArr = [];
                 if (item.config.blocked) {
                     bArr = Array.isArray(item.config.blocked) ? item.config.blocked : String(item.config.blocked).split(',').filter(x => x.trim() !== '');
@@ -817,7 +884,6 @@
         map.innerHTML = '';
         map.style.gridTemplateColumns = `repeat(${conf.cols}, 1fr)`;
         
-        // --- แก้ไขป้องกัน Error ในหน้าเลือกที่นั่ง ---
         let blockedList = [];
         if (conf.blocked) {
             blockedList = Array.isArray(conf.blocked) ? conf.blocked : String(conf.blocked).split(',').map(x => x.trim());
@@ -832,7 +898,6 @@
                 seat.id = `seat-${seatId}`;
                 seat.innerText = seatId;
                 
-                // เช็คว่าที่นั่งอยู่ในรายการที่ถูกปิดหรือไม่
                 if(blockedList.includes(seatId)) {
                     seat.classList.add('blocked'); seat.classList.remove('available');
                 } else {
@@ -844,12 +909,23 @@
     }
 
     function updateSeatStatus(bookings, temps) {
+        const myUid = currentUser ? currentUser.uid : guestId;
+        
         document.querySelectorAll('.seat').forEach(s => {
             const sid = s.id.replace('seat-', '');
             if(s.classList.contains('blocked')) return;
-            s.className = 'seat available'; s.onclick = () => window.selectSeat(sid);
+            
+            s.className = 'seat available'; 
+            s.onclick = () => window.selectSeat(sid);
+
             if(bookings[sid]) {
-                s.className = 'seat booked'; s.onclick = null;
+                // ถ้าเป็นที่นั่งที่จองแล้ว แต่รอชำระเงิน และเป็นของผู้ใช้คนนี้ ให้กดเพื่อเปิดหน้าจ่ายตังได้
+                if(bookings[sid].paymentStatus === 'รอชำระเงิน' && bookings[sid].uid === myUid) {
+                    s.className = 'seat pending';
+                    s.onclick = () => { window.openPayLaterModal('movie', currentId, sid, currentConfig.price || 0); };
+                } else {
+                    s.className = 'seat booked'; s.onclick = null;
+                }
             } else if(temps[sid]) {
                 if (Date.now() - temps[sid].timestamp < 10 * 60 * 1000) { 
                     s.className = 'seat selecting'; s.onclick = null;
@@ -921,6 +997,7 @@
         }
     }
 
+    // --- PAYMENT FLOW ---
     window.proceedToPayment = () => {
         const bName = document.getElementById('inp-conf-name').value.trim();
         const bPhone = document.getElementById('inp-conf-phone').value.trim();
@@ -947,7 +1024,6 @@
         }
 
         const price = parseInt(currentConfig.price) || 0;
-
         if(price === 0) {
             processFinalBooking("");
             return;
@@ -956,11 +1032,9 @@
         document.getElementById('booking-form-section').classList.add('hidden');
         document.getElementById('payment-section').classList.remove('hidden');
         document.getElementById('pay-amount').innerText = price;
-        
-        // QR Code
         document.getElementById('pay-qrcode').src = `https://promptpay.io/${PROMPTPAY_NUMBER}/${price}.png`;
 
-        startPaymentTimer(10 * 60);
+        startPaymentTimer(10 * 60); // 10 mins
     }
 
     function startPaymentTimer(durationInSeconds) {
@@ -977,7 +1051,7 @@
 
             if (--timer < 0) {
                 clearInterval(paymentTimerInterval);
-                alert("⏳ หมดเวลาการชำระเงิน ที่นั่งถูกยกเลิกแล้ว");
+                alert("⏳ หมดเวลาการทำรายการ ที่นั่งของคุณถูกยกเลิกแล้ว");
                 window.cancelSelection();
             }
         }, 1000);
@@ -985,14 +1059,16 @@
 
     window.confirmPayment = () => {
         const slipUrl = document.getElementById('inp-slip-url').value.trim();
-        if(!slipUrl) {
-            alert("⚠️ กรุณาแนบลิ้งค์หลักฐานการโอนเงิน (URL)");
-            return;
-        }
+        if(!slipUrl) { alert("⚠️ กรุณาแนบลิ้งค์หลักฐานการโอนเงิน (URL)"); return; }
         processFinalBooking(slipUrl);
     }
 
-    function processFinalBooking(slipUrl) {
+    // เมื่อกดปุ่ม "ชำระเงินภายหลัง" จะบันทึกแบบไม่มีสลิป แต่เปลี่ยนสถานะเป็น "รอชำระเงิน"
+    window.payLater = () => {
+        processFinalBooking("", "รอชำระเงิน");
+    }
+
+    function processFinalBooking(slipUrl, customStatus = null) {
         clearInterval(paymentTimerInterval);
 
         const bName = document.getElementById('inp-conf-name').value.trim();
@@ -1000,17 +1076,22 @@
         const bEmail = document.getElementById('inp-conf-email').value.trim();
         const bIdCard = document.getElementById('inp-conf-idcard').value.trim();
 
+        let status = customStatus;
+        if(!status) status = slipUrl ? 'รอตรวจสอบ' : 'ฟรี';
+
         const bookingData = {
             uid: currentUser ? currentUser.uid : 'guest', 
             name: bName, phone: bPhone, email: bEmail, idCard: bIdCard, timestamp: Date.now(),
             slipUrl: slipUrl, 
-            paymentStatus: slipUrl ? 'รอตรวจสอบ' : 'ฟรี'
+            paymentStatus: status
         };
 
         if(currentType === 'movie') {
             set(ref(db, `movies/${currentId}/bookings/${selectedTarget}`), bookingData).then(() => {
                 if(tempSeatRef) remove(tempSeatRef);
-                window.cancelSelection(); alert("✅ การจองสำเร็จ ระบบได้รับข้อมูลของคุณแล้ว");
+                window.cancelSelection(); 
+                if(status === 'รอชำระเงิน') alert("✅ บันทึกที่นั่งแล้ว กรุณาชำระเงินที่หน้าประวัติ ภายใน 10 นาที");
+                else alert("✅ การจองสำเร็จ ระบบได้รับข้อมูลของคุณแล้ว");
                 window.backToSchedule(); 
             });
         } else {
@@ -1023,12 +1104,41 @@
             }).then((res) => {
                 if(res.committed) {
                     push(ref(db, `events/${currentId}/bookings`), bookingData);
-                    window.cancelSelection(); alert("✅ การจองสำเร็จ ระบบได้รับข้อมูลของคุณแล้ว");
+                    window.cancelSelection(); 
+                    if(status === 'รอชำระเงิน') alert("✅ บันทึกที่นั่งแล้ว กรุณาชำระเงินที่หน้าประวัติ ภายใน 10 นาที");
+                    else alert("✅ การจองสำเร็จ ระบบได้รับข้อมูลของคุณแล้ว");
                     window.backToSchedule(); 
                 } else alert("❌ ขออภัย บัตรเต็มในขณะที่คุณทำรายการ");
             });
         }
     }
+
+    // --- PAY LATER MODAL ACTIONS ---
+    window.openPayLaterModal = (type, itemId, bookingKey, price) => {
+        payLaterData = { type, itemId, bookingKey };
+        document.getElementById('pl-amount').innerText = price;
+        document.getElementById('pl-qrcode').src = `https://promptpay.io/${PROMPTPAY_NUMBER}/${price}.png`;
+        document.getElementById('pl-slip-url').value = '';
+        document.getElementById('pay-later-modal').classList.add('active');
+    };
+
+    window.submitPayLater = () => {
+        const slipUrl = document.getElementById('pl-slip-url').value.trim();
+        if(!slipUrl) { alert("⚠️ กรุณาแนบลิ้งค์สลิป"); return; }
+
+        const { type, itemId, bookingKey } = payLaterData;
+        const path = `${type === 'movie' ? 'movies' : 'events'}/${itemId}/bookings/${bookingKey}`;
+
+        update(ref(db, path), {
+            slipUrl: slipUrl,
+            paymentStatus: 'รอตรวจสอบ'
+        }).then(() => {
+            alert("✅ บันทึกสลิปสำเร็จ โปรดรอแอดมินตรวจสอบ");
+            document.getElementById('pay-later-modal').classList.remove('active');
+            if(!document.getElementById('page-profile').classList.contains('hidden')) window.showProfile();
+            // ถ้าหน้าผังที่นั่งเปิดอยู่ มันจะอัปเดตอัตโนมัติจาก onValue
+        });
+    };
     
     // --- Profile & History ---
     window.showProfile = () => {
@@ -1045,11 +1155,14 @@
         const myEmail = currentUser.email;
 
         if(allData.movies) {
-            Object.values(allData.movies).forEach(m => {
+            Object.entries(allData.movies).forEach(([mId, m]) => {
                 if(m.bookings) {
                     Object.entries(m.bookings).forEach(([seatId, b]) => {
                         if(b.email === myEmail) {
-                            myHistory.push({ timestamp: b.timestamp, itemTitle: m.config.title, detail: `ที่นั่ง ${seatId}`, slip: b.slipUrl, status: b.paymentStatus });
+                            myHistory.push({ 
+                                timestamp: b.timestamp, itemTitle: m.config.title, detail: `ที่นั่ง ${seatId}`, 
+                                slip: b.slipUrl, status: b.paymentStatus, type: 'movie', itemId: mId, bookingKey: seatId, price: m.config.price || 0 
+                            });
                         }
                     });
                 }
@@ -1057,11 +1170,14 @@
         }
 
         if(allData.events) {
-            Object.values(allData.events).forEach(e => {
+            Object.entries(allData.events).forEach(([eId, e]) => {
                 if(e.bookings) {
-                    Object.values(e.bookings).forEach(b => {
+                    Object.entries(e.bookings).forEach(([bId, b]) => {
                         if(b.email === myEmail) {
-                            myHistory.push({ timestamp: b.timestamp, itemTitle: e.config.title, detail: "บัตรเข้าร่วมงาน", slip: b.slipUrl, status: b.paymentStatus });
+                            myHistory.push({ 
+                                timestamp: b.timestamp, itemTitle: e.config.title, detail: "บัตรเข้าร่วมงาน", 
+                                slip: b.slipUrl, status: b.paymentStatus, type: 'event', itemId: eId, bookingKey: bId, price: e.config.price || 0 
+                            });
                         }
                     });
                 }
@@ -1075,11 +1191,29 @@
             hList.innerHTML = '<tr><td colspan="3" style="text-align:center;">ไม่พบประวัติการจองในอีเมลนี้</td></tr>';
         } else {
             myHistory.forEach(h => {
-                const slipLink = h.slip ? `<br><a href="${h.slip}" target="_blank" style="font-size:0.85rem; color:#1a73e8;">ดูสลิป</a>` : '';
+                let actionHtml = '';
+                
+                // ถ้ารอชำระเงิน ให้แสดงปุ่มจ่าย + เวลาเหลือ
+                if (h.status === 'รอชำระเงิน') {
+                    const timeLeftMin = Math.floor((10 * 60 * 1000 - (Date.now() - h.timestamp)) / 60000);
+                    if (timeLeftMin >= 0) {
+                        actionHtml = `<button class="btn-sm" style="background:#f39c12; color:white; margin-top:5px; font-weight:bold;" onclick="openPayLaterModal('${h.type}', '${h.itemId}', '${h.bookingKey}', ${h.price})">💰 ชำระเงิน (${timeLeftMin} นาที)</button>`;
+                    } else {
+                        actionHtml = `<span style="color:red; font-size:0.8rem; display:block; margin-top:5px;">หมดเวลาชำระเงิน</span>`;
+                    }
+                } else if (h.slip) {
+                    actionHtml = `<br><a href="${h.slip}" target="_blank" style="font-size:0.85rem; color:#1a73e8; display:block; margin-top:5px;">ดูสลิปของฉัน</a>`;
+                }
+
+                let badgeColor = h.status === 'รอชำระเงิน' ? '#f39c12' : (h.status === 'ฟรี' ? '#2ecc71' : '#17a2b8');
+
                 hList.innerHTML += `<tr>
                     <td>${new Date(h.timestamp).toLocaleDateString()} <br><small>${new Date(h.timestamp).toLocaleTimeString()}</small></td>
                     <td>${h.itemTitle} <br><small style="color:#666;">${h.detail}</small></td>
-                    <td><span style="background:#f1c40f; padding:3px 8px; border-radius:10px; font-size:0.8rem;">${h.status || 'ยืนยันแล้ว'}</span> ${slipLink}</td>
+                    <td>
+                        <span style="background:${badgeColor}; color:white; padding:3px 8px; border-radius:10px; font-size:0.8rem;">${h.status || 'ยืนยันแล้ว'}</span>
+                        ${actionHtml}
+                    </td>
                 </tr>`;
             });
         }
@@ -1098,10 +1232,11 @@
         Object.entries(bookings).forEach(([key, val]) => {
             const seatLabel = type === 'movie' ? key : 'บัตรเข้าร่วม';
             const deletePath = `${type==='movie'?'movies':'events'}/${id}/bookings/${key}`;
-            const slipLink = val.slipUrl ? `<a href="${val.slipUrl}" target="_blank" style="color:#1a73e8;">ดูรูป</a>` : '-';
+            const slipLink = val.slipUrl ? `<a href="${val.slipUrl}" target="_blank" style="color:#1a73e8;">ดูสลิป</a>` : '-';
+            const statBadge = val.paymentStatus === 'รอชำระเงิน' ? `<span style="color:#f39c12; font-size:0.8rem;">(รอชำระ)</span>` : '';
             
             tbody.innerHTML += `<tr>
-                <td><span class="tag movie">${seatLabel}</span></td>
+                <td><span class="tag movie">${seatLabel}</span> ${statBadge}</td>
                 <td>${val.name}</td>
                 <td>${val.phone}</td>
                 <td>${slipLink}</td>
