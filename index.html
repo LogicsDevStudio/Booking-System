@@ -587,7 +587,13 @@
                 grid.style.gridTemplateColumns = `repeat(${rep.cols}, 12px)`;
                 grid.style.gap = '2px';
                 grid.style.marginTop = '8px';
-                const blocked = rep.blocked ? rep.blocked.split(',') : [];
+                
+                // --- แก้ไขจุดที่ 1.1 ป้องกัน Error Minimap ---
+                let blocked = [];
+                if (rep.blocked) {
+                    blocked = Array.isArray(rep.blocked) ? rep.blocked : String(rep.blocked).split(',').map(s => s.trim());
+                }
+
                 for(let r=0; r<rep.rows; r++) {
                     const rowL = String.fromCharCode(65+r);
                     for(let c=1; c<=rep.cols; c++) {
@@ -603,7 +609,13 @@
             }
 
             items.forEach(item => {
-                const total = (item.config.rows * item.config.cols) - (item.config.blocked ? item.config.blocked.length : 0);
+                // --- แก้ไขจุดที่ 1.2 ป้องกันนับที่นั่งผิด ---
+                let bArr = [];
+                if (item.config.blocked) {
+                    bArr = Array.isArray(item.config.blocked) ? item.config.blocked : String(item.config.blocked).split(',').filter(x => x.trim() !== '');
+                }
+                const total = (item.config.rows * item.config.cols) - bArr.length;
+                
                 const booked = item.bookings ? Object.keys(item.bookings).length : 0;
                 let selecting = 0;
                 if(item.temp_selections) {
@@ -804,6 +816,13 @@
         const map = document.getElementById('seat-map');
         map.innerHTML = '';
         map.style.gridTemplateColumns = `repeat(${conf.cols}, 1fr)`;
+        
+        // --- แก้ไขป้องกัน Error ในหน้าเลือกที่นั่ง ---
+        let blockedList = [];
+        if (conf.blocked) {
+            blockedList = Array.isArray(conf.blocked) ? conf.blocked : String(conf.blocked).split(',').map(x => x.trim());
+        }
+
         for(let r=0; r<conf.rows; r++) {
             const rowLabel = String.fromCharCode(65 + r);
             for(let c=1; c<=conf.cols; c++) {
@@ -812,7 +831,9 @@
                 seat.className = 'seat available';
                 seat.id = `seat-${seatId}`;
                 seat.innerText = seatId;
-                if(conf.blocked && conf.blocked.includes(seatId)) {
+                
+                // เช็คว่าที่นั่งอยู่ในรายการที่ถูกปิดหรือไม่
+                if(blockedList.includes(seatId)) {
                     seat.classList.add('blocked'); seat.classList.remove('available');
                 } else {
                     seat.onclick = () => window.selectSeat(seatId);
