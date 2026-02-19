@@ -117,6 +117,7 @@
     <div class="nav-menu">
         <span class="nav-item" onclick="goHome()">หน้าหลัก</span>
         <span id="nav-profile" class="nav-item hidden" onclick="showProfile()">ข้อมูลส่วนตัว/ประวัติ</span>
+        <span id="nav-admin-orders" class="nav-item hidden" onclick="showOrderManagement()" style="color:#d93025;">จัดการคำสั่งซื้อ</span>
         <span id="nav-admin-users" class="nav-item hidden" onclick="showUserManagement()" style="color:#d93025;">จัดการสมาชิก</span>
         <span id="nav-admin-tickets" class="nav-item hidden" onclick="showTicketTypesManagement()" style="color:#d93025;">จัดการประเภทบัตร</span>
         
@@ -176,6 +177,25 @@
             <thead><tr><th>วันที่</th><th>รายการ</th><th>สถานะ / การจัดการ</th></tr></thead>
             <tbody id="history-list"></tbody>
         </table>
+    </div>
+
+    <div id="page-orders" class="hidden">
+        <div class="nav-back" onclick="goHome()">⬅ ย้อนกลับ</div>
+        <h2>📋 จัดการคำสั่งซื้อทั้งหมด</h2>
+        <div style="overflow-x:auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>วันที่จอง</th>
+                        <th>รายการ</th>
+                        <th>ข้อมูลผู้จอง</th>
+                        <th>สลิป</th>
+                        <th>สถานะ</th>
+                    </tr>
+                </thead>
+                <tbody id="all-orders-list"></tbody>
+            </table>
+        </div>
     </div>
 
     <div id="page-users" class="hidden">
@@ -363,7 +383,6 @@
     </div>
 </div>
 
-
 <div id="admin-modal" class="modal">
     <div class="modal-content">
         <span class="close-btn" onclick="closeAdminModal()">&times;</span>
@@ -461,21 +480,6 @@
     </div>
 </div>
 
-<div id="booking-list-modal" class="modal">
-    <div class="modal-content" style="max-width: 700px;">
-        <h3>รายการจอง: <span id="bl-title"></span></h3>
-        <div style="overflow-x:auto; max-height: 400px; overflow-y:auto;">
-            <table class="data-table">
-                <thead><tr><th>ที่นั่ง/บัตร</th><th>ชื่อผู้จอง</th><th>เบอร์โทร</th><th>ลิ้งค์สลิป</th><th>เวลา</th><th>จัดการ</th></tr></thead>
-                <tbody id="bl-list"></tbody>
-            </table>
-        </div>
-        <div class="modal-buttons" style="margin-top:20px;">
-            <button class="btn-secondary" onclick="document.getElementById('booking-list-modal').classList.remove('active')">ปิด</button>
-        </div>
-    </div>
-</div>
-
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, onValue, runTransaction, push, set, remove, onDisconnect, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
@@ -528,6 +532,7 @@
                 if(!document.getElementById('page-auth').classList.contains('hidden')) window.goHome();
                 if(!document.getElementById('page-users').classList.contains('hidden')) window.showUserManagement();
                 if(!document.getElementById('page-ticket-types').classList.contains('hidden')) window.showTicketTypesManagement();
+                if(!document.getElementById('page-orders').classList.contains('hidden')) window.showOrderManagement();
             });
         } else {
             userRole = 'guest'; userData = {}; updateNavbarUI(false);
@@ -553,6 +558,7 @@
         }
         if(!document.getElementById('page-profile').classList.contains('hidden')) window.showProfile();
         if(!document.getElementById('page-ticket-types').classList.contains('hidden')) window.showTicketTypesManagement();
+        if(!document.getElementById('page-orders').classList.contains('hidden')) window.showOrderManagement();
     });
 
     setInterval(() => {
@@ -591,14 +597,17 @@
             });
         }
         if(!document.getElementById('page-profile').classList.contains('hidden')) window.showProfile();
+        if(!document.getElementById('page-orders').classList.contains('hidden')) window.showOrderManagement();
     }, 15000);
 
     function updateNavbarUI(isLoggedIn) {
         document.getElementById('main-nav').classList.remove('hidden');
         if(userRole === 'admin') {
+            document.getElementById('nav-admin-orders').classList.remove('hidden');
             document.getElementById('nav-admin-users').classList.remove('hidden');
             document.getElementById('nav-admin-tickets').classList.remove('hidden');
         } else {
+            document.getElementById('nav-admin-orders').classList.add('hidden');
             document.getElementById('nav-admin-users').classList.add('hidden');
             document.getElementById('nav-admin-tickets').classList.add('hidden');
         }
@@ -616,7 +625,7 @@
 
     // --- Views ---
     window.showPage = (pid) => {
-        ['page-auth', 'page-home', 'page-movie', 'page-event', 'page-profile', 'page-users', 'page-ticket-types'].forEach(id => {
+        ['page-auth', 'page-home', 'page-movie', 'page-event', 'page-profile', 'page-users', 'page-ticket-types', 'page-orders'].forEach(id => {
             const el = document.getElementById(id); if(el) el.classList.add('hidden');
         });
         const target = document.getElementById(pid); if(target) target.classList.remove('hidden');
@@ -781,15 +790,6 @@
                     else if (now > endTime) btnText = 'หมดเวลา (Admin)';
                 }
 
-                let adminBtns = '';
-                if(userRole === 'admin') {
-                     adminBtns = `<div style="margin-top:10px; display:flex;">
-                        <button class="btn-sm btn-edit" onclick="editItem('${item.id}','movie')">แก้ไข</button>
-                        <button class="btn-sm btn-del" onclick="deleteItem('${item.id}','movie')">ลบ</button>
-                        <button class="btn-sm" style="background:#8e44ad; color:white;" onclick="viewBookings('${item.id}','movie')">ยอดจอง</button>
-                     </div>`;
-                }
-
                 list.innerHTML += `
                     <div class="schedule-item">
                         <div class="schedule-info">
@@ -799,7 +799,6 @@
                                 <span class="schedule-stats"><span class="stat-val" style="color:red">${booked}</span> จองแล้ว</span>
                                 <span class="schedule-stats"><span class="stat-val" style="color:orange">${selecting}</span> กำลังจอง</span>
                             </div>
-                            ${adminBtns}
                         </div>
                         <button class="btn-primary" ${btnDisabled} style="max-width:150px; ${btnStyle}" onclick="selectShowtime('${item.id}', 'movie')">${btnText}</button>
                     </div>
@@ -855,15 +854,6 @@
                     else if (isFull) { btnText = 'จองเกิน (Admin)'; btnStyle = 'background:#f39c12'; }
                 }
 
-                let adminBtns = '';
-                if(userRole === 'admin') {
-                     adminBtns = `<div style="margin-top:10px; display:flex;">
-                        <button class="btn-sm btn-edit" onclick="editItem('${item.id}','event')">แก้ไข</button>
-                        <button class="btn-sm btn-del" onclick="deleteItem('${item.id}','event')">ลบ</button>
-                         <button class="btn-sm" style="background:#8e44ad; color:white;" onclick="viewBookings('${item.id}','event')">ยอดจอง</button>
-                     </div>`;
-                }
-
                 list.innerHTML += `
                      <div class="schedule-item">
                         <div class="schedule-info">
@@ -872,7 +862,6 @@
                                 <span class="schedule-stats">ว่าง: <span class="stat-val">${remain}</span></span>
                                 <span class="schedule-stats">รับได้ทั้งหมด: ${cap === -1 ? 'ไม่จำกัด' : cap}</span>
                             </div>
-                            ${adminBtns}
                         </div>
                         <button class="btn-primary" ${btnDisabled} style="max-width:150px; ${btnStyle}" onclick="selectShowtime('${item.id}', 'event')">${btnText}</button>
                     </div>
@@ -1200,7 +1189,8 @@
 
         update(ref(db, path), {
             slipUrl: slipUrl,
-            paymentStatus: 'รอตรวจสอบ'
+            paymentStatus: 'รอตรวจสอบ',
+            timestamp: Date.now() // รีเซ็ตเวลาใหม่ให้
         }).then(() => {
             alert("✅ บันทึกสลิปสำเร็จ โปรดรอแอดมินตรวจสอบ");
             document.getElementById('pay-later-modal').classList.remove('active');
@@ -1321,7 +1311,100 @@
         }
     }
 
-    // --- Admin Ticket Types Management (ส่วนที่เพิ่มใหม่) ---
+    // --- Admin: Order Management ---
+    window.showOrderManagement = () => {
+        if(userRole !== 'admin') return;
+        window.showPage('page-orders');
+        const tbody = document.getElementById('all-orders-list');
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">กำลังโหลด...</td></tr>';
+        
+        let allBookings = [];
+        
+        if(allData.movies) {
+            Object.entries(allData.movies).forEach(([mId, m]) => {
+                if(m.bookings) {
+                    Object.entries(m.bookings).forEach(([seatId, b]) => {
+                        allBookings.push({
+                            path: `movies/${mId}/bookings/${seatId}`,
+                            type: 'movie', itemId: mId, seat: seatId,
+                            title: m.config.title, data: b
+                        });
+                    });
+                }
+            });
+        }
+        if(allData.events) {
+            Object.entries(allData.events).forEach(([eId, e]) => {
+                if(e.bookings) {
+                    Object.entries(e.bookings).forEach(([bId, b]) => {
+                        allBookings.push({
+                            path: `events/${eId}/bookings/${bId}`,
+                            type: 'event', itemId: eId, seat: 'บัตรเข้าร่วม',
+                            title: e.config.title, data: b
+                        });
+                    });
+                }
+            });
+        }
+        
+        allBookings.sort((a,b) => b.data.timestamp - a.data.timestamp);
+        
+        tbody.innerHTML = '';
+        if(allBookings.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">ยังไม่มีคำสั่งซื้อในระบบ</td></tr>';
+            return;
+        }
+        
+        allBookings.forEach(order => {
+            const b = order.data;
+            const dDate = new Date(b.timestamp).toLocaleString();
+            const slipLink = b.slipUrl ? `<a href="${b.slipUrl}" target="_blank" style="color:#1a73e8; font-weight:bold;">ดูสลิป</a>` : '-';
+            
+            const statusOpts = ['รอชำระเงิน', 'รอตรวจสอบ', 'ยืนยันแล้ว', 'ฟรี', 'ยกเลิก'];
+            let selectHtml = `<select onchange="updateOrderStatus('${order.path}', this.value, '${order.type}', '${order.itemId}')" style="padding:5px; border-radius:4px; border:1px solid #ddd; font-family:'Sarabun';">`;
+            statusOpts.forEach(opt => {
+                selectHtml += `<option value="${opt}" ${b.paymentStatus === opt ? 'selected' : ''}>${opt}</option>`;
+            });
+            selectHtml += `</select>`;
+            
+            tbody.innerHTML += `<tr>
+                <td>${dDate}</td>
+                <td><b>${order.title}</b><br><small style="color:#666;">${order.type==='movie'?'ที่นั่ง: '+order.seat : order.seat}</small></td>
+                <td>${b.name}<br><small>${b.phone} | ${b.email}</small></td>
+                <td>${slipLink}</td>
+                <td>
+                    ${selectHtml}
+                </td>
+            </tr>`;
+        });
+    };
+
+    window.updateOrderStatus = (path, newStatus, type, itemId) => {
+        if(userRole !== 'admin') return;
+        
+        if(newStatus === 'ยกเลิก') {
+            if(confirm("การยกเลิกจะทำการ 'ลบข้อมูลการจองนี้' เพื่อคืนที่นั่ง/โควต้า ให้ผู้ใช้อื่น ยืนยันหรือไม่?")) {
+                remove(ref(db, path)).then(() => {
+                    if(type === 'event') runTransaction(ref(db, `events/${itemId}/currentBooked`), (c) => (c || 1) - 1);
+                    alert("ยกเลิกและคืนที่นั่งเรียบร้อย");
+                });
+            } else {
+                if(!document.getElementById('page-orders').classList.contains('hidden')) window.showOrderManagement();
+            }
+        } else {
+            const updates = { paymentStatus: newStatus };
+            // ถ้าย้อนสถานะกลับไปเป็นรอชำระเงิน ให้รีเซ็ตเวลาใหม่ให้ลูกค้า 10 นาที
+            if (newStatus === 'รอชำระเงิน') {
+                updates.timestamp = Date.now();
+                alert("ระบบได้รีเซ็ตเวลาให้ลูกค้าชำระเงินใหม่ 10 นาทีแล้ว");
+            }
+            update(ref(db, path), updates).then(() => {
+                // UI จะอัปเดตอัตโนมัติจาก onValue
+            });
+        }
+    };
+
+    // --- Admin Ticket Types Management ---
     window.showTicketTypesManagement = () => {
         if(userRole !== 'admin') return;
         window.showPage('page-ticket-types');
@@ -1369,12 +1452,11 @@
 
     window.deleteTicketType = (id) => {
         if(userRole !== 'admin') return;
-        if(confirm("ยืนยันการลบประเภทบัตรนี้? (อาจมีผลกับการแก้ไขหนังในอนาคต)")) {
+        if(confirm("ยืนยันการลบประเภทบัตรนี้?")) {
             remove(ref(db, `ticketTypes/${id}`));
         }
     }
 
-    // อัปเดตราคาอัตโนมัติเมื่อเลือกประเภทบัตร
     window.updatePriceFromType = () => {
         const select = document.getElementById('adm-ticket-type');
         const selectedOption = select.options[select.selectedIndex];
@@ -1384,7 +1466,6 @@
         }
     }
 
-    // โหลดตัวเลือกประเภทบัตรเข้า Dropdown
     function populateTicketTypeDropdown(selectedValue = '') {
         const select = document.getElementById('adm-ticket-type');
         select.innerHTML = '<option value="" data-price="">-- เลือกประเภทบัตร --</option>';
@@ -1394,93 +1475,8 @@
                 select.innerHTML += `<option value="${t.name}" data-price="${t.price}" ${isSelected}>${t.name} (฿${t.price})</option>`;
             });
         }
-        // ถ้าค่าเดิมไม่มีในรายการ ให้เพิ่มเข้าไปชั่วคราว
         if(selectedValue && !select.querySelector(`option[value="${selectedValue}"]`)) {
             select.innerHTML += `<option value="${selectedValue}" data-price="" selected>${selectedValue} (ข้อมูลเดิม)</option>`;
-        }
-    }
-
-
-    // --- Admin Views ---
-    window.viewBookings = (id, type) => {
-        if(userRole !== 'admin') return;
-        const targetData = type === 'movie' ? allData.movies[id] : allData.events[id];
-        const bookings = targetData.bookings || {};
-        document.getElementById('booking-list-modal').classList.add('active');
-        document.getElementById('bl-title').innerText = targetData.config.title;
-        const tbody = document.getElementById('bl-list');
-        tbody.innerHTML = '';
-        if(Object.keys(bookings).length === 0) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">ยังไม่มีการจอง</td></tr>'; return; }
-        Object.entries(bookings).forEach(([key, val]) => {
-            const seatLabel = type === 'movie' ? key : 'บัตรเข้าร่วม';
-            const deletePath = `${type==='movie'?'movies':'events'}/${id}/bookings/${key}`;
-            const slipLink = val.slipUrl ? `<a href="${val.slipUrl}" target="_blank" style="color:#1a73e8;">ดูสลิป</a>` : '-';
-            const statBadge = val.paymentStatus === 'รอชำระเงิน' ? `<span style="color:#f39c12; font-size:0.8rem;">(รอชำระ)</span>` : '';
-            
-            tbody.innerHTML += `<tr>
-                <td><span class="tag movie">${seatLabel}</span> <br>${statBadge}</td>
-                <td>${val.name}</td>
-                <td>${val.phone}</td>
-                <td>${slipLink}</td>
-                <td>${new Date(val.timestamp).toLocaleDateString()}</td>
-                <td><button class="btn-sm btn-del" onclick="cancelBookingAdmin('${deletePath}', '${type}', '${id}')">ลบ</button></td>
-            </tr>`;
-        });
-    }
-
-    window.cancelBookingAdmin = (path, type, id) => {
-        if(confirm("ยืนยันการลบ?")) {
-            remove(ref(db, path)).then(() => {
-                if(type === 'event') runTransaction(ref(db, `events/${id}/currentBooked`), (c) => (c || 1) - 1);
-                alert("ลบสำเร็จ"); document.getElementById('booking-list-modal').classList.remove('active');
-            });
-        }
-    }
-
-    window.viewUserHistoryAdmin = (userEmail, userName) => {
-        if(userRole !== 'admin') return;
-        document.getElementById('admin-uh-name').innerText = userName;
-        const hList = document.getElementById('admin-user-history-list');
-        hList.innerHTML = '<tr><td colspan="3" style="text-align:center;">กำลังโหลดประวัติ...</td></tr>';
-        document.getElementById('admin-user-history-modal').classList.add('active');
-
-        const userHistory = [];
-        if(allData.movies) {
-            Object.values(allData.movies).forEach(m => {
-                if(m.bookings) {
-                    Object.entries(m.bookings).forEach(([seatId, b]) => {
-                        if(b.email === userEmail) {
-                            userHistory.push({ timestamp: b.timestamp, itemTitle: m.config.title, detail: `ที่นั่ง ${seatId}`, slip: b.slipUrl, status: b.paymentStatus });
-                        }
-                    });
-                }
-            });
-        }
-        if(allData.events) {
-            Object.values(allData.events).forEach(e => {
-                if(e.bookings) {
-                    Object.values(e.bookings).forEach(b => {
-                        if(b.email === userEmail) {
-                            userHistory.push({ timestamp: b.timestamp, itemTitle: e.config.title, detail: "บัตรเข้าร่วมงาน", slip: b.slipUrl, status: b.paymentStatus });
-                        }
-                    });
-                }
-            });
-        }
-
-        userHistory.sort((a,b) => b.timestamp - a.timestamp);
-        hList.innerHTML = '';
-        if(userHistory.length === 0) {
-            hList.innerHTML = '<tr><td colspan="3" style="text-align:center;">ไม่พบประวัติการจองของผู้ใช้นี้</td></tr>';
-        } else {
-            userHistory.forEach(h => {
-                const slipLink = h.slip ? `<br><a href="${h.slip}" target="_blank" style="font-size:0.85rem; color:#1a73e8;">ดูสลิป</a>` : '';
-                hList.innerHTML += `<tr>
-                    <td>${new Date(h.timestamp).toLocaleDateString()} <br><small>${new Date(h.timestamp).toLocaleTimeString()}</small></td>
-                    <td>${h.itemTitle} <br><small style="color:#666;">${h.detail}</small></td>
-                    <td><span style="background:#f1c40f; padding:3px 8px; border-radius:10px; font-size:0.8rem;">${h.status || 'ยืนยันแล้ว'}</span> ${slipLink}</td>
-                </tr>`;
-            });
         }
     }
 
@@ -1587,7 +1583,6 @@
         document.getElementById('adm-title-text').innerText = `เพิ่ม ${type}`;
         document.querySelectorAll('#admin-modal input:not([type=hidden]), #admin-modal textarea').forEach(i => i.value = '');
         
-        // เติมข้อมูล Dropdown
         populateTicketTypeDropdown('');
 
         if(type === 'movie') { document.getElementById('adm-movie-fields').classList.remove('hidden'); document.getElementById('adm-event-fields').classList.add('hidden'); } 
@@ -1610,7 +1605,6 @@
         document.getElementById('adm-location').value = data.location || '';
         document.getElementById('adm-price').value = data.price || '';
 
-        // เติมข้อมูล Dropdown และเลือกค่าเดิม
         populateTicketTypeDropdown(data.ticketType || '');
 
         if(type==='movie') { 
@@ -1657,7 +1651,6 @@
         
         (isNew ? set(targetRef, updateData) : update(targetRef, { config: payload })).then(() => window.closeAdminModal());
     }
-
 </script>
 
 </body>
