@@ -763,16 +763,25 @@
 
     // --- Views ---
     window.showPage = (pid) => {
-        ['page-auth', 'page-home', 'page-movie', 'page-event', 'page-profile', 'page-users', 'page-ticket-types', 'page-orders', 'page-scan'].forEach(id => {
-            const el = document.getElementById(id); if(el) el.classList.add('hidden');
-        });
-        const target = document.getElementById(pid); if(target) target.classList.remove('hidden');
-
-        // ปิดกล้องถ้าไม่ได้อยู่หน้า Scan
+        // 1. ปิดการทำงานของกล้องให้สมบูรณ์ก่อน (ถ้าไม่ได้อยู่หน้า Scan)
         if(pid !== 'page-scan' && html5QrcodeScanner) {
-            html5QrcodeScanner.clear().catch(err => console.log(err));
-            html5QrcodeScanner = null;
+            html5QrcodeScanner.clear().then(() => {
+                html5QrcodeScanner = null; // คืนค่าตัวแปรเมื่อปิดกล้องสำเร็จ
+            }).catch(err => {
+                console.log("Failed to clear scanner", err);
+                html5QrcodeScanner = null;
+            });
         }
+
+        // 2. ซ่อนหน้าต่างทั้งหมด
+        ['page-auth', 'page-home', 'page-movie', 'page-event', 'page-profile', 'page-users', 'page-ticket-types', 'page-orders', 'page-scan'].forEach(id => {
+            const el = document.getElementById(id); 
+            if(el) el.classList.add('hidden');
+        });
+        
+        // 3. แสดงเฉพาะหน้าที่เลือก
+        const target = document.getElementById(pid); 
+        if(target) target.classList.remove('hidden');
     }
 
     window.goHome = () => {
