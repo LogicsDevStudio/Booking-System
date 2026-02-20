@@ -100,19 +100,6 @@
         .payment-qr-container img { width: 200px; height: 200px; object-fit: contain; margin: 10px 0; }
         .timer-text { font-size: 1.5rem; font-weight: bold; color: #e74c3c; margin: 5px 0; animation: pulse 1s infinite; }
 
-        .ticket-card { background: #fff; border: 2px dashed #1a73e8; border-radius: 12px; padding: 20px; text-align: center; margin-top: 15px; position: relative; overflow: hidden;}
-        .ticket-card::before, .ticket-card::after { content: ''; position: absolute; top: 50%; width: 20px; height: 20px; background: white; border-radius: 50%; transform: translateY(-50%); border: 2px solid #1a73e8; }
-        .ticket-card::before { left: -12px; border-left: transparent; border-top: transparent; border-bottom: transparent; }
-        .ticket-card::after { right: -12px; border-right: transparent; border-top: transparent; border-bottom: transparent; }
-        .ticket-title { font-size: 1.3rem; font-weight: bold; color: #1a73e8; margin-bottom: 10px; }
-        .ticket-info { text-align: left; background: #f8f9fa; padding: 15px; border-radius: 8px; font-size: 0.95rem; margin-top: 15px; position: relative; z-index: 2;}
-        .ticket-info p { margin: 8px 0; border-bottom: 1px solid #eee; padding-bottom: 5px; }
-        .ticket-qr { margin-top: 15px; position: relative; z-index: 2;}
-        .ticket-qr img { width: 150px; height: 150px; }
-        
-        /* Watermark สำหรับตั๋วที่ใช้แล้ว */
-        .watermark-used { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-35deg); font-size: 3.5rem; color: rgba(220, 53, 69, 0.4); font-weight: bold; border: 8px solid rgba(220, 53, 69, 0.4); padding: 10px 20px; border-radius: 10px; z-index: 10; pointer-events: none; text-transform: uppercase; letter-spacing: 5px;}
-        
         /* สไตล์หน้า Scan */
         #qr-reader { width: 100%; border-radius: 8px; overflow: hidden; margin: 0 auto; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         .scan-msg { margin-top: 20px; padding: 15px; border-radius: 8px; font-weight: bold; text-align: center; font-size: 1.1rem;}
@@ -158,7 +145,7 @@
             padding: 0;
         }
 
-        .ticket-card::before, .ticket-card::after { display: none; /* ปิดวงกลมอันเก่า */ }
+        .ticket-card::before, .ticket-card::after { display: none; }
 
         /* ฝั่งซ้าย: รายละเอียด */
         .ticket-left {
@@ -197,7 +184,7 @@
             left: -16px;
             width: 30px;
             height: 30px;
-            background: rgba(0,0,0,0.5); /* สีเดียวกับ overlay ของ modal */
+            background: rgba(0,0,0,0.5); 
             border-radius: 50%;
         }
         .ticket-right::before { top: -15px; }
@@ -551,6 +538,23 @@
     </div>
 </div>
 
+<div id="forgot-password-modal" class="modal hidden">
+    <div class="modal-content" style="max-width: 400px;">
+        <span class="close-btn" onclick="document.getElementById('forgot-password-modal').classList.add('hidden')">&times;</span>
+        <h3 style="margin-top: 0; color: #1a73e8;">ลืมรหัสผ่าน</h3>
+        <p style="font-size: 0.9rem; color: #666; margin-bottom: 20px;">
+            กรุณากรอกอีเมลที่คุณใช้สมัครสมาชิก ระบบจะส่งลิงก์สำหรับตั้งรหัสผ่านใหม่ไปยังอีเมลของคุณ
+        </p>
+        <div class="form-group" style="margin-bottom: 15px;">
+            <label style="display: block; margin-bottom: 5px; font-weight: bold;">อีเมล (Email)</label>
+            <input type="email" id="reset-email" class="form-control" placeholder="example@email.com" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px;">
+        </div>
+        <button class="btn-primary" onclick="handleForgotPassword()" style="width: 100%; padding: 12px; font-size: 1rem; border-radius: 5px; cursor: pointer; background: #1a73e8; color: white; border: none;">
+            ส่งลิงก์รีเซ็ตรหัสผ่าน
+        </button>
+    </div>
+</div>
+
 <div id="admin-modal" class="modal">
     <div class="modal-content">
         <span class="close-btn" onclick="closeAdminModal()">&times;</span>
@@ -625,27 +629,11 @@
     </div>
 </div>
 
-<div id="forgot-password-modal" class="modal hidden">
-    <div class="modal-content" style="max-width: 400px;">
-        <span class="close-btn" onclick="document.getElementById('forgot-password-modal').classList.add('hidden')">&times;</span>
-        <h3 style="margin-top: 0; color: #1a73e8;">ลืมรหัสผ่าน</h3>
-        <p style="font-size: 0.9rem; color: #666; margin-bottom: 20px;">
-            กรุณากรอกอีเมลที่คุณใช้สมัครสมาชิก ระบบจะส่งลิงก์สำหรับตั้งรหัสผ่านใหม่ไปยังอีเมลของคุณ
-        </p>
-        <div class="form-group" style="margin-bottom: 15px;">
-            <label style="display: block; margin-bottom: 5px; font-weight: bold;">อีเมล (Email)</label>
-            <input type="email" id="reset-email" class="form-control" placeholder="example@email.com" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px;">
-        </div>
-        <button class="btn-primary" onclick="handleForgotPassword()" style="width: 100%; padding: 12px; font-size: 1rem; border-radius: 5px; cursor: pointer; background: #1a73e8; color: white; border: none;">
-            ส่งลิงก์รีเซ็ตรหัสผ่าน
-        </button>
-    </div>
-</div>
-
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, onValue, runTransaction, push, set, remove, onDisconnect, update, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    // เพิ่มคำสั่ง sendPasswordResetEmail เข้ามาในบรรทัดนี้แล้ว
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyAJGlD_kNVgRHVAdmUUgZAerrjX8nJbMJE",
@@ -679,8 +667,6 @@
     let tempSeatRef = null;
     let paymentTimerInterval = null; 
     let payLaterData = null; 
-    
-    // ตัวแปรสำหรับสแกนเนอร์
     let html5QrcodeScanner = null;
 
     const PROMPTPAY_NUMBER = "0812345678"; 
@@ -785,25 +771,19 @@
 
     // --- Views ---
     window.showPage = (pid) => {
-        // 1. ปิดการทำงานของกล้องให้สมบูรณ์ก่อน (ถ้าไม่ได้อยู่หน้า Scan)
         if(pid !== 'page-scan' && html5QrcodeScanner) {
             html5QrcodeScanner.clear().then(() => {
-                html5QrcodeScanner = null; // คืนค่าตัวแปรเมื่อปิดกล้องสำเร็จ
+                html5QrcodeScanner = null;
             }).catch(err => {
                 console.log("Failed to clear scanner", err);
                 html5QrcodeScanner = null;
             });
         }
 
-        // 2. ซ่อนหน้าต่างทั้งหมด
         ['page-auth', 'page-home', 'page-movie', 'page-event', 'page-profile', 'page-users', 'page-ticket-types', 'page-orders', 'page-scan'].forEach(id => {
-            const el = document.getElementById(id); 
-            if(el) el.classList.add('hidden');
+            const el = document.getElementById(id); if(el) el.classList.add('hidden');
         });
-        
-        // 3. แสดงเฉพาะหน้าที่เลือก
-        const target = document.getElementById(pid); 
-        if(target) target.classList.remove('hidden');
+        const target = document.getElementById(pid); if(target) target.classList.remove('hidden');
     }
 
     window.goHome = () => {
@@ -812,7 +792,7 @@
         window.renderHomeList();
     }
 
-    // --- QR Code Scanner Logic (ใหม่) ---
+    // --- QR Code Scanner Logic ---
     window.showScanPage = () => {
         if(userRole !== 'admin') return;
         window.showPage('page-scan');
@@ -838,7 +818,6 @@
     }
 
     function onScanSuccess(decodedText, decodedResult) {
-        // TICKET|type|itemId|bookingKey|userName
         const parts = decodedText.split('|');
         const resDiv = document.getElementById('scan-result');
         
@@ -849,7 +828,6 @@
             return;
         }
 
-        // หยุดสแกนชั่วคราวเพื่อประมวลผล
         if(html5QrcodeScanner) html5QrcodeScanner.pause(true);
 
         const type = parts[1];
@@ -863,7 +841,6 @@
             if(snap.exists()) {
                 const b = snap.val();
                 
-                // 1. เช็คว่าจ่ายเงินหรือยัง
                 if(b.paymentStatus !== 'ยืนยันแล้ว' && b.paymentStatus !== 'ฟรี') {
                     resDiv.innerHTML = `❌ ไม่สามารถเช็คอินได้<br>ตั๋วของ <b>${name}</b><br>สถานะ: <b>${b.paymentStatus}</b>`;
                     resDiv.className = 'scan-msg scan-error';
@@ -871,13 +848,11 @@
                     return;
                 }
                 
-                // 2. เช็คว่าเช็คอินไปแล้วหรือยัง
                 if(b.isCheckedIn) {
                     resDiv.innerHTML = `⚠️ ตั๋วใบนี้ <b>ถูกใช้งานไปแล้ว!</b><br>ชื่อ: ${name}<br>เช็คอินเมื่อ: ${new Date(b.checkInTime).toLocaleString()}`;
                     resDiv.className = 'scan-msg scan-error';
                     resDiv.style.display = 'block';
                 } else {
-                    // 3. ทำการเช็คอิน (อัปเดต DB)
                     update(ref(db, path), {
                         isCheckedIn: true,
                         checkInTime: Date.now()
@@ -899,12 +874,8 @@
         });
     }
 
-    function onScanFailure(error) {
-        // ไม่ต้องทำอะไร ปล่อยให้มันสแกนต่อไปเงียบๆ
-    }
+    function onScanFailure(error) { }
 
-
-    // --- Home List ---
     window.renderHomeList = () => {
         const mList = document.getElementById('movie-list');
         const eList = document.getElementById('event-list');
@@ -967,7 +938,6 @@
         return div;
     }
 
-    // --- Group Details & Schedule List ---
     window.openGroupPage = (title, type, switchPage = true) => {
         currentType = type;
         if(switchPage) window.showPage(type === 'movie' ? 'page-movie' : 'page-event');
@@ -1008,7 +978,9 @@
                 grid.style.marginTop = '8px';
                 
                 let blocked = [];
-                if (rep.blocked) { blocked = Array.isArray(rep.blocked) ? rep.blocked : String(rep.blocked).split(',').map(s => s.trim()); }
+                if (rep.blocked) {
+                    blocked = Array.isArray(rep.blocked) ? rep.blocked : String(rep.blocked).split(',').map(s => s.trim());
+                }
 
                 for(let r=0; r<rep.rows; r++) {
                     const rowL = String.fromCharCode(65+r);
@@ -1026,7 +998,9 @@
 
             items.forEach(item => {
                 let bArr = [];
-                if (item.config.blocked) { bArr = Array.isArray(item.config.blocked) ? item.config.blocked : String(item.config.blocked).split(',').filter(x => x.trim() !== ''); }
+                if (item.config.blocked) {
+                    bArr = Array.isArray(item.config.blocked) ? item.config.blocked : String(item.config.blocked).split(',').filter(x => x.trim() !== '');
+                }
                 const total = (item.config.rows * item.config.cols) - bArr.length;
                 
                 const booked = item.bookings ? Object.keys(item.bookings).length : 0;
@@ -1208,7 +1182,9 @@
         map.style.gridTemplateColumns = `repeat(${conf.cols}, 1fr)`;
         
         let blockedList = [];
-        if (conf.blocked) { blockedList = Array.isArray(conf.blocked) ? conf.blocked : String(conf.blocked).split(',').map(x => x.trim()); }
+        if (conf.blocked) {
+            blockedList = Array.isArray(conf.blocked) ? conf.blocked : String(conf.blocked).split(',').map(x => x.trim());
+        }
 
         for(let r=0; r<conf.rows; r++) {
             const rowLabel = String.fromCharCode(65 + r);
@@ -1402,7 +1378,7 @@
             name: bName, phone: bPhone, email: bEmail, idCard: bIdCard, timestamp: Date.now(),
             slipUrl: slipUrl, 
             paymentStatus: status,
-            isCheckedIn: false // เริ่มต้นยังไม่เช็คอิน
+            isCheckedIn: false 
         };
 
         if(currentType === 'movie') {
@@ -1480,25 +1456,18 @@
 
     window.downloadTicketPDF = () => {
         const element = document.getElementById('ticket-content');
-        
-        // ทำให้พื้นหลังรอยหยักตอนแปลงเป็น PDF กลายเป็นสีขาว (เพื่อให้เนียนไปกับกระดาษ)
         const style = document.createElement('style');
-        style.innerHTML = `
-            .ticket-right::before, .ticket-right::after { background: #ffffff !important; }
-        `;
+        style.innerHTML = `.ticket-right::before, .ticket-right::after { background: #ffffff !important; }`;
         element.appendChild(style);
 
-        // ตั้งค่าให้ PDF เป็นแนวนอน (Landscape) และปรับสเกลความละเอียดให้คมชัด
         const opt = {
             margin:       0.5,
             filename:     'E-Ticket-' + document.getElementById('t-name').innerText + '.pdf',
             image:        { type: 'jpeg', quality: 1 },
-            html2canvas:  { scale: 3, useCORS: true, backgroundColor: null }, // ความละเอียดสูง
-            jsPDF:        { unit: 'in', format: 'a5', orientation: 'landscape' } // ขนาด A5 แนวนอนกำลังดีสำหรับตั๋ว
+            html2canvas:  { scale: 3, useCORS: true, backgroundColor: null }, 
+            jsPDF:        { unit: 'in', format: 'a5', orientation: 'landscape' } 
         };
-        
         html2pdf().set(opt).from(element).save().then(() => {
-            // ลบ Style คืนค่าสีรอยหยักกลับเป็นโปร่งแสงเหมือนเดิมเมื่อโหลดเสร็จ
             element.removeChild(style);
         });
     };
@@ -1585,7 +1554,6 @@
                 let badgeColor = h.status === 'รอชำระเงิน' ? '#f39c12' : (h.status === 'ฟรี' ? '#2ecc71' : '#17a2b8');
                 let checkInBadge = h.isCheckedIn ? `<br><span style="color:#2ecc71; font-size:0.8rem; font-weight:bold;">(เช็คอินแล้ว)</span>` : `<br><span style="color:#e74c3c; font-size:0.8rem;">(ยังไม่เช็คอิน)</span>`;
 
-                // ถ้ายังไม่จ่ายเงิน ไม่ต้องโชว์สถานะเช็คอิน
                 if(h.status === 'รอชำระเงิน') checkInBadge = '';
 
                 hList.innerHTML += `<tr>
@@ -1768,8 +1736,7 @@
         }
     }
 
-
-    // --- Other Handlers ---
+    // --- Authentication & Handlers ---
     window.handleAuth = (e) => {
         e.preventDefault();
         const email = document.getElementById('auth-email').value;
@@ -1795,23 +1762,22 @@
     };
     
     window.doLogout = () => { signOut(auth).then(()=>window.goHome()); };
+    
     window.toggleAuthMode = () => {
         isRegistering = !isRegistering;
         document.getElementById('auth-title').innerText = isRegistering ? "สมัครสมาชิกใหม่" : "เข้าสู่ระบบ";
         document.getElementById('btn-auth-submit').innerText = isRegistering ? "ลงทะเบียน" : "เข้าสู่ระบบ";
         document.getElementById('toggle-auth').innerText = isRegistering ? "มีบัญชีอยู่แล้ว? เข้าสู่ระบบ" : "ยังไม่มีบัญชี? สมัครสมาชิก";
         document.getElementById('register-fields').classList.toggle('hidden');
-        
-        // ส่วนที่เพิ่มเข้ามา: จัดการซ่อน/แสดงลิงก์ "ลืมรหัสผ่าน?"
+
+        // จัดการซ่อน/แสดงลิงก์ลืมรหัสผ่าน
         const fpLink = document.getElementById('forgot-password-link');
         if (fpLink) {
-            if (isRegistering) {
-                fpLink.classList.add('hidden'); // ซ่อนตอนอยู่หน้า "สมัครสมาชิก"
-            } else {
-                fpLink.classList.remove('hidden'); // แสดงตอนอยู่หน้า "เข้าสู่ระบบ"
-            }
+            if (isRegistering) fpLink.classList.add('hidden');
+            else fpLink.classList.remove('hidden');
         }
     }
+
     window.updateUserProfile = (e) => {
         e.preventDefault();
         update(ref(db, `users/${currentUser.uid}`), {
@@ -1819,7 +1785,42 @@
             phone: document.getElementById('p-phone').value
         }).then(() => alert("บันทึกข้อมูลสำเร็จ"));
     }
+
+    // --- ฟังก์ชันลืมรหัสผ่าน (เพิ่มใหม่) ---
+    window.showForgotPasswordModal = () => {
+        document.getElementById('forgot-password-modal').classList.remove('hidden');
+    };
+
+    window.handleForgotPassword = () => {
+        const emailInput = document.getElementById('reset-email');
+        const email = emailInput.value.trim();
+
+        if (!email) {
+            alert("กรุณากรอกอีเมลของคุณ");
+            return;
+        }
+
+        sendPasswordResetEmail(auth, email)
+            .then(() => {
+                alert(`ส่งลิงก์สำหรับตั้งรหัสผ่านใหม่ไปยังอีเมล\n${email}\nเรียบร้อยแล้ว กรุณาตรวจสอบกล่องจดหมาย (หรือโฟลเดอร์จดหมายขยะ)`);
+                document.getElementById('forgot-password-modal').classList.add('hidden');
+                emailInput.value = '';
+            })
+            .catch((error) => {
+                console.error("Error resetting password:", error);
+                if (error.code === 'auth/user-not-found') {
+                    alert("ไม่พบผู้ใช้งานที่ใช้อีเมลนี้ในระบบ");
+                } else if (error.code === 'auth/invalid-email') {
+                    alert("รูปแบบอีเมลไม่ถูกต้อง");
+                } else if (error.code === 'auth/too-many-requests') {
+                     alert("คุณส่งคำขอถี่เกินไป กรุณารอสักครู่แล้วลองใหม่");
+                } else {
+                    alert("เกิดข้อผิดพลาด: " + error.message);
+                }
+            });
+    };
     
+    // --- Admin Functions ---
     window.showUserManagement = () => {
         if(userRole !== 'admin') return;
         window.showPage('page-users');
@@ -1949,46 +1950,6 @@
         
         (isNew ? set(targetRef, updateData) : update(targetRef, { config: payload })).then(() => window.closeAdminModal());
     }
-
-    // 1. นำเข้าฟังก์ชัน sendPasswordResetEmail จาก Firebase Auth (เพิ่มต่อจาก import เดิมของคุณ)
-    import { sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js"; 
-    // หมายเหตุ: เช็คเวอร์ชัน (10.8.0) ให้ตรงกับบรรทัด import firebase ของคุณด้วยนะครับ
-
-    // 2. ฟังก์ชันเปิดหน้าต่างลืมรหัสผ่าน
-    window.showForgotPasswordModal = () => {
-        document.getElementById('forgot-password-modal').classList.remove('hidden');
-    };
-
-    // 3. ฟังก์ชันจัดการการส่งอีเมลรีเซ็ตรหัสผ่าน
-    window.handleForgotPassword = () => {
-        const emailInput = document.getElementById('reset-email');
-        const email = emailInput.value.trim();
-
-        if (!email) {
-            alert("กรุณากรอกอีเมลของคุณ");
-            return;
-        }
-
-        // เรียกใช้ auth ที่คุณประกาศไว้แล้วในระบบ
-        sendPasswordResetEmail(auth, email)
-            .then(() => {
-                alert(`ส่งลิงก์สำหรับตั้งรหัสผ่านใหม่ไปยังอีเมล\n${email}\nเรียบร้อยแล้ว กรุณาตรวจสอบกล่องจดหมาย (หรือโฟลเดอร์จดหมายขยะ)`);
-                document.getElementById('forgot-password-modal').classList.add('hidden');
-                emailInput.value = ''; // เคลียร์ช่องกรอก
-            })
-            .catch((error) => {
-                console.error("Error resetting password:", error);
-                if (error.code === 'auth/user-not-found') {
-                    alert("ไม่พบผู้ใช้งานที่ใช้อีเมลนี้ในระบบ");
-                } else if (error.code === 'auth/invalid-email') {
-                    alert("รูปแบบอีเมลไม่ถูกต้อง");
-                } else if (error.code === 'auth/too-many-requests') {
-                    alert("คุณส่งคำขอถี่เกินไป กรุณารอสักครู่แล้วลองใหม่");
-                } else {
-                    alert("เกิดข้อผิดพลาด: " + error.message);
-                }
-            });
-    };
 </script>
 
 </body>
