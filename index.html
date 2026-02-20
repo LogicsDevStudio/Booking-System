@@ -7,6 +7,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    
     <style>
         body { font-family: 'Sarabun', sans-serif; background: #f0f2f5; margin: 0; padding: 0; color: #333; }
         .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
@@ -76,7 +78,6 @@
         .seat.selecting { background-color: #ffc107; border: 2px solid #ffc107; color: #333; cursor: not-allowed; animation: pulse 1.5s infinite; }
         .seat.blocked { background-color: #e2e6ea; border: 2px solid #ced4da; color: #adb5bd; cursor: not-allowed; }
         .seat.pending { background-color: #f39c12; border: 2px solid #e67e22; color: white; cursor: pointer; animation: pulse 2s infinite; }
-        
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
 
         /* Modal & Helpers */
@@ -99,15 +100,24 @@
         .payment-qr-container img { width: 200px; height: 200px; object-fit: contain; margin: 10px 0; }
         .timer-text { font-size: 1.5rem; font-weight: bold; color: #e74c3c; margin: 5px 0; animation: pulse 1s infinite; }
 
-        .ticket-card { background: #fff; border: 2px dashed #1a73e8; border-radius: 12px; padding: 20px; text-align: center; margin-top: 15px; position: relative; }
+        .ticket-card { background: #fff; border: 2px dashed #1a73e8; border-radius: 12px; padding: 20px; text-align: center; margin-top: 15px; position: relative; overflow: hidden;}
         .ticket-card::before, .ticket-card::after { content: ''; position: absolute; top: 50%; width: 20px; height: 20px; background: white; border-radius: 50%; transform: translateY(-50%); border: 2px solid #1a73e8; }
         .ticket-card::before { left: -12px; border-left: transparent; border-top: transparent; border-bottom: transparent; }
         .ticket-card::after { right: -12px; border-right: transparent; border-top: transparent; border-bottom: transparent; }
         .ticket-title { font-size: 1.3rem; font-weight: bold; color: #1a73e8; margin-bottom: 10px; }
-        .ticket-info { text-align: left; background: #f8f9fa; padding: 15px; border-radius: 8px; font-size: 0.95rem; margin-top: 15px; }
+        .ticket-info { text-align: left; background: #f8f9fa; padding: 15px; border-radius: 8px; font-size: 0.95rem; margin-top: 15px; position: relative; z-index: 2;}
         .ticket-info p { margin: 8px 0; border-bottom: 1px solid #eee; padding-bottom: 5px; }
-        .ticket-qr { margin-top: 15px; }
+        .ticket-qr { margin-top: 15px; position: relative; z-index: 2;}
         .ticket-qr img { width: 150px; height: 150px; }
+        
+        /* Watermark สำหรับตั๋วที่ใช้แล้ว */
+        .watermark-used { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-35deg); font-size: 3.5rem; color: rgba(220, 53, 69, 0.4); font-weight: bold; border: 8px solid rgba(220, 53, 69, 0.4); padding: 10px 20px; border-radius: 10px; z-index: 10; pointer-events: none; text-transform: uppercase; letter-spacing: 5px;}
+        
+        /* สไตล์หน้า Scan */
+        #qr-reader { width: 100%; border-radius: 8px; overflow: hidden; margin: 0 auto; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .scan-msg { margin-top: 20px; padding: 15px; border-radius: 8px; font-weight: bold; text-align: center; font-size: 1.1rem;}
+        .scan-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .scan-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
     </style>
 </head>
 <body>
@@ -117,6 +127,7 @@
     <div class="nav-menu">
         <span class="nav-item" onclick="goHome()">หน้าหลัก</span>
         <span id="nav-profile" class="nav-item hidden" onclick="showProfile()">ข้อมูลส่วนตัว/ประวัติ</span>
+        <span id="nav-admin-scan" class="nav-item hidden" onclick="showScanPage()" style="color:#d93025; font-weight:bold;">📷 เช็คอิน</span>
         <span id="nav-admin-orders" class="nav-item hidden" onclick="showOrderManagement()" style="color:#d93025;">จัดการคำสั่งซื้อ</span>
         <span id="nav-admin-users" class="nav-item hidden" onclick="showUserManagement()" style="color:#d93025;">จัดการสมาชิก</span>
         <span id="nav-admin-tickets" class="nav-item hidden" onclick="showTicketTypesManagement()" style="color:#d93025;">จัดการประเภทบัตร</span>
@@ -179,6 +190,18 @@
         </table>
     </div>
 
+    <div id="page-scan" class="hidden">
+        <div class="nav-back" onclick="goHome()">⬅ ย้อนกลับ</div>
+        <h2 style="text-align: center; color: #1a73e8;">📷 ระบบเช็คอิน (Scan QR Code)</h2>
+        <div style="max-width: 500px; margin: 0 auto;">
+            <div id="qr-reader"></div>
+            <div id="scan-result" style="display:none;"></div>
+            <div style="text-align: center; margin-top: 15px;">
+                <button class="btn-secondary" onclick="restartScanner()">เริ่มสแกนใหม่</button>
+            </div>
+        </div>
+    </div>
+
     <div id="page-orders" class="hidden">
         <div class="nav-back" onclick="goHome()">⬅ ย้อนกลับ</div>
         <h2>📋 จัดการคำสั่งซื้อทั้งหมด</h2>
@@ -190,7 +213,8 @@
                         <th>รายการ</th>
                         <th>ข้อมูลผู้จอง</th>
                         <th>สลิป</th>
-                        <th>สถานะ</th>
+                        <th>สถานะเงิน</th>
+                        <th>สถานะเช็คอิน</th>
                     </tr>
                 </thead>
                 <tbody id="all-orders-list"></tbody>
@@ -225,7 +249,6 @@
 
     <div id="page-movie" class="hidden">
         <button class="btn-secondary" onclick="goHome()">⬅ ย้อนกลับ</button>
-        
         <div class="item-details">
             <img id="m-group-img" alt="Poster" style="display:none;">
             <div class="item-info">
@@ -237,12 +260,10 @@
                 <div id="m-group-minimap" style="margin-top:15px; background:#f8f9fa; padding:10px; border-radius:8px;"></div>
             </div>
         </div>
-
         <div id="movie-schedule-section">
             <h3>เลือกรอบฉาย</h3>
             <div class="schedule-list" id="movie-schedule-list"></div>
         </div>
-        
         <div id="movie-seat-section" class="hidden">
             <div style="margin: 10px 0; display:flex; align-items:center; gap:15px;">
                 <button class="btn-sm" onclick="backToSchedule()" style="background:#6c757d">⬅ เลือกรอบอื่น</button>
@@ -261,7 +282,6 @@
 
     <div id="page-event" class="hidden">
         <button class="btn-secondary" onclick="goHome()">⬅ ย้อนกลับ</button>
-        
         <div class="item-details">
             <img id="e-group-img" alt="Poster" style="display:none;">
             <div class="item-info">
@@ -272,12 +292,10 @@
                 <p id="e-group-detail" style="color:#555; white-space:pre-wrap; font-size:0.95rem; margin-top:10px;"></p>
             </div>
         </div>
-
         <div id="event-schedule-section">
             <h3>เลือกรอบกิจกรรม</h3>
             <div class="schedule-list" id="event-schedule-list"></div>
         </div>
-
         <div id="event-booking-section" class="hidden">
              <div style="margin: 10px 0; display:flex; align-items:center; gap:15px;">
                 <button class="btn-sm" onclick="backToSchedule()" style="background:#6c757d">⬅ เลือกรอบอื่น</button>
@@ -308,7 +326,6 @@
                 <button class="btn-primary" onclick="proceedToPayment()" style="width:auto; margin-left:10px;">ดำเนินการชำระเงิน</button>
             </div>
         </div>
-
         <div id="payment-section" class="hidden">
             <h3 style="color: #1a73e8; text-align: center;">2. ชำระเงิน (สแกน QR Code)</h3>
             <div class="payment-qr-container">
@@ -318,12 +335,10 @@
                 <p style="color:#e74c3c; font-weight:bold; margin-top:10px;">กรุณาชำระเงินและแนบสลิปภายใน</p>
                 <div class="timer-text" id="pay-countdown">10:00</div>
             </div>
-
             <div class="form-group">
                 <label>แนบลิ้งค์หลักฐานการโอนเงิน (URL รูปภาพ)</label>
                 <input type="url" id="inp-slip-url" placeholder="https://...">
             </div>
-
             <div class="modal-buttons" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
                 <button class="btn-secondary" onclick="cancelSelection()" style="background:#dc3545;">ยกเลิก</button>
                 <div>
@@ -361,12 +376,14 @@
         <span class="close-btn" onclick="document.getElementById('eticket-modal').classList.remove('active')">&times;</span>
         
         <div id="ticket-content" class="ticket-card">
+            <div id="t-watermark" class="watermark-used hidden">CHECKED IN</div>
+
             <div class="ticket-title">🎟️ E-TICKET</div>
             <h3 id="t-title" style="margin-bottom:5px;">ชื่อเรื่อง</h3>
             
             <div class="ticket-qr">
                 <img id="t-qrcode" alt="Ticket QR">
-                <div style="font-size:0.8rem; color:#888; margin-top:5px;">สแกนเพื่อเข้างาน</div>
+                <div style="font-size:0.8rem; color:#888; margin-top:5px;">แอดมินสแกนเพื่อเข้างาน</div>
             </div>
 
             <div class="ticket-info">
@@ -390,27 +407,21 @@
         <form onsubmit="saveAdminItem(event)">
             <input type="hidden" id="adm-id">
             <input type="hidden" id="adm-type">
-            
             <div class="form-group"><label>ชื่อรายการ:</label><input type="text" id="adm-title" required></div>
             <div class="form-group"><label>URL รูปภาพ (โปสเตอร์):</label><input type="text" id="adm-image" placeholder="https://..."></div>
             <div class="form-group"><label>รายละเอียด:</label><textarea id="adm-detail" rows="3" placeholder="ข้อมูลเพิ่มเติมเกี่ยวกับหนังหรืออีเวนต์"></textarea></div>
             <div class="form-group"><label>สถานที่ / โรงภาพยนตร์:</label><input type="text" id="adm-location" placeholder="เช่น ชั้น 5 โซน A"></div>
-            
             <div style="display:flex; gap:10px;">
                 <div class="form-group" style="flex:1">
                     <label>ประเภทบัตร:</label>
-                    <select id="adm-ticket-type" class="auth-input" onchange="updatePriceFromType()" required>
-                        <option value="">-- โหลดข้อมูล --</option>
-                    </select>
+                    <select id="adm-ticket-type" class="auth-input" onchange="updatePriceFromType()" required><option value="">-- โหลดข้อมูล --</option></select>
                 </div>
                 <div class="form-group" style="flex:1"><label>ราคา (บาท):</label><input type="number" id="adm-price" placeholder="0" required></div>
             </div>
-
             <div style="display:flex; gap:10px;">
                 <div class="form-group" style="flex:1"><label>เปิดจอง:</label><input type="datetime-local" id="adm-start" required></div>
                 <div class="form-group" style="flex:1"><label>ปิดจอง:</label><input type="datetime-local" id="adm-end" required></div>
             </div>
-
             <div id="adm-movie-fields" class="hidden" style="background:#f9f9f9; padding:10px; border-radius:5px; margin-bottom:15px;">
                 <div style="display:flex; gap:10px;">
                     <div class="form-group" style="flex:1"><label>แถว:</label><input type="number" id="adm-rows"></div>
@@ -418,11 +429,9 @@
                 </div>
                 <div class="form-group"><label>ปิดที่นั่ง (Blocked ex: A1,A2):</label><input type="text" id="adm-blocked"></div>
             </div>
-
             <div id="adm-event-fields" class="hidden" style="background:#f9f9f9; padding:10px; border-radius:5px; margin-bottom:15px;">
                 <div class="form-group"><label>ความจุ (-1=ไม่จำกัด):</label><input type="number" id="adm-cap"></div>
             </div>
-
             <button type="submit" class="btn-primary" style="background:#2ecc71;">บันทึกข้อมูล</button>
         </form>
     </div>
@@ -465,24 +474,9 @@
     </div>
 </div>
 
-<div id="admin-user-history-modal" class="modal">
-    <div class="modal-content" style="max-width: 600px;">
-        <h3>ประวัติการจอง: <span id="admin-uh-name" style="color: #1a73e8;"></span></h3>
-        <div style="overflow-x:auto; max-height: 400px; overflow-y:auto; margin-top: 15px;">
-            <table>
-                <thead><tr><th>วันที่ / เวลา</th><th>รายการ</th><th>สถานะ/สลิป</th></tr></thead>
-                <tbody id="admin-user-history-list"></tbody>
-            </table>
-        </div>
-        <div class="modal-buttons">
-            <button class="btn-secondary" onclick="document.getElementById('admin-user-history-modal').classList.remove('active')">ปิดหน้าต่าง</button>
-        </div>
-    </div>
-</div>
-
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, onValue, runTransaction, push, set, remove, onDisconnect, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getDatabase, ref, onValue, runTransaction, push, set, remove, onDisconnect, update, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {
@@ -499,7 +493,6 @@
     const db = getDatabase(app);
     const auth = getAuth(app);
 
-    // --- Global State ---
     let currentUser = null;
     let userRole = 'guest';
     let userData = {};
@@ -518,10 +511,12 @@
     let tempSeatRef = null;
     let paymentTimerInterval = null; 
     let payLaterData = null; 
+    
+    // ตัวแปรสำหรับสแกนเนอร์
+    let html5QrcodeScanner = null;
 
     const PROMPTPAY_NUMBER = "0812345678"; 
 
-    // --- Auth & Init ---
     onAuthStateChanged(auth, (user) => {
         currentUser = user;
         if (user) {
@@ -564,7 +559,6 @@
     setInterval(() => {
         const now = Date.now();
         const expireTime = 10 * 60 * 1000; 
-
         if(allData.movies) {
             Object.entries(allData.movies).forEach(([mId, m]) => {
                 if(m.bookings) {
@@ -576,9 +570,7 @@
                 }
                 if(m.temp_selections) {
                     Object.entries(m.temp_selections).forEach(([seatId, t]) => {
-                        if(now - t.timestamp > expireTime) {
-                            remove(ref(db, `movies/${mId}/temp_selections/${seatId}`));
-                        }
+                        if(now - t.timestamp > expireTime) { remove(ref(db, `movies/${mId}/temp_selections/${seatId}`)); }
                     });
                 }
             });
@@ -588,9 +580,7 @@
                 if(e.bookings) {
                     Object.entries(e.bookings).forEach(([bId, b]) => {
                         if(b.paymentStatus === 'รอชำระเงิน' && (now - b.timestamp > expireTime)) {
-                            remove(ref(db, `events/${eId}/bookings/${bId}`)).then(() => {
-                                runTransaction(ref(db, `events/${eId}/currentBooked`), (c) => (c || 1) - 1);
-                            });
+                            remove(ref(db, `events/${eId}/bookings/${bId}`)).then(() => { runTransaction(ref(db, `events/${eId}/currentBooked`), (c) => (c || 1) - 1); });
                         }
                     });
                 }
@@ -603,10 +593,12 @@
     function updateNavbarUI(isLoggedIn) {
         document.getElementById('main-nav').classList.remove('hidden');
         if(userRole === 'admin') {
+            document.getElementById('nav-admin-scan').classList.remove('hidden');
             document.getElementById('nav-admin-orders').classList.remove('hidden');
             document.getElementById('nav-admin-users').classList.remove('hidden');
             document.getElementById('nav-admin-tickets').classList.remove('hidden');
         } else {
+            document.getElementById('nav-admin-scan').classList.add('hidden');
             document.getElementById('nav-admin-orders').classList.add('hidden');
             document.getElementById('nav-admin-users').classList.add('hidden');
             document.getElementById('nav-admin-tickets').classList.add('hidden');
@@ -625,10 +617,16 @@
 
     // --- Views ---
     window.showPage = (pid) => {
-        ['page-auth', 'page-home', 'page-movie', 'page-event', 'page-profile', 'page-users', 'page-ticket-types', 'page-orders'].forEach(id => {
+        ['page-auth', 'page-home', 'page-movie', 'page-event', 'page-profile', 'page-users', 'page-ticket-types', 'page-orders', 'page-scan'].forEach(id => {
             const el = document.getElementById(id); if(el) el.classList.add('hidden');
         });
         const target = document.getElementById(pid); if(target) target.classList.remove('hidden');
+
+        // ปิดกล้องถ้าไม่ได้อยู่หน้า Scan
+        if(pid !== 'page-scan' && html5QrcodeScanner) {
+            html5QrcodeScanner.clear().catch(err => console.log(err));
+            html5QrcodeScanner = null;
+        }
     }
 
     window.goHome = () => {
@@ -636,6 +634,98 @@
         window.showPage('page-home');
         window.renderHomeList();
     }
+
+    // --- QR Code Scanner Logic (ใหม่) ---
+    window.showScanPage = () => {
+        if(userRole !== 'admin') return;
+        window.showPage('page-scan');
+        
+        const resDiv = document.getElementById('scan-result');
+        resDiv.style.display = 'none';
+        resDiv.className = 'scan-msg';
+        resDiv.innerHTML = '';
+
+        if(!html5QrcodeScanner) {
+            html5QrcodeScanner = new Html5QrcodeScanner("qr-reader", { fps: 10, qrbox: {width: 250, height: 250} }, false);
+            html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+        }
+    };
+
+    window.restartScanner = () => {
+        document.getElementById('scan-result').style.display = 'none';
+        if(html5QrcodeScanner) {
+            html5QrcodeScanner.resume();
+        } else {
+            window.showScanPage();
+        }
+    }
+
+    function onScanSuccess(decodedText, decodedResult) {
+        // TICKET|type|itemId|bookingKey|userName
+        const parts = decodedText.split('|');
+        const resDiv = document.getElementById('scan-result');
+        
+        if(parts[0] !== 'TICKET' || parts.length < 5) {
+            resDiv.innerHTML = "❌ QR Code ไม่ถูกต้อง ไม่ใช่ของระบบนี้";
+            resDiv.className = 'scan-msg scan-error';
+            resDiv.style.display = 'block';
+            return;
+        }
+
+        // หยุดสแกนชั่วคราวเพื่อประมวลผล
+        if(html5QrcodeScanner) html5QrcodeScanner.pause(true);
+
+        const type = parts[1];
+        const itemId = parts[2];
+        const bookingKey = parts[3];
+        const name = parts[4];
+
+        const path = `${type === 'movie' ? 'movies' : 'events'}/${itemId}/bookings/${bookingKey}`;
+        
+        get(ref(db, path)).then((snap) => {
+            if(snap.exists()) {
+                const b = snap.val();
+                
+                // 1. เช็คว่าจ่ายเงินหรือยัง
+                if(b.paymentStatus !== 'ยืนยันแล้ว' && b.paymentStatus !== 'ฟรี') {
+                    resDiv.innerHTML = `❌ ไม่สามารถเช็คอินได้<br>ตั๋วของ <b>${name}</b><br>สถานะ: <b>${b.paymentStatus}</b>`;
+                    resDiv.className = 'scan-msg scan-error';
+                    resDiv.style.display = 'block';
+                    return;
+                }
+                
+                // 2. เช็คว่าเช็คอินไปแล้วหรือยัง
+                if(b.isCheckedIn) {
+                    resDiv.innerHTML = `⚠️ ตั๋วใบนี้ <b>ถูกใช้งานไปแล้ว!</b><br>ชื่อ: ${name}<br>เช็คอินเมื่อ: ${new Date(b.checkInTime).toLocaleString()}`;
+                    resDiv.className = 'scan-msg scan-error';
+                    resDiv.style.display = 'block';
+                } else {
+                    // 3. ทำการเช็คอิน (อัปเดต DB)
+                    update(ref(db, path), {
+                        isCheckedIn: true,
+                        checkInTime: Date.now()
+                    }).then(() => {
+                        resDiv.innerHTML = `✅ <b>เช็คอินสำเร็จ!</b><br>ยินดีต้อนรับคุณ <b>${name}</b><br>ที่นั่ง/รหัส: ${bookingKey}`;
+                        resDiv.className = 'scan-msg scan-success';
+                        resDiv.style.display = 'block';
+                    });
+                }
+            } else {
+                resDiv.innerHTML = "❌ ไม่พบข้อมูลการจองนี้ในระบบ (อาจถูกยกเลิกแล้ว)";
+                resDiv.className = 'scan-msg scan-error';
+                resDiv.style.display = 'block';
+            }
+        }).catch((err) => {
+            resDiv.innerHTML = "❌ เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล";
+            resDiv.className = 'scan-msg scan-error';
+            resDiv.style.display = 'block';
+        });
+    }
+
+    function onScanFailure(error) {
+        // ไม่ต้องทำอะไร ปล่อยให้มันสแกนต่อไปเงียบๆ
+    }
+
 
     // --- Home List ---
     window.renderHomeList = () => {
@@ -741,9 +831,7 @@
                 grid.style.marginTop = '8px';
                 
                 let blocked = [];
-                if (rep.blocked) {
-                    blocked = Array.isArray(rep.blocked) ? rep.blocked : String(rep.blocked).split(',').map(s => s.trim());
-                }
+                if (rep.blocked) { blocked = Array.isArray(rep.blocked) ? rep.blocked : String(rep.blocked).split(',').map(s => s.trim()); }
 
                 for(let r=0; r<rep.rows; r++) {
                     const rowL = String.fromCharCode(65+r);
@@ -761,9 +849,7 @@
 
             items.forEach(item => {
                 let bArr = [];
-                if (item.config.blocked) {
-                    bArr = Array.isArray(item.config.blocked) ? item.config.blocked : String(item.config.blocked).split(',').filter(x => x.trim() !== '');
-                }
+                if (item.config.blocked) { bArr = Array.isArray(item.config.blocked) ? item.config.blocked : String(item.config.blocked).split(',').filter(x => x.trim() !== ''); }
                 const total = (item.config.rows * item.config.cols) - bArr.length;
                 
                 const booked = item.bookings ? Object.keys(item.bookings).length : 0;
@@ -878,7 +964,6 @@
         return true;
     }
 
-    // --- Select Specific Showtime ---
     window.selectShowtime = (id, type) => {
         currentId = id;
         currentType = type;
@@ -946,9 +1031,7 @@
         map.style.gridTemplateColumns = `repeat(${conf.cols}, 1fr)`;
         
         let blockedList = [];
-        if (conf.blocked) {
-            blockedList = Array.isArray(conf.blocked) ? conf.blocked : String(conf.blocked).split(',').map(x => x.trim());
-        }
+        if (conf.blocked) { blockedList = Array.isArray(conf.blocked) ? conf.blocked : String(conf.blocked).split(',').map(x => x.trim()); }
 
         for(let r=0; r<conf.rows; r++) {
             const rowLabel = String.fromCharCode(65 + r);
@@ -1141,7 +1224,8 @@
             uid: currentUser ? currentUser.uid : 'guest', 
             name: bName, phone: bPhone, email: bEmail, idCard: bIdCard, timestamp: Date.now(),
             slipUrl: slipUrl, 
-            paymentStatus: status
+            paymentStatus: status,
+            isCheckedIn: false // เริ่มต้นยังไม่เช็คอิน
         };
 
         if(currentType === 'movie') {
@@ -1190,7 +1274,7 @@
         update(ref(db, path), {
             slipUrl: slipUrl,
             paymentStatus: 'รอตรวจสอบ',
-            timestamp: Date.now() // รีเซ็ตเวลาใหม่ให้
+            timestamp: Date.now() 
         }).then(() => {
             alert("✅ บันทึกสลิปสำเร็จ โปรดรอแอดมินตรวจสอบ");
             document.getElementById('pay-later-modal').classList.remove('active');
@@ -1198,13 +1282,22 @@
         });
     };
 
-    window.viewTicket = (title, location, dateStr, timeStr, seatLabel, userName, qrData) => {
+    // เพิ่ม Parameter isCheckedIn
+    window.viewTicket = (title, location, dateStr, timeStr, seatLabel, userName, qrData, isCheckedIn) => {
         document.getElementById('t-title').innerText = title;
         document.getElementById('t-location').innerText = location || '-';
         document.getElementById('t-datetime').innerText = `${dateStr} เวลา ${timeStr}`;
         document.getElementById('t-seat').innerText = seatLabel;
         document.getElementById('t-name').innerText = userName;
         document.getElementById('t-qrcode').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrData)}`;
+        
+        const wm = document.getElementById('t-watermark');
+        if(isCheckedIn === 'true' || isCheckedIn === true) {
+            wm.classList.remove('hidden');
+        } else {
+            wm.classList.add('hidden');
+        }
+
         document.getElementById('eticket-modal').classList.add('active');
     };
 
@@ -1242,7 +1335,8 @@
                             myHistory.push({ 
                                 timestamp: b.timestamp, itemTitle: m.config.title, detail: `ที่นั่ง ${seatId}`, 
                                 slip: b.slipUrl, status: b.paymentStatus, type: 'movie', itemId: mId, bookingKey: seatId, 
-                                price: m.config.price || 0, location: m.config.location, userName: b.name, eventDate: m.config.start
+                                price: m.config.price || 0, location: m.config.location, userName: b.name, eventDate: m.config.start,
+                                isCheckedIn: b.isCheckedIn
                             });
                         }
                     });
@@ -1258,7 +1352,8 @@
                             myHistory.push({ 
                                 timestamp: b.timestamp, itemTitle: e.config.title, detail: "บัตรเข้าร่วมงาน", 
                                 slip: b.slipUrl, status: b.paymentStatus, type: 'event', itemId: eId, bookingKey: bId, 
-                                price: e.config.price || 0, location: e.config.location, userName: b.name, eventDate: e.config.start 
+                                price: e.config.price || 0, location: e.config.location, userName: b.name, eventDate: e.config.start,
+                                isCheckedIn: b.isCheckedIn
                             });
                         }
                     });
@@ -1289,7 +1384,7 @@
                     
                     actionHtml = `
                         <button class="btn-sm" style="background:#8e44ad; color:white; margin-top:5px; font-weight:bold;" 
-                        onclick="viewTicket('${h.itemTitle}', '${h.location || ''}', '${dateStr}', '${timeStr}', '${h.detail}', '${h.userName}', '${qrDataStr}')">
+                        onclick="viewTicket('${h.itemTitle}', '${h.location || ''}', '${dateStr}', '${timeStr}', '${h.detail}', '${h.userName}', '${qrDataStr}', ${h.isCheckedIn ? true : false})">
                         🎫 ดู E-Ticket</button>
                     `;
                     if (h.slip) {
@@ -1298,12 +1393,17 @@
                 }
 
                 let badgeColor = h.status === 'รอชำระเงิน' ? '#f39c12' : (h.status === 'ฟรี' ? '#2ecc71' : '#17a2b8');
+                let checkInBadge = h.isCheckedIn ? `<br><span style="color:#2ecc71; font-size:0.8rem; font-weight:bold;">(เช็คอินแล้ว)</span>` : `<br><span style="color:#e74c3c; font-size:0.8rem;">(ยังไม่เช็คอิน)</span>`;
+
+                // ถ้ายังไม่จ่ายเงิน ไม่ต้องโชว์สถานะเช็คอิน
+                if(h.status === 'รอชำระเงิน') checkInBadge = '';
 
                 hList.innerHTML += `<tr>
                     <td>${new Date(h.timestamp).toLocaleDateString()} <br><small>${new Date(h.timestamp).toLocaleTimeString()}</small></td>
                     <td>${h.itemTitle} <br><small style="color:#666;">${h.detail}</small></td>
                     <td>
                         <span style="background:${badgeColor}; color:white; padding:3px 8px; border-radius:10px; font-size:0.8rem;">${h.status || 'ยืนยันแล้ว'}</span>
+                        ${checkInBadge}
                         <div style="margin-top:5px;">${actionHtml}</div>
                     </td>
                 </tr>`;
@@ -1316,7 +1416,7 @@
         if(userRole !== 'admin') return;
         window.showPage('page-orders');
         const tbody = document.getElementById('all-orders-list');
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">กำลังโหลด...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">กำลังโหลด...</td></tr>';
         
         let allBookings = [];
         
@@ -1351,7 +1451,7 @@
         
         tbody.innerHTML = '';
         if(allBookings.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">ยังไม่มีคำสั่งซื้อในระบบ</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">ยังไม่มีคำสั่งซื้อในระบบ</td></tr>';
             return;
         }
         
@@ -1366,15 +1466,16 @@
                 selectHtml += `<option value="${opt}" ${b.paymentStatus === opt ? 'selected' : ''}>${opt}</option>`;
             });
             selectHtml += `</select>`;
+
+            let checkInStatus = b.isCheckedIn ? `<span style="color:#2ecc71; font-weight:bold;">✅ เช็คอินแล้ว</span>` : `<span style="color:#e74c3c;">❌ ยังไม่เช็คอิน</span>`;
             
             tbody.innerHTML += `<tr>
                 <td>${dDate}</td>
                 <td><b>${order.title}</b><br><small style="color:#666;">${order.type==='movie'?'ที่นั่ง: '+order.seat : order.seat}</small></td>
                 <td>${b.name}<br><small>${b.phone} | ${b.email}</small></td>
                 <td>${slipLink}</td>
-                <td>
-                    ${selectHtml}
-                </td>
+                <td>${selectHtml}</td>
+                <td>${checkInStatus}</td>
             </tr>`;
         });
     };
@@ -1393,14 +1494,11 @@
             }
         } else {
             const updates = { paymentStatus: newStatus };
-            // ถ้าย้อนสถานะกลับไปเป็นรอชำระเงิน ให้รีเซ็ตเวลาใหม่ให้ลูกค้า 10 นาที
             if (newStatus === 'รอชำระเงิน') {
                 updates.timestamp = Date.now();
                 alert("ระบบได้รีเซ็ตเวลาให้ลูกค้าชำระเงินใหม่ 10 นาทีแล้ว");
             }
-            update(ref(db, path), updates).then(() => {
-                // UI จะอัปเดตอัตโนมัติจาก onValue
-            });
+            update(ref(db, path), updates);
         }
     };
 
