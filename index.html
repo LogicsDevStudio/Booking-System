@@ -88,7 +88,7 @@
         .hidden { display: none !important; }
         .nav-back { margin-bottom: 20px; cursor: pointer; color: #555; font-weight: bold; }
         .legend { display: flex; gap: 15px; font-size: 0.9rem; justify-content: center; margin-top: 20px; flex-wrap: wrap;}
-        .legend-item { display: flex; align-items: center; gap: 5px; } .dot { width: 15px; height: 15px; border-radius: 3px; }
+        .legend-item { display: flex; align-items: center; gap: 5px; } .dot-legend { width: 15px; height: 15px; border-radius: 3px; }
         
         .form-group { margin-bottom: 15px; text-align: left; }
         .form-group label { display: block; margin-bottom: 5px; font-weight: 600; }
@@ -132,12 +132,57 @@
             .watermark-used { font-size: 2.5rem; padding: 10px 20px; }
         }
 
-        /* Banner Style */
-        #home-banner-img {
+        /* 🌟 สไตล์สำหรับ Banner Slider 🌟 */
+        #banner-slider-container {
+            position: relative;
+            width: 100%;
+            max-height: 350px;
+            overflow: hidden;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        #banner-slider-track {
+            display: flex;
+            transition: transform 0.5s ease-in-out;
+            width: 100%;
+        }
+        .banner-slide {
+            flex: 0 0 100%;
+            box-sizing: border-box;
+        }
+        .banner-slide img {
+            width: 100%;
+            height: 350px;
+            object-fit: cover;
+            display: block;
             transition: transform 0.3s;
         }
-        #home-banner-link:hover #home-banner-img {
+        .banner-slide a:hover img {
             transform: scale(1.02);
+        }
+        .banner-dots-wrapper {
+            position: absolute;
+            bottom: 15px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            z-index: 10;
+        }
+        .slider-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            margin: 0 5px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .slider-dot.active {
+            background: #fff;
+            transform: scale(1.2);
         }
     </style>
 </head>
@@ -188,16 +233,17 @@
         <div id="admin-panel-home" class="admin-bar hidden">
             <span>🔧 <b>Admin Dashboard</b></span>
             <div>
-                <button class="btn-sm" style="background:#8e44ad; padding:8px 15px;" onclick="openBannerModal()">🖼️ จัดการแบนเนอร์</button>
+                <button class="btn-sm" style="background:#8e44ad; padding:8px 15px;" onclick="showBannerManagement()">🖼️ จัดการแบนเนอร์</button>
                 <button class="btn-sm" style="background:#2ecc71; padding:8px 15px;" onclick="openAdminModal('movie')">+ เพิ่มหนัง</button>
                 <button class="btn-sm" style="background:#2ecc71; padding:8px 15px;" onclick="openAdminModal('event')">+ เพิ่มอีเวนต์</button>
             </div>
         </div>
 
-        <div id="home-banner-container" class="hidden" style="margin-bottom: 25px; text-align: center;">
-            <a id="home-banner-link" href="#" target="_blank" style="pointer-events: none; display: block;">
-                <img id="home-banner-img" src="" alt="Banner" style="width: 100%; max-height: 350px; object-fit: cover; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
-            </a>
+        <div id="banner-slider-container" class="hidden">
+            <div id="banner-slider-track">
+                </div>
+            <div class="banner-dots-wrapper" id="banner-slider-dots">
+                </div>
         </div>
 
         <header><h1>รายการที่เปิดจอง</h1></header>
@@ -280,6 +326,20 @@
         </div>
     </div>
 
+    <div id="page-banners" class="hidden">
+        <div class="nav-back" onclick="goHome()">⬅ ย้อนกลับ</div>
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <h2 style="margin:0;">🖼️ จัดการแบนเนอร์โฆษณา (Slide)</h2>
+            <button class="btn-sm" style="background:#2ecc71; padding:10px 20px; font-size:1rem;" onclick="openBannerFormModal()">+ เพิ่มแบนเนอร์ใหม่</button>
+        </div>
+        <div style="overflow-x:auto; margin-top:20px;">
+            <table>
+                <thead><tr><th>รูปภาพ</th><th>ลิ้งค์ (URL)</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
+                <tbody id="banners-list-admin"></tbody>
+            </table>
+        </div>
+    </div>
+
     <div id="page-movie" class="hidden">
         <button class="btn-secondary" onclick="goHome()">⬅ ย้อนกลับ</button>
         <div class="item-details">
@@ -305,10 +365,10 @@
             <div class="screen">จอภาพยนตร์</div>
             <div class="seat-map" id="seat-map"></div>
             <div class="legend">
-                <div class="legend-item"><div class="dot" style="border:2px solid #28a745;"></div> ว่าง</div>
-                <div class="legend-item"><div class="dot" style="background:#f39c12;"></div> รอชำระเงิน</div>
-                <div class="legend-item"><div class="dot" style="background:#dc3545;"></div> จองแล้ว</div>
-                <div class="legend-item"><div class="dot" style="background:#e2e6ea;"></div> ปิด</div>
+                <div class="legend-item"><div class="dot-legend" style="border:2px solid #28a745;"></div> ว่าง</div>
+                <div class="legend-item"><div class="dot-legend" style="background:#f39c12;"></div> รอชำระเงิน</div>
+                <div class="legend-item"><div class="dot-legend" style="background:#dc3545;"></div> จองแล้ว</div>
+                <div class="legend-item"><div class="dot-legend" style="background:#e2e6ea;"></div> ปิด</div>
             </div>
         </div>
     </div>
@@ -470,30 +530,30 @@
     </div>
 </div>
 
-<div id="banner-modal" class="modal">
+<div id="banner-form-modal" class="modal">
     <div class="modal-content" style="max-width: 500px;">
-        <span class="close-btn" onclick="document.getElementById('banner-modal').classList.remove('active')">&times;</span>
-        <h3 style="margin-top:0; color:#1a73e8;">🖼️ จัดการแบนเนอร์ประชาสัมพันธ์</h3>
-        <form onsubmit="saveBanner(event)">
-            <div class="form-group">
-                <label>แสดงแบนเนอร์หรือไม่:</label>
-                <select id="bn-active" class="auth-input">
-                    <option value="true">แสดง</option>
-                    <option value="false">ซ่อน</option>
-                </select>
-            </div>
+        <span class="close-btn" onclick="document.getElementById('banner-form-modal').classList.remove('active')">&times;</span>
+        <h3 style="margin-top:0; color:#1a73e8;" id="bf-modal-title">🖼️ เพิ่ม/แก้ไข แบนเนอร์</h3>
+        <form onsubmit="saveBannerData(event)">
+            <input type="hidden" id="bf-id">
             <div class="form-group">
                 <label>URL รูปภาพแบนเนอร์:</label>
-                <input type="url" id="bn-image" class="auth-input" placeholder="https://..." required>
+                <input type="url" id="bf-image" class="auth-input" placeholder="https://..." required>
             </div>
             <div class="form-group">
                 <label>URL ลิ้งค์เมื่อคลิก (ไม่บังคับ):</label>
-                <input type="url" id="bn-link" class="auth-input" placeholder="https://...">
-                <small style="color:#666;">* หากใส่ลิ้งค์ เมื่อผู้ใช้คลิกที่รูปจะถูกพาไปยังหน้าเว็บนั้น</small>
+                <input type="url" id="bf-link" class="auth-input" placeholder="https://...">
+            </div>
+            <div class="form-group">
+                <label>สถานะ:</label>
+                <select id="bf-active" class="auth-input">
+                    <option value="true">เปิดใช้งาน (แสดง)</option>
+                    <option value="false">ปิดใช้งาน (ซ่อน)</option>
+                </select>
             </div>
             <div class="modal-buttons">
-                <button type="button" class="btn-secondary" onclick="document.getElementById('banner-modal').classList.remove('active')">ยกเลิก</button>
-                <button type="submit" class="btn-primary" style="width:auto; background:#2ecc71;">บันทึกแบนเนอร์</button>
+                <button type="button" class="btn-secondary" onclick="document.getElementById('banner-form-modal').classList.remove('active')">ยกเลิก</button>
+                <button type="submit" class="btn-primary" style="width:auto; background:#2ecc71;">บันทึกข้อมูล</button>
             </div>
         </form>
     </div>
@@ -612,6 +672,11 @@
     let payLaterData = null; 
     let html5QrcodeScanner = null;
 
+    // ตัวแปรสำหรับ Slide Banner
+    let bannerInterval = null;
+    let currentBannerIndex = 0;
+    let lastBannerDataString = "";
+
     const PROMPTPAY_NUMBER = "0812345678"; 
 
     onAuthStateChanged(auth, (user) => {
@@ -625,6 +690,7 @@
                 if(!document.getElementById('page-users').classList.contains('hidden')) window.showUserManagement();
                 if(!document.getElementById('page-ticket-types').classList.contains('hidden')) window.showTicketTypesManagement();
                 if(!document.getElementById('page-orders').classList.contains('hidden')) window.showOrderManagement();
+                if(!document.getElementById('page-banners').classList.contains('hidden')) window.showBannerManagement();
             });
         } else {
             userRole = 'guest'; userData = {}; updateNavbarUI(false);
@@ -651,6 +717,7 @@
         if(!document.getElementById('page-profile').classList.contains('hidden')) window.showProfile();
         if(!document.getElementById('page-ticket-types').classList.contains('hidden')) window.showTicketTypesManagement();
         if(!document.getElementById('page-orders').classList.contains('hidden')) window.showOrderManagement();
+        if(!document.getElementById('page-banners').classList.contains('hidden')) window.showBannerManagement();
     });
 
     setInterval(() => {
@@ -683,8 +750,6 @@
                 }
             });
         }
-        if(!document.getElementById('page-profile').classList.contains('hidden')) window.showProfile();
-        if(!document.getElementById('page-orders').classList.contains('hidden')) window.showOrderManagement();
     }, 15000);
 
     function updateNavbarUI(isLoggedIn) {
@@ -723,7 +788,8 @@
             });
         }
 
-        ['page-auth', 'page-home', 'page-movie', 'page-event', 'page-profile', 'page-users', 'page-ticket-types', 'page-orders', 'page-scan'].forEach(id => {
+        // เพิ่ม 'page-banners' ลงในลิสต์
+        ['page-auth', 'page-home', 'page-movie', 'page-event', 'page-profile', 'page-users', 'page-ticket-types', 'page-orders', 'page-scan', 'page-banners'].forEach(id => {
             const el = document.getElementById(id); if(el) el.classList.add('hidden');
         });
         const target = document.getElementById(pid); if(target) target.classList.remove('hidden');
@@ -819,9 +885,99 @@
 
     function onScanFailure(error) { }
 
+
+    // 🌟 --- ระบบ Slide Banners ในหน้าแรก --- 🌟
+    function buildBannerSlider() {
+        const bannerContainer = document.getElementById('banner-slider-container');
+        const track = document.getElementById('banner-slider-track');
+        const dotsWrapper = document.getElementById('banner-slider-dots');
+
+        let activeBanners = [];
+        if (allData.settings && allData.settings.banners) {
+            Object.entries(allData.settings.banners).forEach(([id, b]) => {
+                if (b.isActive === true || b.isActive === 'true') activeBanners.push({id, ...b});
+            });
+        }
+
+        // ป้องกันภาพกระพริบถ้ารูปไม่เปลี่ยน
+        const currentDataString = JSON.stringify(activeBanners);
+        if(currentDataString === lastBannerDataString) return; 
+        lastBannerDataString = currentDataString;
+
+        clearInterval(bannerInterval);
+        track.innerHTML = '';
+        dotsWrapper.innerHTML = '';
+
+        if (activeBanners.length > 0) {
+            bannerContainer.classList.remove('hidden');
+            
+            activeBanners.forEach((b, index) => {
+                // สร้าง Slide
+                const slide = document.createElement('div');
+                slide.className = 'banner-slide';
+                const imgContent = `<img src="${b.imageUrl}" alt="Banner">`;
+                
+                if (b.linkUrl && b.linkUrl.trim() !== '') {
+                    slide.innerHTML = `<a href="${b.linkUrl}" target="_blank">${imgContent}</a>`;
+                } else {
+                    slide.innerHTML = imgContent;
+                }
+                track.appendChild(slide);
+
+                // สร้างจุดไข่ปลา
+                const dot = document.createElement('div');
+                dot.className = `slider-dot ${index === 0 ? 'active' : ''}`;
+                dot.onclick = () => window.goToSlide(index);
+                dotsWrapper.appendChild(dot);
+            });
+
+            currentBannerIndex = 0;
+            updateSliderPosition();
+
+            if (activeBanners.length > 1) {
+                bannerInterval = setInterval(() => {
+                    currentBannerIndex = (currentBannerIndex + 1) % activeBanners.length;
+                    updateSliderPosition();
+                }, 4000); // สไลด์เปลี่ยนทุก 4 วินาที
+            }
+        } else {
+            bannerContainer.classList.add('hidden');
+        }
+    }
+
+    function updateSliderPosition() {
+        const track = document.getElementById('banner-slider-track');
+        const dots = document.querySelectorAll('.slider-dot');
+        if(!track) return;
+        track.style.transform = `translateX(-${currentBannerIndex * 100}%)`;
+        dots.forEach((d, i) => {
+            if(i === currentBannerIndex) d.classList.add('active');
+            else d.classList.remove('active');
+        });
+    }
+
+    window.goToSlide = (index) => {
+        currentBannerIndex = index;
+        updateSliderPosition();
+        
+        // รีเซ็ต Timer เพื่อไม่ให้มันเลื่อนหนีทันทีที่เรากด
+        clearInterval(bannerInterval);
+        const totalSlides = document.querySelectorAll('.banner-slide').length;
+        if(totalSlides > 1) {
+            bannerInterval = setInterval(() => {
+                currentBannerIndex = (currentBannerIndex + 1) % totalSlides;
+                updateSliderPosition();
+            }, 4000);
+        }
+    }
+    // 🌟 ------------------------------------ 🌟
+
+
     window.renderHomeList = () => {
         const mList = document.getElementById('movie-list');
         const eList = document.getElementById('event-list');
+        
+        // เช็คก่อนว่าไม่ได้มี element อะไรค้างอยู่ถึงจะเคลียร์ทิ้ง (เพื่อลดการกระพริบ)
         mList.innerHTML = ''; eList.innerHTML = '';
 
         const adminPanel = document.getElementById('admin-panel-home');
@@ -830,31 +986,7 @@
             else adminPanel.classList.add('hidden');
         }
 
-        // --- จัดการแสดงผล Banner ---
-        const bannerContainer = document.getElementById('home-banner-container');
-        const bannerImg = document.getElementById('home-banner-img');
-        const bannerLink = document.getElementById('home-banner-link');
-        
-        if (allData.settings && allData.settings.banner) {
-            const banner = allData.settings.banner;
-            // ถ้าแอดมินตั้งให้โชว์ และ มีรูปภาพ
-            if ((banner.isActive === true || banner.isActive === 'true') && banner.imageUrl) {
-                bannerImg.src = banner.imageUrl;
-                if (banner.linkUrl) {
-                    bannerLink.href = banner.linkUrl;
-                    bannerLink.style.pointerEvents = 'auto'; // กดคลิกได้
-                } else {
-                    bannerLink.removeAttribute('href');
-                    bannerLink.style.pointerEvents = 'none'; // กดคลิกไม่ได้
-                }
-                bannerContainer.classList.remove('hidden');
-            } else {
-                bannerContainer.classList.add('hidden');
-            }
-        } else {
-            bannerContainer.classList.add('hidden');
-        }
-        // ---------------------------
+        buildBannerSlider(); // เรียกสร้าง Slider
 
         const moviesGrouped = {};
         if(allData.movies) {
@@ -1841,33 +1973,73 @@
         if(confirm("ยืนยันการลบ?")) remove(ref(db, 'users/' + uid));
     }
 
-    // --- ฟังก์ชันจัดการแบนเนอร์ ---
-    window.openBannerModal = () => {
+
+    // 🌟 --- ระบบจัดการแบนเนอร์ (Admin) --- 🌟
+    window.showBannerManagement = () => {
         if(userRole !== 'admin') return;
-        const banner = (allData.settings && allData.settings.banner) ? allData.settings.banner : {};
-        document.getElementById('bn-active').value = banner.isActive !== false ? 'true' : 'false';
-        document.getElementById('bn-image').value = banner.imageUrl || '';
-        document.getElementById('bn-link').value = banner.linkUrl || '';
-        document.getElementById('banner-modal').classList.add('active');
+        window.showPage('page-banners');
+        
+        const list = document.getElementById('banners-list-admin');
+        list.innerHTML = '';
+        
+        if (allData.settings && allData.settings.banners) {
+            Object.entries(allData.settings.banners).forEach(([id, b]) => {
+                const statusBadge = (b.isActive === true || b.isActive === 'true') 
+                                    ? '<span style="color:#2ecc71; font-weight:bold;">เปิดใช้งาน</span>' 
+                                    : '<span style="color:#e74c3c;">ปิดใช้งาน</span>';
+                                    
+                list.innerHTML += `<tr>
+                    <td><img src="${b.imageUrl}" style="width:100px; height:50px; object-fit:cover; border-radius:4px;"></td>
+                    <td><a href="${b.linkUrl}" target="_blank" style="color:#1a73e8;">${b.linkUrl ? 'ลิ้งค์' : '-'}</a></td>
+                    <td>${statusBadge}</td>
+                    <td>
+                        <button class="btn-sm btn-edit" onclick="openBannerFormModal('${id}', '${b.imageUrl}', '${b.linkUrl || ''}', '${b.isActive}')">แก้ไข</button>
+                        <button class="btn-sm btn-del" onclick="deleteBanner('${id}')">ลบ</button>
+                    </td>
+                </tr>`;
+            });
+        } else {
+            list.innerHTML = '<tr><td colspan="4" style="text-align:center;">ยังไม่มีแบนเนอร์ในระบบ</td></tr>';
+        }
     }
 
-    window.saveBanner = (e) => {
+    window.openBannerFormModal = (id = '', imgUrl = '', linkUrl = '', isActive = 'true') => {
+        if(userRole !== 'admin') return;
+        document.getElementById('bf-modal-title').innerText = id ? 'แก้ไขแบนเนอร์' : 'เพิ่มแบนเนอร์ใหม่';
+        document.getElementById('bf-id').value = id;
+        document.getElementById('bf-image').value = imgUrl;
+        document.getElementById('bf-link').value = linkUrl;
+        document.getElementById('bf-active').value = isActive === 'false' ? 'false' : 'true';
+        document.getElementById('banner-form-modal').classList.add('active');
+    }
+
+    window.saveBannerData = (e) => {
         e.preventDefault();
         if(userRole !== 'admin') return;
         
-        const updates = {
-            isActive: document.getElementById('bn-active').value === 'true',
-            imageUrl: document.getElementById('bn-image').value,
-            linkUrl: document.getElementById('bn-link').value
+        const id = document.getElementById('bf-id').value;
+        const targetRef = id ? ref(db, `settings/banners/${id}`) : push(ref(db, 'settings/banners'));
+        
+        const data = {
+            imageUrl: document.getElementById('bf-image').value,
+            linkUrl: document.getElementById('bf-link').value,
+            isActive: document.getElementById('bf-active').value === 'true'
         };
         
-        update(ref(db, 'settings/banner'), updates).then(() => {
-            alert("บันทึกแบนเนอร์สำเร็จ");
-            document.getElementById('banner-modal').classList.remove('active');
-        }).catch(err => {
-            alert("เกิดข้อผิดพลาด: " + err.message + " (กรุณาเช็ค Rules ของ Firebase)");
+        set(targetRef, data).then(() => {
+            document.getElementById('banner-form-modal').classList.remove('active');
+            alert('บันทึกแบนเนอร์เรียบร้อย');
+            if(!document.getElementById('page-banners').classList.contains('hidden')) window.showBannerManagement();
         });
     }
+
+    window.deleteBanner = (id) => {
+        if(userRole !== 'admin') return;
+        if(confirm("ยืนยันการลบแบนเนอร์นี้?")) {
+            remove(ref(db, `settings/banners/${id}`));
+        }
+    }
+    // 🌟 -------------------------------- 🌟
 
     window.openAdminModal = (type) => {
         if(userRole !== 'admin') return;
