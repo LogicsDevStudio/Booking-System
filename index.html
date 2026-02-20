@@ -538,9 +538,9 @@
     </div>
 </div>
 
-<div id="forgot-password-modal" class="modal hidden">
+<div id="forgot-password-modal" class="modal">
     <div class="modal-content" style="max-width: 400px;">
-        <span class="close-btn" onclick="document.getElementById('forgot-password-modal').classList.add('hidden')">&times;</span>
+        <span class="close-btn" onclick="document.getElementById('forgot-password-modal').classList.remove('active')">&times;</span>
         <h3 style="margin-top: 0; color: #1a73e8;">ลืมรหัสผ่าน</h3>
         <p style="font-size: 0.9rem; color: #666; margin-bottom: 20px;">
             กรุณากรอกอีเมลที่คุณใช้สมัครสมาชิก ระบบจะส่งลิงก์สำหรับตั้งรหัสผ่านใหม่ไปยังอีเมลของคุณ
@@ -1788,7 +1788,7 @@
 
     // --- ฟังก์ชันลืมรหัสผ่าน (เพิ่มใหม่) ---
     window.showForgotPasswordModal = () => {
-        document.getElementById('forgot-password-modal').classList.remove('hidden');
+        document.getElementById('forgot-password-modal').classList.add('active');
     };
 
     window.handleForgotPassword = () => {
@@ -1803,7 +1803,7 @@
         sendPasswordResetEmail(auth, email)
             .then(() => {
                 alert(`ส่งลิงก์สำหรับตั้งรหัสผ่านใหม่ไปยังอีเมล\n${email}\nเรียบร้อยแล้ว กรุณาตรวจสอบกล่องจดหมาย (หรือโฟลเดอร์จดหมายขยะ)`);
-                document.getElementById('forgot-password-modal').classList.add('hidden');
+                document.getElementById('forgot-password-modal').classList.remove('active');
                 emailInput.value = '';
             })
             .catch((error) => {
