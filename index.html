@@ -184,6 +184,18 @@
             background: #fff;
             transform: scale(1.2);
         }
+        
+        /* สไตล์สำหรับแผงค้นหาและตัวกรอง */
+        .filter-bar {
+            display: flex; gap: 15px; flex-wrap: wrap; 
+            margin-bottom: 25px; background: #fff; 
+            padding: 20px; border-radius: 12px; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            align-items: flex-end;
+        }
+        .filter-item { flex: 1; min-width: 200px; }
+        .filter-item label { display: block; font-weight: bold; font-size: 0.9rem; color: #555; margin-bottom: 8px; }
+        .filter-item select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ddd; font-family: 'Sarabun'; cursor: pointer; outline: none;}
     </style>
 </head>
 <body>
@@ -240,24 +252,39 @@
         </div>
 
         <div id="banner-slider-container" class="hidden">
-            <div id="banner-slider-track">
-                </div>
-            <div class="banner-dots-wrapper" id="banner-slider-dots">
-                </div>
+            <div id="banner-slider-track"></div>
+            <div class="banner-dots-wrapper" id="banner-slider-dots"></div>
         </div>
 
-        <header style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-bottom: 20px; gap: 15px;">
-            <h1 style="margin: 0;">รายการที่เปิดจอง</h1>
-            <div>
-                <label style="font-weight: bold; margin-right: 5px; color: #555;">📍 เลือกสถานที่:</label>
-                <select id="location-filter" style="padding: 8px 15px; border-radius: 6px; border: 1px solid #ddd; font-family: 'Sarabun'; outline: none; cursor: pointer;" onchange="filterByLocation(this.value)">
-                    <option value="">-- ดูสถานที่ทั้งหมด --</option>
+        <h1 style="margin-bottom: 15px;">รายการที่เปิดจอง</h1>
+
+        <div class="filter-bar">
+            <div class="filter-item">
+                <label>📍 ค้นหาสถานที่ / โรงภาพยนตร์</label>
+                <select id="filter-location" onchange="applyFilters()">
+                    <option value="">-- ดูทุกสถานที่ --</option>
                 </select>
             </div>
-        </header>
+            <div class="filter-item">
+                <label>🏷️ ประเภทรายการ</label>
+                <select id="filter-category" onchange="applyFilters()">
+                    <option value="all">ทั้งหมด (หนัง/อีเวนต์)</option>
+                    <option value="movie">🎬 ภาพยนตร์เท่านั้น</option>
+                    <option value="event">🎤 อีเวนต์เท่านั้น</option>
+                </select>
+            </div>
+            <div class="filter-item">
+                <label>🔽 เรียงลำดับข้อมูล</label>
+                <select id="filter-sort" onchange="applyFilters()">
+                    <option value="closest">ใกล้ถึงวันจัดงานที่สุด</option>
+                    <option value="newest">วันที่จัดงานไกลที่สุด</option>
+                    <option value="priceAsc">ราคา (ต่ำไปสูง)</option>
+                    <option value="priceDesc">ราคา (สูงไปต่ำ)</option>
+                </select>
+            </div>
+        </div>
 
-        <div id="movie-list" class="grid-container" style="margin-bottom: 30px;"></div>
-        <div id="event-list" class="grid-container"></div>
+        <div id="items-grid" class="grid-container" style="margin-bottom: 30px;"></div>
     </div>
 
     <div id="page-profile" class="hidden">
@@ -681,13 +708,9 @@
     let payLaterData = null; 
     let html5QrcodeScanner = null;
 
-    // ตัวแปรสำหรับ Slide Banner
     let bannerInterval = null;
     let currentBannerIndex = 0;
     let lastBannerDataString = "";
-    
-    // 🌟 ตัวแปรสำหรับ Filter สถานที่ 🌟
-    let selectedLocationFilter = '';
 
     const PROMPTPAY_NUMBER = "0812345678"; 
 
@@ -978,16 +1001,14 @@
         }
     }
 
-    // 🌟 --- ฟังก์ชันกรองตามสถานที่ (Location Filter) --- 🌟
-    window.filterByLocation = (loc) => {
-        selectedLocationFilter = loc;
+    // 🌟 --- ระบบ Filter ค้นหาและจัดเรียง --- 🌟
+    window.applyFilters = () => {
         window.renderHomeList();
     };
 
     window.renderHomeList = () => {
-        const mList = document.getElementById('movie-list');
-        const eList = document.getElementById('event-list');
-        mList.innerHTML = ''; eList.innerHTML = '';
+        const gridList = document.getElementById('items-grid');
+        gridList.innerHTML = '';
 
         const adminPanel = document.getElementById('admin-panel-home');
         if(adminPanel) {
@@ -997,77 +1018,86 @@
 
         buildBannerSlider(); 
 
-        const moviesGrouped = {};
-        const eventsGrouped = {};
-        const allLocations = new Set(); // เก็บรายชื่อสถานที่ทั้งหมด (ไม่ซ้ำ)
+        // ดึงค่าการค้นหาจาก Dropdown
+        const filterLocation = document.getElementById('filter-location')?.value || '';
+        const filterCategory = document.getElementById('filter-category')?.value || 'all';
+        const filterSort = document.getElementById('filter-sort')?.value || 'closest';
 
-        // โหลดข้อมูลภาพยนตร์
-        if(allData.movies) {
-            Object.entries(allData.movies).forEach(([id, m]) => {
-                if(m.config && m.config.title) {
-                    const loc = m.config.location || 'ไม่ระบุสถานที่';
+        const allLocations = new Set();
+        let allGroupedItems = [];
+
+        // ฟังก์ชันจัดกลุ่มข้อมูลและดึงตัวแทนเพื่อเอามาแสดง
+        const processItems = (dataObj, type) => {
+            if (!dataObj) return;
+            const groups = {};
+            Object.entries(dataObj).forEach(([id, item]) => {
+                if(item.config && item.config.title) {
+                    const title = item.config.title;
+                    const loc = item.config.location || 'ไม่ระบุสถานที่';
                     allLocations.add(loc);
-
-                    // 🌟 ถ้ามีการเลือกสถานที่ แล้วไม่ตรงกับสถานที่ของเรื่องนี้ ให้ข้ามไป (กรองออก)
-                    if (selectedLocationFilter && selectedLocationFilter !== loc) return;
-
-                    const title = m.config.title;
-                    if(!moviesGrouped[title]) moviesGrouped[title] = [];
-                    moviesGrouped[title].push({id, ...m});
+                    
+                    if(!groups[title]) groups[title] = [];
+                    groups[title].push({id, ...item});
                 }
             });
-        }
 
-        // โหลดข้อมูลอีเวนต์
-        if(allData.events) {
-            Object.entries(allData.events).forEach(([id, e]) => {
-                if(e.config && e.config.title) {
-                    const loc = e.config.location || 'ไม่ระบุสถานที่';
-                    allLocations.add(loc);
-
-                    // 🌟 ถ้ามีการเลือกสถานที่ แล้วไม่ตรงกับสถานที่ของเรื่องนี้ ให้ข้ามไป (กรองออก)
-                    if (selectedLocationFilter && selectedLocationFilter !== loc) return;
-
-                    const title = e.config.title;
-                    if(!eventsGrouped[title]) eventsGrouped[title] = [];
-                    eventsGrouped[title].push({id, ...e});
-                }
+            Object.keys(groups).forEach(title => {
+                const rounds = groups[title];
+                // เรียงรอบฉายในกลุ่มให้รอบแรกสุดขึ้นก่อน
+                rounds.sort((a,b) => new Date(a.config.start) - new Date(b.config.start));
+                const rep = rounds[0];
+                
+                allGroupedItems.push({
+                    title: title,
+                    type: type,
+                    config: rep.config,
+                    count: rounds.length,
+                    earliestStart: new Date(rep.config.start).getTime(),
+                    price: parseFloat(rep.config.price) || 0,
+                    location: rep.config.location || 'ไม่ระบุสถานที่'
+                });
             });
-        }
+        };
 
-        // 🌟 อัปเดต Dropdown เลือกสถานที่
-        const locSelect = document.getElementById('location-filter');
+        processItems(allData.movies, 'movie');
+        processItems(allData.events, 'event');
+
+        // อัปเดต Dropdown เลือกสถานที่ (โดยไม่ลบค่าที่เลือกไว้)
+        const locSelect = document.getElementById('filter-location');
         if(locSelect) {
-            const currentVal = locSelect.value;
-            locSelect.innerHTML = '<option value="">-- ดูสถานที่ทั้งหมด --</option>';
+            locSelect.innerHTML = '<option value="">-- ดูทุกสถานที่ --</option>';
             Array.from(allLocations).sort().forEach(loc => {
                 const opt = document.createElement('option');
                 opt.value = loc;
                 opt.innerText = loc;
-                if(loc === currentVal) opt.selected = true; // คงค่าเดิมที่ผู้ใช้เลือกไว้
+                if(loc === filterLocation) opt.selected = true;
                 locSelect.appendChild(opt);
             });
         }
 
-        let hasItems = false; // เอาไว้เช็คว่ามีข้อมูลที่จะแสดงไหม
-
-        Object.keys(moviesGrouped).forEach(title => {
-            const rounds = moviesGrouped[title]; 
-            const rep = rounds[0];
-            mList.appendChild(createCard(title, rep.config, 'movie', rounds.length));
-            hasItems = true;
+        // --- ขั้นตอนการกรอง (Filter) ---
+        let filteredItems = allGroupedItems.filter(item => {
+            if (filterLocation && item.location !== filterLocation) return false;
+            if (filterCategory !== 'all' && item.type !== filterCategory) return false;
+            return true;
         });
 
-        Object.keys(eventsGrouped).forEach(title => {
-            const rounds = eventsGrouped[title];
-            const rep = rounds[0];
-            eList.appendChild(createCard(title, rep.config, 'event', rounds.length));
-            hasItems = true;
+        // --- ขั้นตอนการจัดเรียง (Sort) ---
+        filteredItems.sort((a, b) => {
+            if (filterSort === 'closest') return a.earliestStart - b.earliestStart; // ใกล้สุดขึ้นก่อน
+            if (filterSort === 'newest') return b.earliestStart - a.earliestStart;  // ไกลสุด/ใหม่สุดขึ้นก่อน
+            if (filterSort === 'priceAsc') return a.price - b.price; // ราคาต่ำไปสูง
+            if (filterSort === 'priceDesc') return b.price - a.price; // ราคาสูงไปต่ำ
+            return 0;
         });
 
-        // 🌟 ถ้าไม่มีรายการไหนตรงกับสถานที่ที่เลือกเลย ให้แสดงข้อความแจ้งเตือน
-        if(!hasItems && selectedLocationFilter) {
-            mList.innerHTML = `<div style="grid-column: 1/-1; text-align:center; padding: 40px; color:#777; font-size:1.1rem; background:white; border-radius:12px;">ไม่พบรายการที่เปิดจองใน <b>${selectedLocationFilter}</b></div>`;
+        // --- ขั้นตอนการสร้าง UI ---
+        if(filteredItems.length === 0) {
+            gridList.innerHTML = `<div style="grid-column: 1/-1; text-align:center; padding: 40px; color:#777; font-size:1.1rem; background:white; border-radius:12px;">ไม่พบรายการที่ตรงกับเงื่อนไขการค้นหา</div>`;
+        } else {
+            filteredItems.forEach(item => {
+                gridList.appendChild(createCard(item.title, item.config, item.type, item.count));
+            });
         }
     }
 
@@ -1075,10 +1105,15 @@
         const div = document.createElement('div');
         div.className = 'card';
         const imgUrl = config.image || 'https://via.placeholder.com/300x400?text=No+Image';
+        
+        // แปลงวันที่ให้อ่านง่าย
+        const dateStr = new Date(config.start).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
+
         div.innerHTML = `
             <img src="${imgUrl}" alt="${title}">
             <span class="tag ${type}">${type==='movie'?'ภาพยนตร์':'อีเวนต์'}</span>
             <h3 style="margin:5px 0;">${title}</h3>
+            <p style="font-size:0.85rem; color:#888; margin:5px 0;">📅 เริ่ม: <b>${dateStr}</b></p>
             <p style="font-size:0.9rem; color:#555; margin:5px 0;">📍 ${config.location || 'ไม่ระบุสถานที่'}</p>
             <p style="font-size:1rem; color:#d93025; font-weight:bold; margin:5px 0;">฿${config.price || 0}</p>
             <p style="margin-top:auto; padding-top:10px; font-size:0.9rem; color:#666;">เปิดให้จองทั้งหมด <strong>${count}</strong> รอบ</p>
@@ -1086,6 +1121,7 @@
         div.onclick = () => window.openGroupPage(title, type, true);
         return div;
     }
+    // 🌟 ------------------------------------ 🌟
 
     window.openGroupPage = (title, type, switchPage = true) => {
         currentType = type;
