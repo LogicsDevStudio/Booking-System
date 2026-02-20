@@ -620,6 +620,27 @@
     </div>
 </div>
 
+<div style="text-align: right; margin-top: -10px; margin-bottom: 15px;">
+    <a href="javascript:void(0)" onclick="showForgotPasswordModal()" style="font-size: 0.9rem; color: #1a73e8; text-decoration: none;">ลืมรหัสผ่าน?</a>
+</div>
+
+<div id="forgot-password-modal" class="modal hidden">
+    <div class="modal-content" style="max-width: 400px;">
+        <span class="close-btn" onclick="document.getElementById('forgot-password-modal').classList.add('hidden')">&times;</span>
+        <h3 style="margin-top: 0; color: #1a73e8;">ลืมรหัสผ่าน</h3>
+        <p style="font-size: 0.9rem; color: #666; margin-bottom: 20px;">
+            กรุณากรอกอีเมลที่คุณใช้สมัครสมาชิก ระบบจะส่งลิงก์สำหรับตั้งรหัสผ่านใหม่ไปยังอีเมลของคุณ
+        </p>
+        <div class="form-group" style="margin-bottom: 15px;">
+            <label style="display: block; margin-bottom: 5px; font-weight: bold;">อีเมล (Email)</label>
+            <input type="email" id="reset-email" class="form-control" placeholder="example@email.com" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px;">
+        </div>
+        <button class="btn-primary" onclick="handleForgotPassword()" style="width: 100%; padding: 12px; font-size: 1rem; border-radius: 5px; cursor: pointer; background: #1a73e8; color: white; border: none;">
+            ส่งลิงก์รีเซ็ตรหัสผ่าน
+        </button>
+    </div>
+</div>
+
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, onValue, runTransaction, push, set, remove, onDisconnect, update, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
@@ -1917,6 +1938,46 @@
         
         (isNew ? set(targetRef, updateData) : update(targetRef, { config: payload })).then(() => window.closeAdminModal());
     }
+
+    // 1. นำเข้าฟังก์ชัน sendPasswordResetEmail จาก Firebase Auth (เพิ่มต่อจาก import เดิมของคุณ)
+    import { sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js"; 
+    // หมายเหตุ: เช็คเวอร์ชัน (10.8.0) ให้ตรงกับบรรทัด import firebase ของคุณด้วยนะครับ
+
+    // 2. ฟังก์ชันเปิดหน้าต่างลืมรหัสผ่าน
+    window.showForgotPasswordModal = () => {
+        document.getElementById('forgot-password-modal').classList.remove('hidden');
+    };
+
+    // 3. ฟังก์ชันจัดการการส่งอีเมลรีเซ็ตรหัสผ่าน
+    window.handleForgotPassword = () => {
+        const emailInput = document.getElementById('reset-email');
+        const email = emailInput.value.trim();
+
+        if (!email) {
+            alert("กรุณากรอกอีเมลของคุณ");
+            return;
+        }
+
+        // เรียกใช้ auth ที่คุณประกาศไว้แล้วในระบบ
+        sendPasswordResetEmail(auth, email)
+            .then(() => {
+                alert(`ส่งลิงก์สำหรับตั้งรหัสผ่านใหม่ไปยังอีเมล\n${email}\nเรียบร้อยแล้ว กรุณาตรวจสอบกล่องจดหมาย (หรือโฟลเดอร์จดหมายขยะ)`);
+                document.getElementById('forgot-password-modal').classList.add('hidden');
+                emailInput.value = ''; // เคลียร์ช่องกรอก
+            })
+            .catch((error) => {
+                console.error("Error resetting password:", error);
+                if (error.code === 'auth/user-not-found') {
+                    alert("ไม่พบผู้ใช้งานที่ใช้อีเมลนี้ในระบบ");
+                } else if (error.code === 'auth/invalid-email') {
+                    alert("รูปแบบอีเมลไม่ถูกต้อง");
+                } else if (error.code === 'auth/too-many-requests') {
+                    alert("คุณส่งคำขอถี่เกินไป กรุณารอสักครู่แล้วลองใหม่");
+                } else {
+                    alert("เกิดข้อผิดพลาด: " + error.message);
+                }
+            });
+    };
 </script>
 
 </body>
