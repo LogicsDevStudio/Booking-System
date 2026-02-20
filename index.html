@@ -106,127 +106,38 @@
         .scan-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
         .scan-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
 
-        /* =========================================================
-        แก้ไขดีไซน์ E-TICKET ใหม่ให้พรีเมียม (Web & PDF)
-        ========================================================= */
-        #eticket-modal .modal-content {
-            background: transparent; 
-            box-shadow: none; 
-            max-width: 750px; 
-            padding: 0;
-        }
-
-        #eticket-modal .close-btn {
-            color: white; 
-            background: #333; 
-            border-radius: 50%; 
-            width: 35px; 
-            height: 35px; 
-            text-align: center; 
-            line-height: 35px; 
-            right: -10px; 
-            top: -15px; 
-            opacity: 1;
-            z-index: 100;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-        }
-
-        .ticket-card {
-            display: flex;
-            background: #fff;
-            border-radius: 16px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
-            overflow: hidden;
-            position: relative;
-            width: 100%;
-            margin: 0 auto;
-            text-align: left;
-            border: none;
-            padding: 0;
-        }
-
+        /* E-Ticket Design */
+        #eticket-modal .modal-content { background: transparent; box-shadow: none; max-width: 750px; padding: 0; }
+        #eticket-modal .close-btn { color: white; background: #333; border-radius: 50%; width: 35px; height: 35px; text-align: center; line-height: 35px; right: -10px; top: -15px; opacity: 1; z-index: 100; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .ticket-card { display: flex; background: #fff; border-radius: 16px; box-shadow: 0 15px 35px rgba(0,0,0,0.2); overflow: hidden; position: relative; width: 100%; margin: 0 auto; text-align: left; border: none; padding: 0; }
         .ticket-card::before, .ticket-card::after { display: none; }
-
-        /* ฝั่งซ้าย: รายละเอียด */
-        .ticket-left {
-            flex: 2;
-            padding: 30px;
-            background: linear-gradient(135deg, #1a73e8 0%, #0d47a1 100%);
-            color: white;
-            position: relative;
-        }
-
+        .ticket-left { flex: 2; padding: 30px; background: linear-gradient(135deg, #1a73e8 0%, #0d47a1 100%); color: white; position: relative; }
         .t-subtitle { font-size: 0.9rem; color: #bbdefb; margin-bottom: 5px; font-weight: 600; letter-spacing: 1px; }
         .t-title-main { font-size: 1.8rem; font-weight: bold; margin-bottom: 25px; text-transform: uppercase; line-height: 1.3;}
         .t-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .t-label { font-size: 0.8rem; color: #90caf9; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px;}
         .t-value { font-size: 1.1rem; font-weight: bold; color: white;}
         .t-value.highlight { color: #ffc107; font-size: 1.4rem; }
-
-        /* ฝั่งขวา: QR Code */
-        .ticket-right {
-            flex: 1;
-            min-width: 220px;
-            padding: 30px;
-            background: #fff;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            border-left: 3px dashed #ccc;
-        }
-
-        /* รอยหยักบน-ล่างของตั๋ว */
-        .ticket-right::before, .ticket-right::after {
-            content: '';
-            position: absolute;
-            left: -16px;
-            width: 30px;
-            height: 30px;
-            background: rgba(0,0,0,0.5); 
-            border-radius: 50%;
-        }
-        .ticket-right::before { top: -15px; }
-        .ticket-right::after { bottom: -15px; }
-
-        .ticket-qr img {
-            width: 160px;
-            height: 160px;
-            border: 1px solid #eee;
-            padding: 8px;
-            border-radius: 12px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-        }
-
+        .ticket-right { flex: 1; min-width: 220px; padding: 30px; background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; border-left: 3px dashed #ccc; }
+        .ticket-right::before, .ticket-right::after { content: ''; position: absolute; left: -16px; width: 30px; height: 30px; background: rgba(0,0,0,0.5); border-radius: 50%; }
+        .ticket-right::before { top: -15px; } .ticket-right::after { bottom: -15px; }
+        .ticket-qr img { width: 160px; height: 160px; border: 1px solid #eee; padding: 8px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
         .scan-text { color: #1a73e8; font-weight: bold; margin-bottom: 15px; font-size: 1.3rem; letter-spacing: 2px; }
-
-        /* ลายน้ำตั๋วใช้แล้ว */
-        .watermark-used {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(-25deg);
-            font-size: 4rem;
-            color: rgba(220, 53, 69, 0.85);
-            border: 8px solid rgba(220, 53, 69, 0.85);
-            padding: 15px 40px;
-            border-radius: 20px;
-            z-index: 100;
-            pointer-events: none;
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: 8px;
-            text-shadow: 3px 3px 0px #fff, -3px -3px 0px #fff, 3px -3px 0px #fff, -3px 3px 0px #fff;
-            box-shadow: inset 0 0 20px rgba(220, 53, 69, 0.5), 0 0 20px rgba(220, 53, 69, 0.5);
-        }
-
+        .watermark-used { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-25deg); font-size: 4rem; color: rgba(220, 53, 69, 0.85); border: 8px solid rgba(220, 53, 69, 0.85); padding: 15px 40px; border-radius: 20px; z-index: 100; pointer-events: none; font-weight: 900; text-transform: uppercase; letter-spacing: 8px; text-shadow: 3px 3px 0px #fff, -3px -3px 0px #fff, 3px -3px 0px #fff, -3px 3px 0px #fff; box-shadow: inset 0 0 20px rgba(220, 53, 69, 0.5), 0 0 20px rgba(220, 53, 69, 0.5); }
         @media (max-width: 600px) {
             .ticket-card { flex-direction: column; }
             .ticket-right { border-left: none; border-top: 3px dashed #ccc; padding: 40px 20px 20px 20px; }
             .ticket-right::before { top: -16px; left: -15px; }
             .ticket-right::after { top: -16px; left: auto; right: -15px; bottom: auto;}
             .watermark-used { font-size: 2.5rem; padding: 10px 20px; }
+        }
+
+        /* Banner Style */
+        #home-banner-img {
+            transition: transform 0.3s;
+        }
+        #home-banner-link:hover #home-banner-img {
+            transform: scale(1.02);
         }
     </style>
 </head>
@@ -241,7 +152,6 @@
         <span id="nav-admin-orders" class="nav-item hidden" onclick="showOrderManagement()" style="color:#d93025;">จัดการคำสั่งซื้อ</span>
         <span id="nav-admin-users" class="nav-item hidden" onclick="showUserManagement()" style="color:#d93025;">จัดการสมาชิก</span>
         <span id="nav-admin-tickets" class="nav-item hidden" onclick="showTicketTypesManagement()" style="color:#d93025;">จัดการประเภทบัตร</span>
-        
         <span id="nav-login" class="nav-item" onclick="showPage('page-auth')">เข้าสู่ระบบ</span>
         <span id="nav-logout" class="btn-logout hidden" onclick="doLogout()">ออกจากระบบ</span>
     </div>
@@ -278,10 +188,18 @@
         <div id="admin-panel-home" class="admin-bar hidden">
             <span>🔧 <b>Admin Dashboard</b></span>
             <div>
+                <button class="btn-sm" style="background:#8e44ad; padding:8px 15px;" onclick="openBannerModal()">🖼️ จัดการแบนเนอร์</button>
                 <button class="btn-sm" style="background:#2ecc71; padding:8px 15px;" onclick="openAdminModal('movie')">+ เพิ่มหนัง</button>
                 <button class="btn-sm" style="background:#2ecc71; padding:8px 15px;" onclick="openAdminModal('event')">+ เพิ่มอีเวนต์</button>
             </div>
         </div>
+
+        <div id="home-banner-container" class="hidden" style="margin-bottom: 25px; text-align: center;">
+            <a id="home-banner-link" href="#" target="_blank" style="pointer-events: none; display: block;">
+                <img id="home-banner-img" src="" alt="Banner" style="width: 100%; max-height: 350px; object-fit: cover; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+            </a>
+        </div>
+
         <header><h1>รายการที่เปิดจอง</h1></header>
         <div id="movie-list" class="grid-container" style="margin-bottom: 30px;"></div>
         <div id="event-list" class="grid-container"></div>
@@ -492,11 +410,9 @@
         
         <div id="ticket-content" class="ticket-card">
             <div id="t-watermark" class="watermark-used hidden">CHECKED IN</div>
-
             <div class="ticket-left">
                 <div class="t-subtitle">🎟️ OFFICIAL E-TICKET</div>
                 <div class="t-title-main" id="t-title">ชื่อรายการ/ภาพยนตร์</div>
-                
                 <div class="t-grid">
                     <div>
                         <div class="t-label">ชื่อผู้จอง (Name)</div>
@@ -520,7 +436,6 @@
                     </div>
                 </div>
             </div>
-
             <div class="ticket-right">
                 <div class="scan-text">SCAN HERE</div>
                 <div class="ticket-qr">
@@ -552,6 +467,35 @@
         <button class="btn-primary" onclick="handleForgotPassword()" style="width: 100%; padding: 12px; font-size: 1rem; border-radius: 5px; cursor: pointer; background: #1a73e8; color: white; border: none;">
             ส่งลิงก์รีเซ็ตรหัสผ่าน
         </button>
+    </div>
+</div>
+
+<div id="banner-modal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+        <span class="close-btn" onclick="document.getElementById('banner-modal').classList.remove('active')">&times;</span>
+        <h3 style="margin-top:0; color:#1a73e8;">🖼️ จัดการแบนเนอร์ประชาสัมพันธ์</h3>
+        <form onsubmit="saveBanner(event)">
+            <div class="form-group">
+                <label>แสดงแบนเนอร์หรือไม่:</label>
+                <select id="bn-active" class="auth-input">
+                    <option value="true">แสดง</option>
+                    <option value="false">ซ่อน</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>URL รูปภาพแบนเนอร์:</label>
+                <input type="url" id="bn-image" class="auth-input" placeholder="https://..." required>
+            </div>
+            <div class="form-group">
+                <label>URL ลิ้งค์เมื่อคลิก (ไม่บังคับ):</label>
+                <input type="url" id="bn-link" class="auth-input" placeholder="https://...">
+                <small style="color:#666;">* หากใส่ลิ้งค์ เมื่อผู้ใช้คลิกที่รูปจะถูกพาไปยังหน้าเว็บนั้น</small>
+            </div>
+            <div class="modal-buttons">
+                <button type="button" class="btn-secondary" onclick="document.getElementById('banner-modal').classList.remove('active')">ยกเลิก</button>
+                <button type="submit" class="btn-primary" style="width:auto; background:#2ecc71;">บันทึกแบนเนอร์</button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -632,7 +576,6 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, onValue, runTransaction, push, set, remove, onDisconnect, update, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-    // เพิ่มคำสั่ง sendPasswordResetEmail เข้ามาในบรรทัดนี้แล้ว
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {
@@ -886,6 +829,32 @@
             if(userRole === 'admin') adminPanel.classList.remove('hidden');
             else adminPanel.classList.add('hidden');
         }
+
+        // --- จัดการแสดงผล Banner ---
+        const bannerContainer = document.getElementById('home-banner-container');
+        const bannerImg = document.getElementById('home-banner-img');
+        const bannerLink = document.getElementById('home-banner-link');
+        
+        if (allData.settings && allData.settings.banner) {
+            const banner = allData.settings.banner;
+            // ถ้าแอดมินตั้งให้โชว์ และ มีรูปภาพ
+            if ((banner.isActive === true || banner.isActive === 'true') && banner.imageUrl) {
+                bannerImg.src = banner.imageUrl;
+                if (banner.linkUrl) {
+                    bannerLink.href = banner.linkUrl;
+                    bannerLink.style.pointerEvents = 'auto'; // กดคลิกได้
+                } else {
+                    bannerLink.removeAttribute('href');
+                    bannerLink.style.pointerEvents = 'none'; // กดคลิกไม่ได้
+                }
+                bannerContainer.classList.remove('hidden');
+            } else {
+                bannerContainer.classList.add('hidden');
+            }
+        } else {
+            bannerContainer.classList.add('hidden');
+        }
+        // ---------------------------
 
         const moviesGrouped = {};
         if(allData.movies) {
@@ -1770,7 +1739,6 @@
         document.getElementById('toggle-auth').innerText = isRegistering ? "มีบัญชีอยู่แล้ว? เข้าสู่ระบบ" : "ยังไม่มีบัญชี? สมัครสมาชิก";
         document.getElementById('register-fields').classList.toggle('hidden');
 
-        // จัดการซ่อน/แสดงลิงก์ลืมรหัสผ่าน
         const fpLink = document.getElementById('forgot-password-link');
         if (fpLink) {
             if (isRegistering) fpLink.classList.add('hidden');
@@ -1786,7 +1754,6 @@
         }).then(() => alert("บันทึกข้อมูลสำเร็จ"));
     }
 
-    // --- ฟังก์ชันลืมรหัสผ่าน (เพิ่มใหม่) ---
     window.showForgotPasswordModal = () => {
         document.getElementById('forgot-password-modal').classList.add('active');
     };
@@ -1872,6 +1839,34 @@
     }
     window.deleteUserAdmin = (uid) => {
         if(confirm("ยืนยันการลบ?")) remove(ref(db, 'users/' + uid));
+    }
+
+    // --- ฟังก์ชันจัดการแบนเนอร์ ---
+    window.openBannerModal = () => {
+        if(userRole !== 'admin') return;
+        const banner = (allData.settings && allData.settings.banner) ? allData.settings.banner : {};
+        document.getElementById('bn-active').value = banner.isActive !== false ? 'true' : 'false';
+        document.getElementById('bn-image').value = banner.imageUrl || '';
+        document.getElementById('bn-link').value = banner.linkUrl || '';
+        document.getElementById('banner-modal').classList.add('active');
+    }
+
+    window.saveBanner = (e) => {
+        e.preventDefault();
+        if(userRole !== 'admin') return;
+        
+        const updates = {
+            isActive: document.getElementById('bn-active').value === 'true',
+            imageUrl: document.getElementById('bn-image').value,
+            linkUrl: document.getElementById('bn-link').value
+        };
+        
+        update(ref(db, 'settings/banner'), updates).then(() => {
+            alert("บันทึกแบนเนอร์สำเร็จ");
+            document.getElementById('banner-modal').classList.remove('active');
+        }).catch(err => {
+            alert("เกิดข้อผิดพลาด: " + err.message + " (กรุณาเช็ค Rules ของ Firebase)");
+        });
     }
 
     window.openAdminModal = (type) => {
