@@ -267,6 +267,11 @@
         <form id="auth-form" onsubmit="handleAuth(event)">
             <input type="email" id="auth-email" class="auth-input" placeholder="อีเมล" required>
             <input type="password" id="auth-pass" class="auth-input" placeholder="รหัสผ่าน" required>
+            
+            <div id="forgot-password-link" style="text-align: right; margin-top: -10px; margin-bottom: 15px;">
+                <a href="javascript:void(0)" onclick="showForgotPasswordModal()" style="font-size: 0.85rem; color: #1a73e8; text-decoration: none; font-weight: 600;">ลืมรหัสผ่าน?</a>
+            </div>
+
             <div id="register-fields" class="hidden">
                 <input type="text" id="reg-name" class="auth-input" placeholder="ชื่อ-นามสกุล">
                 <input type="tel" id="reg-phone" class="auth-input" placeholder="เบอร์โทรศัพท์">
@@ -618,10 +623,6 @@
             <button class="btn-primary" onclick="saveUserAdmin()" style="width:auto; margin-left:10px;">บันทึก</button>
         </div>
     </div>
-</div>
-
-<div style="text-align: right; margin-top: -10px; margin-bottom: 15px;">
-    <a href="javascript:void(0)" onclick="showForgotPasswordModal()" style="font-size: 0.9rem; color: #1a73e8; text-decoration: none;">ลืมรหัสผ่าน?</a>
 </div>
 
 <div id="forgot-password-modal" class="modal hidden">
@@ -1800,6 +1801,16 @@
         document.getElementById('btn-auth-submit').innerText = isRegistering ? "ลงทะเบียน" : "เข้าสู่ระบบ";
         document.getElementById('toggle-auth').innerText = isRegistering ? "มีบัญชีอยู่แล้ว? เข้าสู่ระบบ" : "ยังไม่มีบัญชี? สมัครสมาชิก";
         document.getElementById('register-fields').classList.toggle('hidden');
+        
+        // ส่วนที่เพิ่มเข้ามา: จัดการซ่อน/แสดงลิงก์ "ลืมรหัสผ่าน?"
+        const fpLink = document.getElementById('forgot-password-link');
+        if (fpLink) {
+            if (isRegistering) {
+                fpLink.classList.add('hidden'); // ซ่อนตอนอยู่หน้า "สมัครสมาชิก"
+            } else {
+                fpLink.classList.remove('hidden'); // แสดงตอนอยู่หน้า "เข้าสู่ระบบ"
+            }
+        }
     }
     window.updateUserProfile = (e) => {
         e.preventDefault();
