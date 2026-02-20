@@ -246,7 +246,16 @@
                 </div>
         </div>
 
-        <header><h1>รายการที่เปิดจอง</h1></header>
+        <header style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-bottom: 20px; gap: 15px;">
+            <h1 style="margin: 0;">รายการที่เปิดจอง</h1>
+            <div>
+                <label style="font-weight: bold; margin-right: 5px; color: #555;">📍 เลือกสถานที่:</label>
+                <select id="location-filter" style="padding: 8px 15px; border-radius: 6px; border: 1px solid #ddd; font-family: 'Sarabun'; outline: none; cursor: pointer;" onchange="filterByLocation(this.value)">
+                    <option value="">-- ดูสถานที่ทั้งหมด --</option>
+                </select>
+            </div>
+        </header>
+
         <div id="movie-list" class="grid-container" style="margin-bottom: 30px;"></div>
         <div id="event-list" class="grid-container"></div>
     </div>
@@ -676,6 +685,9 @@
     let bannerInterval = null;
     let currentBannerIndex = 0;
     let lastBannerDataString = "";
+    
+    // 🌟 ตัวแปรสำหรับ Filter สถานที่ 🌟
+    let selectedLocationFilter = '';
 
     const PROMPTPAY_NUMBER = "0812345678"; 
 
@@ -788,7 +800,6 @@
             });
         }
 
-        // เพิ่ม 'page-banners' ลงในลิสต์
         ['page-auth', 'page-home', 'page-movie', 'page-event', 'page-profile', 'page-users', 'page-ticket-types', 'page-orders', 'page-scan', 'page-banners'].forEach(id => {
             const el = document.getElementById(id); if(el) el.classList.add('hidden');
         });
@@ -886,7 +897,7 @@
     function onScanFailure(error) { }
 
 
-    // 🌟 --- ระบบ Slide Banners ในหน้าแรก --- 🌟
+    // --- ระบบ Slide Banners ---
     function buildBannerSlider() {
         const bannerContainer = document.getElementById('banner-slider-container');
         const track = document.getElementById('banner-slider-track');
@@ -899,7 +910,6 @@
             });
         }
 
-        // ป้องกันภาพกระพริบถ้ารูปไม่เปลี่ยน
         const currentDataString = JSON.stringify(activeBanners);
         if(currentDataString === lastBannerDataString) return; 
         lastBannerDataString = currentDataString;
@@ -912,7 +922,6 @@
             bannerContainer.classList.remove('hidden');
             
             activeBanners.forEach((b, index) => {
-                // สร้าง Slide
                 const slide = document.createElement('div');
                 slide.className = 'banner-slide';
                 const imgContent = `<img src="${b.imageUrl}" alt="Banner">`;
@@ -924,7 +933,6 @@
                 }
                 track.appendChild(slide);
 
-                // สร้างจุดไข่ปลา
                 const dot = document.createElement('div');
                 dot.className = `slider-dot ${index === 0 ? 'active' : ''}`;
                 dot.onclick = () => window.goToSlide(index);
@@ -938,7 +946,7 @@
                 bannerInterval = setInterval(() => {
                     currentBannerIndex = (currentBannerIndex + 1) % activeBanners.length;
                     updateSliderPosition();
-                }, 4000); // สไลด์เปลี่ยนทุก 4 วินาที
+                }, 4000); 
             }
         } else {
             bannerContainer.classList.add('hidden');
@@ -960,7 +968,6 @@
         currentBannerIndex = index;
         updateSliderPosition();
         
-        // รีเซ็ต Timer เพื่อไม่ให้มันเลื่อนหนีทันทีที่เรากด
         clearInterval(bannerInterval);
         const totalSlides = document.querySelectorAll('.banner-slide').length;
         if(totalSlides > 1) {
@@ -970,14 +977,16 @@
             }, 4000);
         }
     }
-    // 🌟 ------------------------------------ 🌟
 
+    // 🌟 --- ฟังก์ชันกรองตามสถานที่ (Location Filter) --- 🌟
+    window.filterByLocation = (loc) => {
+        selectedLocationFilter = loc;
+        window.renderHomeList();
+    };
 
     window.renderHomeList = () => {
         const mList = document.getElementById('movie-list');
         const eList = document.getElementById('event-list');
-        
-        // เช็คก่อนว่าไม่ได้มี element อะไรค้างอยู่ถึงจะเคลียร์ทิ้ง (เพื่อลดการกระพริบ)
         mList.innerHTML = ''; eList.innerHTML = '';
 
         const adminPanel = document.getElementById('admin-panel-home');
@@ -986,12 +995,22 @@
             else adminPanel.classList.add('hidden');
         }
 
-        buildBannerSlider(); // เรียกสร้าง Slider
+        buildBannerSlider(); 
 
         const moviesGrouped = {};
+        const eventsGrouped = {};
+        const allLocations = new Set(); // เก็บรายชื่อสถานที่ทั้งหมด (ไม่ซ้ำ)
+
+        // โหลดข้อมูลภาพยนตร์
         if(allData.movies) {
             Object.entries(allData.movies).forEach(([id, m]) => {
                 if(m.config && m.config.title) {
+                    const loc = m.config.location || 'ไม่ระบุสถานที่';
+                    allLocations.add(loc);
+
+                    // 🌟 ถ้ามีการเลือกสถานที่ แล้วไม่ตรงกับสถานที่ของเรื่องนี้ ให้ข้ามไป (กรองออก)
+                    if (selectedLocationFilter && selectedLocationFilter !== loc) return;
+
                     const title = m.config.title;
                     if(!moviesGrouped[title]) moviesGrouped[title] = [];
                     moviesGrouped[title].push({id, ...m});
@@ -999,10 +1018,16 @@
             });
         }
 
-        const eventsGrouped = {};
+        // โหลดข้อมูลอีเวนต์
         if(allData.events) {
             Object.entries(allData.events).forEach(([id, e]) => {
                 if(e.config && e.config.title) {
+                    const loc = e.config.location || 'ไม่ระบุสถานที่';
+                    allLocations.add(loc);
+
+                    // 🌟 ถ้ามีการเลือกสถานที่ แล้วไม่ตรงกับสถานที่ของเรื่องนี้ ให้ข้ามไป (กรองออก)
+                    if (selectedLocationFilter && selectedLocationFilter !== loc) return;
+
                     const title = e.config.title;
                     if(!eventsGrouped[title]) eventsGrouped[title] = [];
                     eventsGrouped[title].push({id, ...e});
@@ -1010,17 +1035,40 @@
             });
         }
 
+        // 🌟 อัปเดต Dropdown เลือกสถานที่
+        const locSelect = document.getElementById('location-filter');
+        if(locSelect) {
+            const currentVal = locSelect.value;
+            locSelect.innerHTML = '<option value="">-- ดูสถานที่ทั้งหมด --</option>';
+            Array.from(allLocations).sort().forEach(loc => {
+                const opt = document.createElement('option');
+                opt.value = loc;
+                opt.innerText = loc;
+                if(loc === currentVal) opt.selected = true; // คงค่าเดิมที่ผู้ใช้เลือกไว้
+                locSelect.appendChild(opt);
+            });
+        }
+
+        let hasItems = false; // เอาไว้เช็คว่ามีข้อมูลที่จะแสดงไหม
+
         Object.keys(moviesGrouped).forEach(title => {
             const rounds = moviesGrouped[title]; 
             const rep = rounds[0];
             mList.appendChild(createCard(title, rep.config, 'movie', rounds.length));
+            hasItems = true;
         });
 
         Object.keys(eventsGrouped).forEach(title => {
             const rounds = eventsGrouped[title];
             const rep = rounds[0];
             eList.appendChild(createCard(title, rep.config, 'event', rounds.length));
+            hasItems = true;
         });
+
+        // 🌟 ถ้าไม่มีรายการไหนตรงกับสถานที่ที่เลือกเลย ให้แสดงข้อความแจ้งเตือน
+        if(!hasItems && selectedLocationFilter) {
+            mList.innerHTML = `<div style="grid-column: 1/-1; text-align:center; padding: 40px; color:#777; font-size:1.1rem; background:white; border-radius:12px;">ไม่พบรายการที่เปิดจองใน <b>${selectedLocationFilter}</b></div>`;
+        }
     }
 
     function createCard(title, config, type, count) {
@@ -2039,7 +2087,6 @@
             remove(ref(db, `settings/banners/${id}`));
         }
     }
-    // 🌟 -------------------------------- 🌟
 
     window.openAdminModal = (type) => {
         if(userRole !== 'admin') return;
