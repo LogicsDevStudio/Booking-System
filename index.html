@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบจองตั๋ว Realtime (ครบวงจร)</title>
+    <title>ระบบจองตั๋ว Realtime (โครงสร้างใหม่)</title>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -246,8 +246,8 @@
             <span>🔧 <b>Admin Dashboard</b></span>
             <div>
                 <button class="btn-sm" style="background:#8e44ad; padding:8px 15px;" onclick="showBannerManagement()">🖼️ จัดการแบนเนอร์</button>
-                <button class="btn-sm" style="background:#2ecc71; padding:8px 15px;" onclick="openAdminModal('movie')">+ เพิ่มหนัง</button>
-                <button class="btn-sm" style="background:#2ecc71; padding:8px 15px;" onclick="openAdminModal('event')">+ เพิ่มอีเวนต์</button>
+                <button class="btn-sm" style="background:#2ecc71; padding:8px 15px;" onclick="openItemModal('movie')">+ เพิ่มหนังใหม่</button>
+                <button class="btn-sm" style="background:#2ecc71; padding:8px 15px;" onclick="openItemModal('event')">+ เพิ่มอีเวนต์ใหม่</button>
             </div>
         </div>
 
@@ -276,15 +276,62 @@
             <div class="filter-item">
                 <label>🔽 เรียงลำดับข้อมูล</label>
                 <select id="filter-sort" onchange="applyFilters()">
-                    <option value="closest">ใกล้ถึงวันจัดงานที่สุด</option>
-                    <option value="newest">วันที่จัดงานไกลที่สุด</option>
-                    <option value="priceAsc">ราคา (ต่ำไปสูง)</option>
-                    <option value="priceDesc">ราคา (สูงไปต่ำ)</option>
+                    <option value="closest">รอบฉาย/จัดงาน ล่าสุด</option>
+                    <option value="priceAsc">ราคาตั๋ว (ต่ำไปสูง)</option>
+                    <option value="priceDesc">ราคาตั๋ว (สูงไปต่ำ)</option>
                 </select>
             </div>
         </div>
 
         <div id="items-grid" class="grid-container" style="margin-bottom: 30px;"></div>
+    </div>
+
+    <div id="page-detail" class="hidden">
+        <button class="btn-secondary" onclick="goHome()">⬅ ย้อนกลับไปหน้าหลัก</button>
+        
+        <div class="item-details" id="detail-header">
+            </div>
+
+        <div id="admin-panel-detail" class="admin-bar hidden">
+            <span>🔧 <b>จัดการรอบ (Admin)</b></span>
+            <div>
+                <button class="btn-sm btn-edit" style="padding:8px 15px;" onclick="editCurrentItem()">✏️ แก้ไขข้อมูลหลัก</button>
+                <button class="btn-sm" style="background:#2ecc71; padding:8px 15px;" onclick="openRoundModal()">+ เพิ่มรอบใหม่</button>
+                <button class="btn-sm btn-del" style="padding:8px 15px; margin-left: 5px;" onclick="deleteCurrentItem()">🗑️ ลบเรื่องนี้</button>
+            </div>
+        </div>
+
+        <div id="schedule-section">
+            <h3>เลือกรอบ <span id="schedule-type-text"></span></h3>
+            <div class="schedule-list" id="schedule-list"></div>
+        </div>
+        
+        <div id="movie-seat-section" class="hidden">
+            <div style="margin: 10px 0; display:flex; align-items:center; gap:15px;">
+                <button class="btn-sm" onclick="backToSchedule()" style="background:#6c757d">⬅ เลือกรอบอื่น</button>
+                <span style="font-weight:bold; font-size:1.1rem;">รอบเวลา: <span id="seat-round-time" style="color:#1a73e8;"></span></span>
+            </div>
+            <div class="screen">จอภาพยนตร์ / เวที</div>
+            <div class="seat-map" id="seat-map"></div>
+            <div class="legend">
+                <div class="legend-item"><div class="dot-legend" style="border:2px solid #28a745;"></div> ว่าง</div>
+                <div class="legend-item"><div class="dot-legend" style="background:#f39c12;"></div> รอชำระเงิน</div>
+                <div class="legend-item"><div class="dot-legend" style="background:#dc3545;"></div> จองแล้ว</div>
+                <div class="legend-item"><div class="dot-legend" style="background:#e2e6ea;"></div> ปิด</div>
+            </div>
+        </div>
+
+        <div id="event-booking-section" class="hidden">
+             <div style="margin: 10px 0; display:flex; align-items:center; gap:15px;">
+                <button class="btn-sm" onclick="backToSchedule()" style="background:#6c757d">⬅ เลือกรอบอื่น</button>
+                <span style="font-weight:bold; font-size:1.1rem;">รอบเวลา: <span id="e-round-time" style="color:#d93025;"></span></span>
+            </div>
+            <div class="card" style="cursor:default; text-align:center;">
+                <h3 style="margin-top:0;">ยืนยันการลงทะเบียน</h3>
+                <p style="font-size:1.1rem;">ที่นั่ง/สิทธิ์ คงเหลือ: <span id="e-remaining" style="color:#d93025; font-weight:bold; font-size:1.3rem;"></span> / <span id="e-capacity"></span></p>
+                <button id="btn-event-book" class="btn-primary" style="width:100%; max-width:300px; margin-top:15px;">ดำเนินการจอง</button>
+            </div>
+        </div>
     </div>
 
     <div id="page-profile" class="hidden">
@@ -376,68 +423,6 @@
         </div>
     </div>
 
-    <div id="page-movie" class="hidden">
-        <button class="btn-secondary" onclick="goHome()">⬅ ย้อนกลับ</button>
-        <div class="item-details">
-            <img id="m-group-img" alt="Poster" style="display:none;">
-            <div class="item-info">
-                <h2 id="m-group-title" style="margin-top:0; color:#1a73e8;">ชื่อภาพยนตร์</h2>
-                <p>📍 <strong>สถานที่:</strong> <span id="m-group-location">-</span></p>
-                <p>🎟️ <strong>ประเภทบัตร:</strong> <span id="m-group-ticket-type">-</span></p>
-                <p>💰 <strong>ราคา:</strong> <span id="m-group-price">-</span> บาท</p>
-                <p id="m-group-detail" style="color:#555; white-space:pre-wrap; font-size:0.95rem; margin-top:10px;"></p>
-                <div id="m-group-minimap" style="margin-top:15px; background:#f8f9fa; padding:10px; border-radius:8px;"></div>
-            </div>
-        </div>
-        <div id="movie-schedule-section">
-            <h3>เลือกรอบฉาย</h3>
-            <div class="schedule-list" id="movie-schedule-list"></div>
-        </div>
-        <div id="movie-seat-section" class="hidden">
-            <div style="margin: 10px 0; display:flex; align-items:center; gap:15px;">
-                <button class="btn-sm" onclick="backToSchedule()" style="background:#6c757d">⬅ เลือกรอบอื่น</button>
-                <span style="font-weight:bold; font-size:1.1rem;">รอบเวลา: <span id="m-round-time" style="color:#1a73e8;"></span></span>
-            </div>
-            <div class="screen">จอภาพยนตร์</div>
-            <div class="seat-map" id="seat-map"></div>
-            <div class="legend">
-                <div class="legend-item"><div class="dot-legend" style="border:2px solid #28a745;"></div> ว่าง</div>
-                <div class="legend-item"><div class="dot-legend" style="background:#f39c12;"></div> รอชำระเงิน</div>
-                <div class="legend-item"><div class="dot-legend" style="background:#dc3545;"></div> จองแล้ว</div>
-                <div class="legend-item"><div class="dot-legend" style="background:#e2e6ea;"></div> ปิด</div>
-            </div>
-        </div>
-    </div>
-
-    <div id="page-event" class="hidden">
-        <button class="btn-secondary" onclick="goHome()">⬅ ย้อนกลับ</button>
-        <div class="item-details">
-            <img id="e-group-img" alt="Poster" style="display:none;">
-            <div class="item-info">
-                <h2 id="e-group-title" style="margin-top:0; color:#d93025;">ชื่ออีเวนต์</h2>
-                <p>📍 <strong>สถานที่:</strong> <span id="e-group-location">-</span></p>
-                <p>🎟️ <strong>ประเภทบัตร:</strong> <span id="e-group-ticket-type">-</span></p>
-                <p>💰 <strong>ราคา:</strong> <span id="e-group-price">-</span> บาท</p>
-                <p id="e-group-detail" style="color:#555; white-space:pre-wrap; font-size:0.95rem; margin-top:10px;"></p>
-            </div>
-        </div>
-        <div id="event-schedule-section">
-            <h3>เลือกรอบกิจกรรม</h3>
-            <div class="schedule-list" id="event-schedule-list"></div>
-        </div>
-        <div id="event-booking-section" class="hidden">
-             <div style="margin: 10px 0; display:flex; align-items:center; gap:15px;">
-                <button class="btn-sm" onclick="backToSchedule()" style="background:#6c757d">⬅ เลือกรอบอื่น</button>
-                <span style="font-weight:bold; font-size:1.1rem;">รอบเวลา: <span id="e-round-time" style="color:#d93025;"></span></span>
-            </div>
-            <div class="card" style="cursor:default; text-align:center;">
-                <h3 style="margin-top:0;">ยืนยันการลงทะเบียน</h3>
-                <p style="font-size:1.1rem;">ที่นั่งคงเหลือ: <span id="e-remaining" style="color:#d93025; font-weight:bold; font-size:1.3rem;"></span> / <span id="e-capacity"></span></p>
-                <button id="btn-event-book" class="btn-primary" style="width:100%; max-width:300px; margin-top:15px;">ดำเนินการจอง</button>
-            </div>
-        </div>
-    </div>
-
 </div>
 
 <div id="booking-modal" class="modal">
@@ -448,7 +433,7 @@
             <p id="modal-subtitle" style="margin-bottom: 15px; font-weight: bold; color: #1a73e8; font-size:1.1rem;"></p>
             <div class="form-group"><label>ชื่อ-นามสกุล</label><input type="text" id="inp-conf-name" placeholder="กรุณากรอกชื่อ"></div>
             <div class="form-group"><label>เบอร์โทรศัพท์</label><input type="tel" id="inp-conf-phone" placeholder="08x-xxx-xxxx"></div>
-            <div class="form-group"><label>อีเมล (สำคัญสำหรับดูประวัติย้อนหลัง)</label><input type="email" id="inp-conf-email" placeholder="email@example.com"></div>
+            <div class="form-group"><label>อีเมล</label><input type="email" id="inp-conf-email" placeholder="email@example.com"></div>
             <div class="form-group"><label>เลขบัตรประชาชน (ถ้ามี)</label><input type="text" id="inp-conf-idcard" placeholder="เลข 13 หลัก"></div>
             <div class="modal-buttons">
                 <button class="btn-secondary" onclick="cancelSelection()">ยกเลิก</button>
@@ -503,12 +488,11 @@
 <div id="eticket-modal" class="modal">
     <div class="modal-content">
         <span class="close-btn" onclick="document.getElementById('eticket-modal').classList.remove('active')">&times;</span>
-        
         <div id="ticket-content" class="ticket-card">
             <div id="t-watermark" class="watermark-used hidden">CHECKED IN</div>
             <div class="ticket-left">
                 <div class="t-subtitle">🎟️ OFFICIAL E-TICKET</div>
-                <div class="t-title-main" id="t-title">ชื่อรายการ/ภาพยนตร์</div>
+                <div class="t-title-main" id="t-title">ชื่อรายการ</div>
                 <div class="t-grid">
                     <div>
                         <div class="t-label">ชื่อผู้จอง (Name)</div>
@@ -595,39 +579,61 @@
     </div>
 </div>
 
-<div id="admin-modal" class="modal">
+<div id="item-main-modal" class="modal">
     <div class="modal-content">
-        <span class="close-btn" onclick="closeAdminModal()">&times;</span>
-        <h3 id="adm-title-text">จัดการข้อมูล</h3>
-        <form onsubmit="saveAdminItem(event)">
-            <input type="hidden" id="adm-id">
-            <input type="hidden" id="adm-type">
-            <div class="form-group"><label>ชื่อรายการ:</label><input type="text" id="adm-title" required></div>
-            <div class="form-group"><label>URL รูปภาพ (โปสเตอร์):</label><input type="text" id="adm-image" placeholder="https://..."></div>
-            <div class="form-group"><label>รายละเอียด:</label><textarea id="adm-detail" rows="3" placeholder="ข้อมูลเพิ่มเติมเกี่ยวกับหนังหรืออีเวนต์"></textarea></div>
-            <div class="form-group"><label>สถานที่ / โรงภาพยนตร์:</label><input type="text" id="adm-location" placeholder="เช่น ชั้น 5 โซน A"></div>
+        <span class="close-btn" onclick="document.getElementById('item-main-modal').classList.remove('active')">&times;</span>
+        <h3 id="im-modal-title">เพิ่มข้อมูล</h3>
+        <form onsubmit="saveMainItem(event)">
+            <input type="hidden" id="im-id">
+            <input type="hidden" id="im-type">
+            <div class="form-group"><label>ชื่อรายการ:</label><input type="text" id="im-title" required></div>
+            <div class="form-group"><label>URL รูปภาพ (โปสเตอร์):</label><input type="url" id="im-image" placeholder="https://..." required></div>
+            <div class="form-group"><label>รายละเอียด:</label><textarea id="im-detail" rows="3"></textarea></div>
+            <div class="form-group"><label>รอบวันที่ (แสดงโชว์เฉยๆ เช่น 10-12 ต.ค.):</label><input type="text" id="im-dates" placeholder="เช่น 10-12 ตุลาคม 2026"></div>
+            <div class="modal-buttons">
+                <button type="button" class="btn-secondary" onclick="document.getElementById('item-main-modal').classList.remove('active')">ยกเลิก</button>
+                <button type="submit" class="btn-primary" style="width:auto; background:#2ecc71;">บันทึกข้อมูลหลัก</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="item-round-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="document.getElementById('item-round-modal').classList.remove('active')">&times;</span>
+        <h3 id="rd-modal-title">จัดการรอบ</h3>
+        <form onsubmit="saveRoundItem(event)">
+            <input type="hidden" id="rd-id">
+            <div class="form-group"><label>สถานที่ / โรงภาพยนตร์:</label><input type="text" id="rd-location" required></div>
             <div style="display:flex; gap:10px;">
-                <div class="form-group" style="flex:1">
-                    <label>ประเภทบัตร:</label>
-                    <select id="adm-ticket-type" class="auth-input" onchange="updatePriceFromType()" required><option value="">-- โหลดข้อมูล --</option></select>
-                </div>
-                <div class="form-group" style="flex:1"><label>ราคา (บาท):</label><input type="number" id="adm-price" placeholder="0" required></div>
+                <div class="form-group" style="flex:1"><label>ประเภทบัตร:</label><select id="rd-ticket-type" onchange="updatePriceFromTypeRound()" required><option value="">-- โหลดข้อมูล --</option></select></div>
+                <div class="form-group" style="flex:1"><label>ราคา (บาท):</label><input type="number" id="rd-price" required></div>
             </div>
             <div style="display:flex; gap:10px;">
-                <div class="form-group" style="flex:1"><label>เปิดจอง:</label><input type="datetime-local" id="adm-start" required></div>
-                <div class="form-group" style="flex:1"><label>ปิดจอง:</label><input type="datetime-local" id="adm-end" required></div>
+                <div class="form-group" style="flex:1"><label>เปิดให้จอง:</label><input type="datetime-local" id="rd-book-start" required></div>
+                <div class="form-group" style="flex:1"><label>ปิดรับจอง:</label><input type="datetime-local" id="rd-book-end" required></div>
             </div>
-            <div id="adm-movie-fields" class="hidden" style="background:#f9f9f9; padding:10px; border-radius:5px; margin-bottom:15px;">
+            <div style="display:flex; gap:10px;">
+                <div class="form-group" style="flex:1"><label>เวลาเริ่มแสดง:</label><input type="datetime-local" id="rd-show-start" required></div>
+                <div class="form-group" style="flex:1"><label>เวลาสิ้นสุด:</label><input type="datetime-local" id="rd-show-end" required></div>
+            </div>
+
+            <div id="rd-movie-fields" class="hidden" style="background:#f9f9f9; padding:10px; border-radius:5px; margin-bottom:15px;">
                 <div style="display:flex; gap:10px;">
-                    <div class="form-group" style="flex:1"><label>แถว:</label><input type="number" id="adm-rows"></div>
-                    <div class="form-group" style="flex:1"><label>ที่นั่ง/แถว:</label><input type="number" id="adm-cols"></div>
+                    <div class="form-group" style="flex:1"><label>จำนวนแถว (A, B...):</label><input type="number" id="rd-rows"></div>
+                    <div class="form-group" style="flex:1"><label>จำนวนที่นั่ง/แถว:</label><input type="number" id="rd-cols"></div>
                 </div>
-                <div class="form-group"><label>ปิดที่นั่ง (Blocked ex: A1,A2):</label><input type="text" id="adm-blocked"></div>
+                <div class="form-group"><label>ปิดที่นั่ง (Blocked ex: A1,A2):</label><input type="text" id="rd-blocked"></div>
             </div>
-            <div id="adm-event-fields" class="hidden" style="background:#f9f9f9; padding:10px; border-radius:5px; margin-bottom:15px;">
-                <div class="form-group"><label>ความจุ (-1=ไม่จำกัด):</label><input type="number" id="adm-cap"></div>
+
+            <div id="rd-event-fields" class="hidden" style="background:#f9f9f9; padding:10px; border-radius:5px; margin-bottom:15px;">
+                <div class="form-group"><label>ความจุ (-1=ไม่จำกัด):</label><input type="number" id="rd-cap"></div>
             </div>
-            <button type="submit" class="btn-primary" style="background:#2ecc71;">บันทึกข้อมูล</button>
+
+            <div class="modal-buttons">
+                <button type="button" class="btn-secondary" onclick="document.getElementById('item-round-modal').classList.remove('active')">ยกเลิก</button>
+                <button type="submit" class="btn-primary" style="width:auto; background:#f39c12;">บันทึกรอบ</button>
+            </div>
         </form>
     </div>
 </div>
@@ -693,16 +699,15 @@
     let userData = {};
     let isRegistering = false;
     let allData = {}; 
-    let guestId = localStorage.getItem('guest_uid');
-    if (!guestId) {
-        guestId = 'guest_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-        localStorage.setItem('guest_uid', guestId);
-    }
+    let guestId = localStorage.getItem('guest_uid') || ('guest_' + Date.now());
+    localStorage.setItem('guest_uid', guestId);
 
+    // 🌟 State โครงสร้างใหม่ 🌟
     let currentType = ''; 
-    let currentId = ''; 
+    let currentItemId = ''; 
+    let currentRoundId = '';
     let selectedTarget = '';
-    let currentConfig = null;
+    let currentRoundConfig = null;
     let tempSeatRef = null;
     let paymentTimerInterval = null; 
     let payLaterData = null; 
@@ -722,10 +727,7 @@
                 userRole = userData.role || 'user';
                 updateNavbarUI(true);
                 if(!document.getElementById('page-auth').classList.contains('hidden')) window.goHome();
-                if(!document.getElementById('page-users').classList.contains('hidden')) window.showUserManagement();
-                if(!document.getElementById('page-ticket-types').classList.contains('hidden')) window.showTicketTypesManagement();
-                if(!document.getElementById('page-orders').classList.contains('hidden')) window.showOrderManagement();
-                if(!document.getElementById('page-banners').classList.contains('hidden')) window.showBannerManagement();
+                checkAdminPages();
             });
         } else {
             userRole = 'guest'; userData = {}; updateNavbarUI(false);
@@ -733,58 +735,69 @@
         }
     });
 
+    function checkAdminPages() {
+        if(!document.getElementById('page-users').classList.contains('hidden')) window.showUserManagement();
+        if(!document.getElementById('page-ticket-types').classList.contains('hidden')) window.showTicketTypesManagement();
+        if(!document.getElementById('page-orders').classList.contains('hidden')) window.showOrderManagement();
+        if(!document.getElementById('page-banners').classList.contains('hidden')) window.showBannerManagement();
+    }
+
     onValue(ref(db, '/'), (snapshot) => {
         allData = snapshot.val() || {};
         window.renderHomeList();
         
-        if(!document.getElementById('page-movie').classList.contains('hidden') && currentType === 'movie') {
-           const titleEl = document.getElementById('m-group-title');
-           if(titleEl && document.getElementById('movie-seat-section').classList.contains('hidden')) {
-               window.openGroupPage(titleEl.innerText, 'movie', false);
-           }
-        }
-        if(!document.getElementById('page-event').classList.contains('hidden') && currentType === 'event') {
-            const titleEl = document.getElementById('e-group-title');
-            if(titleEl && document.getElementById('event-booking-section').classList.contains('hidden')) {
-                window.openGroupPage(titleEl.innerText, 'event', false);
+        // อัปเดต Detail Page แบบ Realtime ถ้าเปิดอยู่
+        if(!document.getElementById('page-detail').classList.contains('hidden') && currentItemId) {
+            if(!document.getElementById('schedule-section').classList.contains('hidden')) {
+                window.openDetailPage(currentItemId, currentType, false);
+            } 
+            else if (currentRoundId) {
+                const roundData = allData[currentType + 's'][currentItemId].rounds[currentRoundId] || {};
+                if(currentType === 'movie') {
+                    updateSeatStatus(roundData.bookings || {}, roundData.temp_selections || {});
+                } else {
+                    const cap = currentRoundConfig.capacity;
+                    const cur = roundData.currentBooked || 0;
+                    document.getElementById('e-remaining').innerText = cap == -1 ? '∞' : (cap - cur);
+                }
             }
         }
+
+        checkAdminPages();
         if(!document.getElementById('page-profile').classList.contains('hidden')) window.showProfile();
-        if(!document.getElementById('page-ticket-types').classList.contains('hidden')) window.showTicketTypesManagement();
-        if(!document.getElementById('page-orders').classList.contains('hidden')) window.showOrderManagement();
-        if(!document.getElementById('page-banners').classList.contains('hidden')) window.showBannerManagement();
     });
 
     setInterval(() => {
         const now = Date.now();
         const expireTime = 10 * 60 * 1000; 
-        if(allData.movies) {
-            Object.entries(allData.movies).forEach(([mId, m]) => {
-                if(m.bookings) {
-                    Object.entries(m.bookings).forEach(([seatId, b]) => {
-                        if(b.paymentStatus === 'รอชำระเงิน' && (now - b.timestamp > expireTime)) {
-                            remove(ref(db, `movies/${mId}/bookings/${seatId}`));
-                        }
-                    });
-                }
-                if(m.temp_selections) {
-                    Object.entries(m.temp_selections).forEach(([seatId, t]) => {
-                        if(now - t.timestamp > expireTime) { remove(ref(db, `movies/${mId}/temp_selections/${seatId}`)); }
-                    });
-                }
-            });
-        }
-        if(allData.events) {
-            Object.entries(allData.events).forEach(([eId, e]) => {
-                if(e.bookings) {
-                    Object.entries(e.bookings).forEach(([bId, b]) => {
-                        if(b.paymentStatus === 'รอชำระเงิน' && (now - b.timestamp > expireTime)) {
-                            remove(ref(db, `events/${eId}/bookings/${bId}`)).then(() => { runTransaction(ref(db, `events/${eId}/currentBooked`), (c) => (c || 1) - 1); });
-                        }
-                    });
-                }
-            });
-        }
+        ['movie', 'event'].forEach(type => {
+            if(allData[type + 's']) {
+                Object.entries(allData[type + 's']).forEach(([itemId, item]) => {
+                    if(item.rounds) {
+                        Object.entries(item.rounds).forEach(([rId, rData]) => {
+                            if(rData.bookings) {
+                                Object.entries(rData.bookings).forEach(([bookingKey, b]) => {
+                                    if(b.paymentStatus === 'รอชำระเงิน' && (now - b.timestamp > expireTime)) {
+                                        remove(ref(db, `${type}s/${itemId}/rounds/${rId}/bookings/${bookingKey}`)).then(() => {
+                                            if(type === 'event') {
+                                                runTransaction(ref(db, `events/${itemId}/rounds/${rId}/currentBooked`), (c) => (c || 1) - 1);
+                                            }
+                                        });
+                                    }
+                                });
+                            }
+                            if(type === 'movie' && rData.temp_selections) {
+                                Object.entries(rData.temp_selections).forEach(([seatId, t]) => {
+                                    if(now - t.timestamp > expireTime) { 
+                                        remove(ref(db, `movies/${itemId}/rounds/${rId}/temp_selections/${seatId}`)); 
+                                    }
+                                });
+                            }
+                        });
+                    }
+                });
+            }
+        });
     }, 15000);
 
     function updateNavbarUI(isLoggedIn) {
@@ -815,15 +828,9 @@
     // --- Views ---
     window.showPage = (pid) => {
         if(pid !== 'page-scan' && html5QrcodeScanner) {
-            html5QrcodeScanner.clear().then(() => {
-                html5QrcodeScanner = null;
-            }).catch(err => {
-                console.log("Failed to clear scanner", err);
-                html5QrcodeScanner = null;
-            });
+            html5QrcodeScanner.clear().then(() => { html5QrcodeScanner = null; }).catch(err => { html5QrcodeScanner = null; });
         }
-
-        ['page-auth', 'page-home', 'page-movie', 'page-event', 'page-profile', 'page-users', 'page-ticket-types', 'page-orders', 'page-scan', 'page-banners'].forEach(id => {
+        ['page-auth', 'page-home', 'page-detail', 'page-profile', 'page-users', 'page-ticket-types', 'page-orders', 'page-scan', 'page-banners'].forEach(id => {
             const el = document.getElementById(id); if(el) el.classList.add('hidden');
         });
         const target = document.getElementById(pid); if(target) target.classList.remove('hidden');
@@ -839,11 +846,8 @@
     window.showScanPage = () => {
         if(userRole !== 'admin') return;
         window.showPage('page-scan');
-        
         const resDiv = document.getElementById('scan-result');
-        resDiv.style.display = 'none';
-        resDiv.className = 'scan-msg';
-        resDiv.innerHTML = '';
+        resDiv.style.display = 'none'; resDiv.className = 'scan-msg'; resDiv.innerHTML = '';
 
         if(!html5QrcodeScanner) {
             html5QrcodeScanner = new Html5QrcodeScanner("qr-reader", { fps: 10, qrbox: {width: 250, height: 250} }, false);
@@ -853,21 +857,17 @@
 
     window.restartScanner = () => {
         document.getElementById('scan-result').style.display = 'none';
-        if(html5QrcodeScanner) {
-            html5QrcodeScanner.resume();
-        } else {
-            window.showScanPage();
-        }
+        if(html5QrcodeScanner) html5QrcodeScanner.resume(); else window.showScanPage();
     }
 
     function onScanSuccess(decodedText, decodedResult) {
         const parts = decodedText.split('|');
         const resDiv = document.getElementById('scan-result');
         
-        if(parts[0] !== 'TICKET' || parts.length < 5) {
+        // TICKET|type|itemId|roundId|bookingKey|userName
+        if(parts[0] !== 'TICKET' || parts.length < 6) {
             resDiv.innerHTML = "❌ QR Code ไม่ถูกต้อง ไม่ใช่ของระบบนี้";
-            resDiv.className = 'scan-msg scan-error';
-            resDiv.style.display = 'block';
+            resDiv.className = 'scan-msg scan-error'; resDiv.style.display = 'block';
             return;
         }
 
@@ -875,45 +875,37 @@
 
         const type = parts[1];
         const itemId = parts[2];
-        const bookingKey = parts[3];
-        const name = parts[4];
+        const roundId = parts[3];
+        const bookingKey = parts[4];
+        const name = parts[5];
 
-        const path = `${type === 'movie' ? 'movies' : 'events'}/${itemId}/bookings/${bookingKey}`;
+        const path = `${type}s/${itemId}/rounds/${roundId}/bookings/${bookingKey}`;
         
         get(ref(db, path)).then((snap) => {
             if(snap.exists()) {
                 const b = snap.val();
-                
                 if(b.paymentStatus !== 'ยืนยันแล้ว' && b.paymentStatus !== 'ฟรี') {
                     resDiv.innerHTML = `❌ ไม่สามารถเช็คอินได้<br>ตั๋วของ <b>${name}</b><br>สถานะ: <b>${b.paymentStatus}</b>`;
-                    resDiv.className = 'scan-msg scan-error';
-                    resDiv.style.display = 'block';
+                    resDiv.className = 'scan-msg scan-error'; resDiv.style.display = 'block';
                     return;
                 }
                 
                 if(b.isCheckedIn) {
                     resDiv.innerHTML = `⚠️ ตั๋วใบนี้ <b>ถูกใช้งานไปแล้ว!</b><br>ชื่อ: ${name}<br>เช็คอินเมื่อ: ${new Date(b.checkInTime).toLocaleString()}`;
-                    resDiv.className = 'scan-msg scan-error';
-                    resDiv.style.display = 'block';
+                    resDiv.className = 'scan-msg scan-error'; resDiv.style.display = 'block';
                 } else {
-                    update(ref(db, path), {
-                        isCheckedIn: true,
-                        checkInTime: Date.now()
-                    }).then(() => {
+                    update(ref(db, path), { isCheckedIn: true, checkInTime: Date.now() }).then(() => {
                         resDiv.innerHTML = `✅ <b>เช็คอินสำเร็จ!</b><br>ยินดีต้อนรับคุณ <b>${name}</b><br>ที่นั่ง/รหัส: ${bookingKey}`;
-                        resDiv.className = 'scan-msg scan-success';
-                        resDiv.style.display = 'block';
+                        resDiv.className = 'scan-msg scan-success'; resDiv.style.display = 'block';
                     });
                 }
             } else {
                 resDiv.innerHTML = "❌ ไม่พบข้อมูลการจองนี้ในระบบ (อาจถูกยกเลิกแล้ว)";
-                resDiv.className = 'scan-msg scan-error';
-                resDiv.style.display = 'block';
+                resDiv.className = 'scan-msg scan-error'; resDiv.style.display = 'block';
             }
         }).catch((err) => {
             resDiv.innerHTML = "❌ เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล";
-            resDiv.className = 'scan-msg scan-error';
-            resDiv.style.display = 'block';
+            resDiv.className = 'scan-msg scan-error'; resDiv.style.display = 'block';
         });
     }
 
@@ -938,8 +930,7 @@
         lastBannerDataString = currentDataString;
 
         clearInterval(bannerInterval);
-        track.innerHTML = '';
-        dotsWrapper.innerHTML = '';
+        track.innerHTML = ''; dotsWrapper.innerHTML = '';
 
         if (activeBanners.length > 0) {
             bannerContainer.classList.remove('hidden');
@@ -1002,12 +993,11 @@
     }
 
     // 🌟 --- ระบบ Filter ค้นหาและจัดเรียง --- 🌟
-    window.applyFilters = () => {
-        window.renderHomeList();
-    };
+    window.applyFilters = () => { window.renderHomeList(); };
 
     window.renderHomeList = () => {
         const gridList = document.getElementById('items-grid');
+        if(!gridList) return;
         gridList.innerHTML = '';
 
         const adminPanel = document.getElementById('admin-panel-home');
@@ -1018,373 +1008,304 @@
 
         buildBannerSlider(); 
 
-        // ดึงค่าการค้นหาจาก Dropdown
         const filterLocation = document.getElementById('filter-location')?.value || '';
         const filterCategory = document.getElementById('filter-category')?.value || 'all';
         const filterSort = document.getElementById('filter-sort')?.value || 'closest';
 
         const allLocations = new Set();
-        let allGroupedItems = [];
+        let allItemsList = [];
 
-        // ฟังก์ชันจัดกลุ่มข้อมูลและดึงตัวแทนเพื่อเอามาแสดง
+        // ดึงข้อมูลตามโครงสร้างใหม่ (Parent-Child)
         const processItems = (dataObj, type) => {
             if (!dataObj) return;
-            const groups = {};
             Object.entries(dataObj).forEach(([id, item]) => {
-                if(item.config && item.config.title) {
-                    const title = item.config.title;
-                    const loc = item.config.location || 'ไม่ระบุสถานที่';
-                    allLocations.add(loc);
+                if(item.info) {
+                    let minPrice = Infinity;
+                    let maxPrice = 0;
+                    let earliestStart = Infinity;
+                    let latestStart = 0;
+                    let roundCount = 0;
+                    let matchLocation = false;
                     
-                    if(!groups[title]) groups[title] = [];
-                    groups[title].push({id, ...item});
-                }
-            });
+                    if (item.rounds) {
+                        Object.values(item.rounds).forEach(r => {
+                            if(!r.config) return;
+                            roundCount++;
+                            const p = parseFloat(r.config.price) || 0;
+                            const t = new Date(r.config.showStart).getTime();
+                            if(p < minPrice) minPrice = p;
+                            if(p > maxPrice) maxPrice = p;
+                            if(t < earliestStart) earliestStart = t;
+                            if(t > latestStart) latestStart = t;
+                            
+                            const loc = r.config.location;
+                            if(loc) {
+                                allLocations.add(loc);
+                                if(filterLocation && loc === filterLocation) matchLocation = true;
+                            }
+                        });
+                    }
 
-            Object.keys(groups).forEach(title => {
-                const rounds = groups[title];
-                // เรียงรอบฉายในกลุ่มให้รอบแรกสุดขึ้นก่อน
-                rounds.sort((a,b) => new Date(a.config.start) - new Date(b.config.start));
-                const rep = rounds[0];
-                
-                allGroupedItems.push({
-                    title: title,
-                    type: type,
-                    config: rep.config,
-                    count: rounds.length,
-                    earliestStart: new Date(rep.config.start).getTime(),
-                    price: parseFloat(rep.config.price) || 0,
-                    location: rep.config.location || 'ไม่ระบุสถานที่'
-                });
+                    if (!filterLocation) matchLocation = true;
+
+                    if (matchLocation) {
+                        allItemsList.push({
+                            id: id,
+                            type: type,
+                            info: item.info,
+                            roundCount: roundCount,
+                            minPrice: minPrice === Infinity ? 0 : minPrice,
+                            earliestStart: earliestStart === Infinity ? 0 : earliestStart
+                        });
+                    }
+                }
             });
         };
 
         processItems(allData.movies, 'movie');
         processItems(allData.events, 'event');
 
-        // อัปเดต Dropdown เลือกสถานที่ (โดยไม่ลบค่าที่เลือกไว้)
+        // อัปเดต Dropdown เลือกสถานที่
         const locSelect = document.getElementById('filter-location');
         if(locSelect) {
             locSelect.innerHTML = '<option value="">-- ดูทุกสถานที่ --</option>';
             Array.from(allLocations).sort().forEach(loc => {
                 const opt = document.createElement('option');
-                opt.value = loc;
-                opt.innerText = loc;
+                opt.value = loc; opt.innerText = loc;
                 if(loc === filterLocation) opt.selected = true;
                 locSelect.appendChild(opt);
             });
         }
 
-        // --- ขั้นตอนการกรอง (Filter) ---
-        let filteredItems = allGroupedItems.filter(item => {
-            if (filterLocation && item.location !== filterLocation) return false;
-            if (filterCategory !== 'all' && item.type !== filterCategory) return false;
-            return true;
-        });
+        // กรองหมวดหมู่
+        let filtered = allItemsList.filter(item => filterCategory === 'all' || item.type === filterCategory);
 
-        // --- ขั้นตอนการจัดเรียง (Sort) ---
-        filteredItems.sort((a, b) => {
-            if (filterSort === 'closest') return a.earliestStart - b.earliestStart; // ใกล้สุดขึ้นก่อน
-            if (filterSort === 'newest') return b.earliestStart - a.earliestStart;  // ไกลสุด/ใหม่สุดขึ้นก่อน
-            if (filterSort === 'priceAsc') return a.price - b.price; // ราคาต่ำไปสูง
-            if (filterSort === 'priceDesc') return b.price - a.price; // ราคาสูงไปต่ำ
+        // จัดเรียง
+        filtered.sort((a, b) => {
+            if (filterSort === 'closest') return a.earliestStart - b.earliestStart;
+            if (filterSort === 'newest') return b.earliestStart - a.earliestStart;
+            if (filterSort === 'priceAsc') return a.minPrice - b.minPrice;
+            if (filterSort === 'priceDesc') return b.minPrice - a.minPrice;
             return 0;
         });
 
-        // --- ขั้นตอนการสร้าง UI ---
-        if(filteredItems.length === 0) {
+        if(filtered.length === 0) {
             gridList.innerHTML = `<div style="grid-column: 1/-1; text-align:center; padding: 40px; color:#777; font-size:1.1rem; background:white; border-radius:12px;">ไม่พบรายการที่ตรงกับเงื่อนไขการค้นหา</div>`;
         } else {
-            filteredItems.forEach(item => {
-                gridList.appendChild(createCard(item.title, item.config, item.type, item.count));
+            filtered.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'card';
+                div.onclick = () => openDetailPage(item.id, item.type);
+                
+                const imgUrl = item.info.image || 'https://via.placeholder.com/300x400';
+                const tagText = item.type === 'movie' ? '🎬 ภาพยนตร์' : '🎤 อีเวนต์';
+                const dateText = item.info.showDates || '-';
+                
+                div.innerHTML = `
+                    <img src="${imgUrl}" alt="${item.info.title}">
+                    <span class="tag ${item.type}">${tagText}</span>
+                    <h3 style="margin:5px 0;">${item.info.title}</h3>
+                    <p style="font-size:0.85rem; color:#888; margin:5px 0;">📅 วันที่: <b>${dateText}</b></p>
+                    <p style="font-size:1rem; color:#d93025; font-weight:bold; margin:5px 0;">เริ่มต้น ฿${item.minPrice}</p>
+                    <p style="margin-top:auto; padding-top:10px; font-size:0.9rem; color:#666;">มีเปิดให้จอง <strong>${item.roundCount}</strong> รอบ</p>
+                `;
+                gridList.appendChild(div);
             });
         }
     }
 
-    function createCard(title, config, type, count) {
-        const div = document.createElement('div');
-        div.className = 'card';
-        const imgUrl = config.image || 'https://via.placeholder.com/300x400?text=No+Image';
-        
-        // แปลงวันที่ให้อ่านง่าย
-        const dateStr = new Date(config.start).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
 
-        div.innerHTML = `
-            <img src="${imgUrl}" alt="${title}">
-            <span class="tag ${type}">${type==='movie'?'ภาพยนตร์':'อีเวนต์'}</span>
-            <h3 style="margin:5px 0;">${title}</h3>
-            <p style="font-size:0.85rem; color:#888; margin:5px 0;">📅 เริ่ม: <b>${dateStr}</b></p>
-            <p style="font-size:0.9rem; color:#555; margin:5px 0;">📍 ${config.location || 'ไม่ระบุสถานที่'}</p>
-            <p style="font-size:1rem; color:#d93025; font-weight:bold; margin:5px 0;">฿${config.price || 0}</p>
-            <p style="margin-top:auto; padding-top:10px; font-size:0.9rem; color:#666;">เปิดให้จองทั้งหมด <strong>${count}</strong> รอบ</p>
-        `;
-        div.onclick = () => window.openGroupPage(title, type, true);
-        return div;
-    }
-    // 🌟 ------------------------------------ 🌟
-
-    window.openGroupPage = (title, type, switchPage = true) => {
+    // 🌟 --- ระบบหน้ารายละเอียดและรอบ (Detail Page) --- 🌟
+    window.openDetailPage = (itemId, type, switchPage = true) => {
+        currentItemId = itemId;
         currentType = type;
-        if(switchPage) window.showPage(type === 'movie' ? 'page-movie' : 'page-event');
+        if(switchPage) window.showPage('page-detail');
+
+        document.getElementById('movie-seat-section').classList.add('hidden');
+        document.getElementById('event-booking-section').classList.add('hidden');
+        document.getElementById('schedule-section').classList.remove('hidden');
+
+        document.getElementById('schedule-type-text').innerText = type === 'movie' ? 'ฉายภาพยนตร์' : 'กิจกรรม';
+        
+        const dataNode = allData[type + 's'] ? allData[type + 's'][itemId] : null;
+        if(!dataNode || !dataNode.info) return goHome();
+
+        const info = dataNode.info;
+
+        document.getElementById('detail-header').innerHTML = `
+            <img src="${info.image}" alt="Poster" onerror="this.src='https://via.placeholder.com/300x400'">
+            <div class="item-info">
+                <h2 style="margin-top:0; color:${type==='movie'?'#1a73e8':'#d93025'};">${info.title}</h2>
+                <p>📅 <strong>รอบวันที่:</strong> ${info.showDates || '-'}</p>
+                <p style="color:#555; white-space:pre-wrap; font-size:0.95rem; margin-top:10px;">${info.detail || ''}</p>
+            </div>
+        `;
+
+        const adminPanelDetail = document.getElementById('admin-panel-detail');
+        if(userRole === 'admin') adminPanelDetail.classList.remove('hidden');
+        else adminPanelDetail.classList.add('hidden');
+
+        const list = document.getElementById('schedule-list');
+        list.innerHTML = '';
+
+        let roundsArr = [];
+        if(dataNode.rounds) {
+            Object.entries(dataNode.rounds).forEach(([rId, rData]) => {
+                roundsArr.push({ id: rId, ...rData });
+            });
+        }
+        
+        roundsArr.sort((a,b) => new Date(a.config.showStart) - new Date(b.config.showStart));
+
+        if(roundsArr.length === 0) {
+            list.innerHTML = '<p style="color:#777;">ยังไม่มีรอบเปิดให้จอง</p>';
+            return;
+        }
 
         const now = Date.now();
 
-        if(type === 'movie') {
-            document.getElementById('movie-schedule-section').classList.remove('hidden');
-            document.getElementById('movie-seat-section').classList.add('hidden');
+        roundsArr.forEach(r => {
+            const conf = r.config;
+            const sStart = new Date(conf.showStart).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' });
+            const sEnd = new Date(conf.showEnd).toLocaleTimeString('th-TH', { timeStyle: 'short' });
+            const bStart = new Date(conf.bookStart).getTime();
+            const bEnd = new Date(conf.bookEnd).getTime();
             
-            const list = document.getElementById('movie-schedule-list');
-            list.innerHTML = '';
-            
-            const items = [];
-            if(allData.movies) {
-                Object.entries(allData.movies).forEach(([id, m]) => {
-                    if(m.config.title === title) items.push({id, ...m});
-                });
-            }
-            items.sort((a,b) => new Date(a.config.start) - new Date(b.config.start));
+            let statsHtml = '';
+            let btnDisabled = '';
+            let btnText = 'เลือกรอบนี้';
+            let btnStyle = '';
 
-            if(items.length > 0) {
-                const rep = items[0].config;
-                document.getElementById('m-group-title').innerText = rep.title;
-                const imgEl = document.getElementById('m-group-img');
-                if(rep.image) { imgEl.src = rep.image; imgEl.style.display = 'block'; } else { imgEl.style.display = 'none'; }
-                document.getElementById('m-group-location').innerText = rep.location || '-';
-                document.getElementById('m-group-ticket-type').innerText = rep.ticketType || '-';
-                document.getElementById('m-group-price').innerText = rep.price || '0';
-                document.getElementById('m-group-detail').innerText = rep.detail || '';
-
-                const minimap = document.getElementById('m-group-minimap');
-                minimap.innerHTML = '<strong style="font-size:0.9rem; color:#333;">ผังที่นั่งคร่าวๆ (อ้างอิงจากรอบแรก):</strong><br>';
-                const grid = document.createElement('div');
-                grid.style.display = 'grid';
-                grid.style.gridTemplateColumns = `repeat(${rep.cols}, 12px)`;
-                grid.style.gap = '2px';
-                grid.style.marginTop = '8px';
-                
+            if (type === 'movie') {
                 let blocked = [];
-                if (rep.blocked) {
-                    blocked = Array.isArray(rep.blocked) ? rep.blocked : String(rep.blocked).split(',').map(s => s.trim());
-                }
-
-                for(let r=0; r<rep.rows; r++) {
-                    const rowL = String.fromCharCode(65+r);
-                    for(let c=1; c<=rep.cols; c++) {
-                        const sid = `${rowL}${c}`;
-                        const s = document.createElement('div');
-                        s.style.width = '12px'; s.style.height = '12px'; s.style.borderRadius = '2px';
-                        if(blocked.includes(sid)) s.style.background = '#e2e6ea';
-                        else s.style.background = '#28a745';
-                        grid.appendChild(s);
-                    }
-                }
-                minimap.appendChild(grid);
-            }
-
-            items.forEach(item => {
-                let bArr = [];
-                if (item.config.blocked) {
-                    bArr = Array.isArray(item.config.blocked) ? item.config.blocked : String(item.config.blocked).split(',').filter(x => x.trim() !== '');
-                }
-                const total = (item.config.rows * item.config.cols) - bArr.length;
-                
-                const booked = item.bookings ? Object.keys(item.bookings).length : 0;
+                if (conf.blocked) blocked = Array.isArray(conf.blocked) ? conf.blocked : String(conf.blocked).split(',').filter(x=>x.trim());
+                const total = (conf.rows * conf.cols) - blocked.length;
+                const booked = r.bookings ? Object.keys(r.bookings).length : 0;
                 let selecting = 0;
-                if(item.temp_selections) {
-                    Object.values(item.temp_selections).forEach(t => {
-                        if(Date.now() - t.timestamp < 10 * 60 * 1000) selecting++;
-                    });
+                if(r.temp_selections) {
+                    Object.values(r.temp_selections).forEach(t => { if(now - t.timestamp < 10*60*1000) selecting++; });
                 }
                 const available = total - booked - selecting;
-                const startTime = new Date(item.config.start).getTime();
-                const endTime = new Date(item.config.end).getTime();
-                const timeStr = new Date(item.config.start).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' });
-
-                let btnDisabled = '';
-                let btnText = 'เลือกรอบนี้';
-                let btnStyle = '';
-
-                if (userRole !== 'admin') { 
-                    if (now < startTime) { btnDisabled = 'disabled'; btnText = 'ยังไม่เปิด'; btnStyle = 'background:#ccc; cursor:not-allowed;'; } 
-                    else if (now > endTime) { btnDisabled = 'disabled'; btnText = 'หมดเวลา'; btnStyle = 'background:#ccc; cursor:not-allowed;'; }
-                } else {
-                    if (now < startTime) btnText = 'ยังไม่เปิด (Admin)';
-                    else if (now > endTime) btnText = 'หมดเวลา (Admin)';
-                }
-
-                list.innerHTML += `
-                    <div class="schedule-item">
-                        <div class="schedule-info">
-                            <strong style="font-size:1.1rem; color:#1a73e8;">🕒 ${timeStr}</strong>
-                            <div style="margin-top:8px;">
-                                <span class="schedule-stats"><span class="stat-val" style="color:green">${available}</span> ว่าง</span>
-                                <span class="schedule-stats"><span class="stat-val" style="color:red">${booked}</span> จองแล้ว</span>
-                                <span class="schedule-stats"><span class="stat-val" style="color:orange">${selecting}</span> กำลังจอง</span>
-                            </div>
-                        </div>
-                        <button class="btn-primary" ${btnDisabled} style="max-width:150px; ${btnStyle}" onclick="selectShowtime('${item.id}', 'movie')">${btnText}</button>
-                    </div>
-                `;
-            });
-
-        } else {
-            document.getElementById('event-schedule-section').classList.remove('hidden');
-            document.getElementById('event-booking-section').classList.add('hidden');
-            
-            const list = document.getElementById('event-schedule-list');
-            list.innerHTML = '';
-            
-            const items = [];
-            if(allData.events) {
-                Object.entries(allData.events).forEach(([id, e]) => {
-                    if(e.config.title === title) items.push({id, ...e});
-                });
-            }
-            items.sort((a,b) => new Date(a.config.start) - new Date(b.config.start));
-
-            if(items.length > 0) {
-                const rep = items[0].config;
-                document.getElementById('e-group-title').innerText = rep.title;
-                const imgEl = document.getElementById('e-group-img');
-                if(rep.image) { imgEl.src = rep.image; imgEl.style.display = 'block'; } else { imgEl.style.display = 'none'; }
-                document.getElementById('e-group-location').innerText = rep.location || '-';
-                document.getElementById('e-group-ticket-type').innerText = rep.ticketType || '-';
-                document.getElementById('e-group-price').innerText = rep.price || '0';
-                document.getElementById('e-group-detail').innerText = rep.detail || '';
-            }
-
-            items.forEach(item => {
-                const cap = item.config.capacity;
-                const cur = item.currentBooked || 0;
-                const remain = cap === -1 ? '∞' : (cap - cur);
-                const startTime = new Date(item.config.start).getTime();
-                const endTime = new Date(item.config.end).getTime();
-                const timeStr = new Date(item.config.start).toLocaleString();
                 
-                const isFull = (cap !== -1 && cur >= cap);
-                let btnDisabled = '';
-                let btnText = 'เลือกรอบนี้';
-                let btnStyle = '';
+                statsHtml = `
+                    <span class="schedule-stats"><span style="color:green">${available}</span> ว่าง</span>
+                    <span class="schedule-stats"><span style="color:red">${booked}</span> จองแล้ว</span>
+                `;
+            } else {
+                const cap = conf.capacity;
+                const cur = r.currentBooked || 0;
+                const remain = cap == -1 ? '∞' : (cap - cur);
+                const isFull = (cap != -1 && cur >= cap);
+                
+                statsHtml = `
+                    <span class="schedule-stats">ว่าง: <span style="color:green">${remain}</span></span>
+                    <span class="schedule-stats">รับได้: ${cap == -1 ? 'ไม่จำกัด' : cap}</span>
+                `;
 
-                if (userRole !== 'admin') {
-                    if (now < startTime) { btnDisabled = 'disabled'; btnText = 'ยังไม่เปิด'; btnStyle = 'background:#ccc; cursor:not-allowed;'; } 
-                    else if (now > endTime) { btnDisabled = 'disabled'; btnText = 'หมดเวลา'; btnStyle = 'background:#ccc; cursor:not-allowed;'; } 
-                    else if (isFull) { btnDisabled = 'disabled'; btnText = 'เต็ม'; btnStyle = 'background:#ccc; cursor:not-allowed;'; }
-                } else {
-                    if (now < startTime) btnText = 'ยังไม่เปิด (Admin)';
-                    else if (now > endTime) btnText = 'หมดเวลา (Admin)';
-                    else if (isFull) { btnText = 'จองเกิน (Admin)'; btnStyle = 'background:#f39c12'; }
+                if(isFull && userRole !== 'admin') {
+                    btnDisabled = 'disabled'; btnText = 'เต็ม'; btnStyle = 'background:#ccc;';
                 }
+            }
 
-                list.innerHTML += `
-                     <div class="schedule-item">
-                        <div class="schedule-info">
-                            <strong style="font-size:1.1rem; color:#d93025;">🕒 ${timeStr}</strong>
-                            <div style="margin-top:8px;">
-                                <span class="schedule-stats">ว่าง: <span class="stat-val">${remain}</span></span>
-                                <span class="schedule-stats">รับได้ทั้งหมด: ${cap === -1 ? 'ไม่จำกัด' : cap}</span>
-                            </div>
-                        </div>
-                        <button class="btn-primary" ${btnDisabled} style="max-width:150px; ${btnStyle}" onclick="selectShowtime('${item.id}', 'event')">${btnText}</button>
+            if (userRole !== 'admin') {
+                if (now < bStart) { btnDisabled = 'disabled'; btnText = 'ยังไม่เปิด'; btnStyle = 'background:#ccc;'; }
+                else if (now > bEnd) { btnDisabled = 'disabled'; btnText = 'หมดเวลาจอง'; btnStyle = 'background:#ccc;'; }
+            } else {
+                if (now < bStart) btnText = 'ยังไม่เปิด (Admin)';
+                else if (now > bEnd) btnText = 'หมดเวลา (Admin)';
+            }
+
+            let adminTools = '';
+            if (userRole === 'admin') {
+                adminTools = `
+                    <div style="margin-top:10px; display:flex; gap:5px;">
+                        <button class="btn-sm btn-edit" onclick="editRoundItem('${r.id}')">แก้ไขรอบ</button>
+                        <button class="btn-sm btn-del" onclick="deleteRoundItem('${r.id}')">ลบ</button>
                     </div>
                 `;
-            });
-        }
+            }
+
+            list.innerHTML += `
+                <div class="schedule-item">
+                    <div class="schedule-info">
+                        <strong style="font-size:1.1rem; color:${type==='movie'?'#1a73e8':'#d93025'};">🕒 ${sStart} - ${sEnd}</strong>
+                        <div style="font-size:0.9rem; color:#555; margin:5px 0;">📍 ${conf.location} | 🎟️ ${conf.ticketType} | 💰 ฿${conf.price}</div>
+                        <div>${statsHtml}</div>
+                        ${adminTools}
+                    </div>
+                    <button class="btn-primary" ${btnDisabled} style="max-width:150px; ${btnStyle}" onclick="selectShowtime('${r.id}')">${btnText}</button>
+                </div>
+            `;
+        });
     }
 
-    window.checkTime = (s, e) => {
+    // 🌟 --- ระบบเข้าจองและเลือกที่นั่ง --- 🌟
+    window.checkTime = (bS, bE) => {
         if(userRole === 'admin') return true; 
-        const n = new Date();
-        if(n < new Date(s)) { alert("ยังไม่ถึงเวลาเปิดจอง"); return false; }
-        if(n > new Date(e)) { alert("หมดเวลาจองแล้ว"); return false; }
+        const n = Date.now();
+        if(n < new Date(bS).getTime()) { alert("ยังไม่ถึงเวลาเปิดจอง"); return false; }
+        if(n > new Date(bE).getTime()) { alert("หมดเวลาจองแล้ว"); return false; }
         return true;
     }
 
-    window.selectShowtime = (id, type) => {
-        currentId = id;
-        currentType = type;
-        
-        if(type === 'movie') {
-            document.getElementById('movie-schedule-section').classList.add('hidden');
+    window.selectShowtime = (roundId) => {
+        currentRoundId = roundId;
+        const roundData = allData[currentType + 's'][currentItemId].rounds[roundId];
+        currentRoundConfig = roundData.config;
+
+        if(!window.checkTime(currentRoundConfig.bookStart, currentRoundConfig.bookEnd) && userRole !== 'admin') return;
+
+        document.getElementById('schedule-section').classList.add('hidden');
+
+        if(currentType === 'movie') {
             document.getElementById('movie-seat-section').classList.remove('hidden');
-
-            onValue(ref(db, `movies/${id}/config`), (snap) => {
-                currentConfig = snap.val();
-                if(!currentConfig) return;
-                document.getElementById('m-round-time').innerText = new Date(currentConfig.start).toLocaleString();
-                renderSeatsBase(currentConfig);
-            }, { onlyOnce: true });
-
-            onValue(ref(db, `movies/${id}`), (snap) => {
-                const data = snap.val() || {};
-                if(currentId === id && !document.getElementById('movie-seat-section').classList.contains('hidden')) {
-                     updateSeatStatus(data.bookings || {}, data.temp_selections || {});
-                }
-            });
-
+            document.getElementById('seat-round-time').innerText = new Date(currentRoundConfig.showStart).toLocaleString();
+            renderSeatsBase(currentRoundConfig);
+            updateSeatStatus(roundData.bookings || {}, roundData.temp_selections || {});
         } else {
-            document.getElementById('event-schedule-section').classList.add('hidden');
             document.getElementById('event-booking-section').classList.remove('hidden');
+            document.getElementById('e-round-time').innerText = new Date(currentRoundConfig.showStart).toLocaleString();
+            const cap = currentRoundConfig.capacity;
+            const cur = roundData.currentBooked || 0;
+            document.getElementById('e-remaining').innerText = cap == -1 ? '∞' : (cap - cur);
+            document.getElementById('e-capacity').innerText = cap == -1 ? 'ไม่จำกัด' : cap;
             
-            onValue(ref(db, `events/${id}`), (snap) => {
-                const d = snap.val(); if(!d) return;
-                currentConfig = d.config;
-                const cap = d.config.capacity;
-                const cur = d.currentBooked || 0;
-                
-                document.getElementById('e-round-time').innerText = new Date(currentConfig.start).toLocaleString();
-                document.getElementById('e-remaining').innerText = cap==-1 ? '∞' : (cap - cur);
-                document.getElementById('e-capacity').innerText = cap==-1 ? 'ไม่จำกัด' : cap;
-
-                const btn = document.getElementById('btn-event-book');
-                const isFull = (cap!=-1 && cur>=cap);
-                
-                if(isFull && userRole !== 'admin') { 
-                    btn.disabled=true; btn.innerText="เต็มแล้ว"; btn.style.background="#ccc"; 
-                } else { 
-                    btn.disabled=false; 
-                    btn.innerText = (isFull && userRole==='admin') ? "ยืนยันจองเกิน (Admin)" : "ดำเนินการจองบัตร";
-                    btn.style.background = (isFull && userRole==='admin') ? "#f39c12" : "#1a73e8"; 
-                    
-                    btn.onclick=()=> {
-                         if(!window.checkTime(currentConfig.start, currentConfig.end) && userRole !== 'admin') return;
-                         window.openBookingModal("บัตรเข้าร่วมงาน");
-                    }
-                }
-            });
+            const btn = document.getElementById('btn-event-book');
+            const isFull = (cap != -1 && cur >= cap);
+            if(isFull && userRole !== 'admin') { 
+                btn.disabled=true; btn.innerText="เต็มแล้ว"; btn.style.background="#ccc"; 
+            } else { 
+                btn.disabled=false; 
+                btn.innerText = (isFull && userRole==='admin') ? "ยืนยันจองเกิน (Admin)" : "ดำเนินการจองบัตร";
+                btn.style.background = (isFull && userRole==='admin') ? "#f39c12" : "#1a73e8"; 
+                btn.onclick = () => window.openBookingModal("บัตรเข้าร่วมงาน");
+            }
         }
     }
 
     window.backToSchedule = () => {
         if(tempSeatRef) cancelSelection();
-        const title = currentConfig ? currentConfig.title : document.getElementById('m-group-title').innerText;
-        window.openGroupPage(title, currentType, false);
+        currentRoundId = '';
+        window.openDetailPage(currentItemId, currentType, false);
     }
 
     function renderSeatsBase(conf) {
         const map = document.getElementById('seat-map');
         map.innerHTML = '';
         map.style.gridTemplateColumns = `repeat(${conf.cols}, 1fr)`;
-        
         let blockedList = [];
-        if (conf.blocked) {
-            blockedList = Array.isArray(conf.blocked) ? conf.blocked : String(conf.blocked).split(',').map(x => x.trim());
-        }
+        if (conf.blocked) blockedList = Array.isArray(conf.blocked) ? conf.blocked : String(conf.blocked).split(',').map(x => x.trim());
 
         for(let r=0; r<conf.rows; r++) {
-            const rowLabel = String.fromCharCode(65 + r);
+            const rowL = String.fromCharCode(65 + r);
             for(let c=1; c<=conf.cols; c++) {
                 const seatId = `${rowLabel}${c}`;
                 const seat = document.createElement('div');
                 seat.className = 'seat available';
                 seat.id = `seat-${seatId}`;
                 seat.innerText = seatId;
-                
-                if(blockedList.includes(seatId)) {
-                    seat.classList.add('blocked'); seat.classList.remove('available');
-                } else {
-                    seat.onclick = () => window.selectSeat(seatId);
-                }
+                if(blockedList.includes(seatId)) { seat.classList.add('blocked'); seat.classList.remove('available'); } 
+                else { seat.onclick = () => window.selectSeat(seatId); }
                 map.appendChild(seat);
             }
         }
@@ -1392,39 +1313,33 @@
 
     function updateSeatStatus(bookings, temps) {
         const myUid = currentUser ? currentUser.uid : guestId;
-        
         document.querySelectorAll('.seat').forEach(s => {
             const sid = s.id.replace('seat-', '');
             if(s.classList.contains('blocked')) return;
-            
             s.className = 'seat available'; 
             s.onclick = () => window.selectSeat(sid);
 
             if(bookings[sid]) {
                 if(bookings[sid].paymentStatus === 'รอชำระเงิน' && bookings[sid].uid === myUid) {
                     s.className = 'seat pending';
-                    s.onclick = () => { window.openPayLaterModal('movie', currentId, sid, currentConfig.price || 0); };
-                } else {
-                    s.className = 'seat booked'; s.onclick = null;
-                }
+                    s.onclick = () => window.openPayLaterModal(currentType, currentItemId, currentRoundId, sid, currentRoundConfig.price);
+                } else { s.className = 'seat booked'; s.onclick = null; }
             } else if(temps[sid]) {
-                if (Date.now() - temps[sid].timestamp < 10 * 60 * 1000) { 
-                    s.className = 'seat selecting'; s.onclick = null;
-                }
+                if (Date.now() - temps[sid].timestamp < 10 * 60 * 1000) { s.className = 'seat selecting'; s.onclick = null; }
             }
         });
     }
 
     window.selectSeat = (seatId) => {
-        if(!window.checkTime(currentConfig.start, currentConfig.end) && userRole !== 'admin') return;
-        
-        const tempRef = ref(db, `movies/${currentId}/temp_selections/${seatId}`);
+        const tempPath = `${currentType}s/${currentItemId}/rounds/${currentRoundId}/temp_selections/${seatId}`;
+        const tempRef = ref(db, tempPath);
         const userIdToUse = currentUser ? currentUser.uid : guestId;
+        
         runTransaction(tempRef, (curr) => {
             if (curr === null || Date.now() - curr.timestamp > 10 * 60 * 1000) {
                 return { timestamp: Date.now(), user_uid: userIdToUse };
             }
-            return;
+            return; 
         }).then((res) => {
             if (res.committed) {
                 selectedTarget = seatId;
@@ -1482,11 +1397,10 @@
         const bName = document.getElementById('inp-conf-name').value.trim();
         const bPhone = document.getElementById('inp-conf-phone').value.trim();
         const bEmail = document.getElementById('inp-conf-email').value.trim();
-        if(!bName || !bPhone || !bEmail) { alert("กรุณากรอกข้อมูลให้ครบ (ชื่อ, เบอร์โทร, อีเมล)"); return; }
+        if(!bName || !bPhone || !bEmail) { alert("กรุณากรอกข้อมูลให้ครบ"); return; }
 
-        let existingBookings = {};
-        if(currentType === 'movie') existingBookings = (allData.movies[currentId] && allData.movies[currentId].bookings) || {};
-        else existingBookings = (allData.events[currentId] && allData.events[currentId].bookings) || {};
+        const roundData = allData[currentType + 's'][currentItemId].rounds[currentRoundId];
+        let existingBookings = roundData.bookings || {};
 
         let isDup = false;
         Object.values(existingBookings).forEach(b => {
@@ -1496,14 +1410,14 @@
 
         if(isDup) {
             if(userRole === 'admin') {
-                if(!confirm("⚠️ บัญชีหรืออีเมลนี้เคยจองรอบนี้แล้ว (Admin Override) ยืนยันดำเนินการต่อหรือไม่?")) return;
+                if(!confirm("บัญชีหรืออีเมลนี้เคยจองรอบนี้แล้ว (Admin) ยืนยันดำเนินการต่อหรือไม่?")) return;
             } else {
                 alert("❌ คุณได้ทำการจองรอบนี้ไปแล้ว (จำกัด 1 สิทธิ์ต่อรอบ)");
                 return;
             }
         }
 
-        const price = parseInt(currentConfig.price) || 0;
+        const price = parseInt(currentRoundConfig.price) || 0;
         if(price === 0) {
             processFinalBooking("");
             return;
@@ -1561,13 +1475,13 @@
         const bookingData = {
             uid: currentUser ? currentUser.uid : 'guest', 
             name: bName, phone: bPhone, email: bEmail, idCard: bIdCard, timestamp: Date.now(),
-            slipUrl: slipUrl, 
-            paymentStatus: status,
-            isCheckedIn: false 
+            slipUrl: slipUrl, paymentStatus: status, isCheckedIn: false 
         };
 
+        const basePath = `${currentType}s/${currentItemId}/rounds/${currentRoundId}`;
+
         if(currentType === 'movie') {
-            set(ref(db, `movies/${currentId}/bookings/${selectedTarget}`), bookingData).then(() => {
+            set(ref(db, `${basePath}/bookings/${selectedTarget}`), bookingData).then(() => {
                 if(tempSeatRef) remove(tempSeatRef);
                 window.cancelSelection(); 
                 if(status === 'รอชำระเงิน') alert("✅ บันทึกที่นั่งแล้ว กรุณาชำระเงินที่หน้าประวัติ ภายใน 10 นาที");
@@ -1575,15 +1489,15 @@
                 window.backToSchedule(); 
             });
         } else {
-            const eventRef = ref(db, `events/${currentId}`);
-            runTransaction(eventRef, (data) => {
+            const eventRoundRef = ref(db, basePath);
+            runTransaction(eventRoundRef, (data) => {
                 if(data) {
                     if(data.config.capacity != -1 && (data.currentBooked||0) >= data.config.capacity) return;
                     data.currentBooked = (data.currentBooked || 0) + 1;
                 } return data;
             }).then((res) => {
                 if(res.committed) {
-                    push(ref(db, `events/${currentId}/bookings`), bookingData);
+                    push(ref(db, `${basePath}/bookings`), bookingData);
                     window.cancelSelection(); 
                     if(status === 'รอชำระเงิน') alert("✅ บันทึกที่นั่งแล้ว กรุณาชำระเงินที่หน้าประวัติ ภายใน 10 นาที");
                     else alert("✅ การจองสำเร็จ ระบบได้รับข้อมูลของคุณแล้ว สามารถดู E-Ticket ได้ที่หน้าประวัติการจอง");
@@ -1594,8 +1508,8 @@
     }
 
     // --- PAY LATER & E-TICKET ---
-    window.openPayLaterModal = (type, itemId, bookingKey, price) => {
-        payLaterData = { type, itemId, bookingKey };
+    window.openPayLaterModal = (type, itemId, roundId, bookingKey, price) => {
+        payLaterData = { type, itemId, roundId, bookingKey };
         document.getElementById('pl-amount').innerText = price;
         document.getElementById('pl-qrcode').src = `https://promptpay.io/${PROMPTPAY_NUMBER}/${price}.png`;
         document.getElementById('pl-slip-url').value = '';
@@ -1606,14 +1520,10 @@
         const slipUrl = document.getElementById('pl-slip-url').value.trim();
         if(!slipUrl) { alert("⚠️ กรุณาแนบลิ้งค์สลิป"); return; }
 
-        const { type, itemId, bookingKey } = payLaterData;
-        const path = `${type === 'movie' ? 'movies' : 'events'}/${itemId}/bookings/${bookingKey}`;
+        const { type, itemId, roundId, bookingKey } = payLaterData;
+        const path = `${type}s/${itemId}/rounds/${roundId}/bookings/${bookingKey}`;
 
-        update(ref(db, path), {
-            slipUrl: slipUrl,
-            paymentStatus: 'รอตรวจสอบ',
-            timestamp: Date.now() 
-        }).then(() => {
+        update(ref(db, path), { slipUrl: slipUrl, paymentStatus: 'รอตรวจสอบ', timestamp: Date.now() }).then(() => {
             alert("✅ บันทึกสลิปสำเร็จ โปรดรอแอดมินตรวจสอบ");
             document.getElementById('pay-later-modal').classList.remove('active');
             if(!document.getElementById('page-profile').classList.contains('hidden')) window.showProfile();
@@ -1630,12 +1540,7 @@
         document.getElementById('t-qrcode').src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrData)}`;
         
         const wm = document.getElementById('t-watermark');
-        if(isCheckedIn === 'true' || isCheckedIn === true) {
-            wm.classList.remove('hidden');
-        } else {
-            wm.classList.add('hidden');
-        }
-
+        if(isCheckedIn === 'true' || isCheckedIn === true) wm.classList.remove('hidden'); else wm.classList.add('hidden');
         document.getElementById('eticket-modal').classList.add('active');
     };
 
@@ -1646,15 +1551,11 @@
         element.appendChild(style);
 
         const opt = {
-            margin:       0.5,
-            filename:     'E-Ticket-' + document.getElementById('t-name').innerText + '.pdf',
-            image:        { type: 'jpeg', quality: 1 },
-            html2canvas:  { scale: 3, useCORS: true, backgroundColor: null }, 
-            jsPDF:        { unit: 'in', format: 'a5', orientation: 'landscape' } 
+            margin: 0.5, filename: 'E-Ticket-' + document.getElementById('t-name').innerText + '.pdf',
+            image: { type: 'jpeg', quality: 1 }, html2canvas: { scale: 3, useCORS: true, backgroundColor: null }, 
+            jsPDF: { unit: 'in', format: 'a5', orientation: 'landscape' } 
         };
-        html2pdf().set(opt).from(element).save().then(() => {
-            element.removeChild(style);
-        });
+        html2pdf().set(opt).from(element).save().then(() => { element.removeChild(style); });
     };
     
     // --- Profile & History ---
@@ -1671,84 +1572,65 @@
         const myHistory = [];
         const myEmail = currentUser.email;
 
-        if(allData.movies) {
-            Object.entries(allData.movies).forEach(([mId, m]) => {
-                if(m.bookings) {
-                    Object.entries(m.bookings).forEach(([seatId, b]) => {
-                        if(b.email === myEmail) {
-                            myHistory.push({ 
-                                timestamp: b.timestamp, itemTitle: m.config.title, detail: `ที่นั่ง ${seatId}`, 
-                                slip: b.slipUrl, status: b.paymentStatus, type: 'movie', itemId: mId, bookingKey: seatId, 
-                                price: m.config.price || 0, location: m.config.location, userName: b.name, eventDate: m.config.start,
-                                isCheckedIn: b.isCheckedIn
-                            });
-                        }
-                    });
-                }
-            });
-        }
-
-        if(allData.events) {
-            Object.entries(allData.events).forEach(([eId, e]) => {
-                if(e.bookings) {
-                    Object.entries(e.bookings).forEach(([bId, b]) => {
-                        if(b.email === myEmail) {
-                            myHistory.push({ 
-                                timestamp: b.timestamp, itemTitle: e.config.title, detail: "บัตรเข้าร่วมงาน", 
-                                slip: b.slipUrl, status: b.paymentStatus, type: 'event', itemId: eId, bookingKey: bId, 
-                                price: e.config.price || 0, location: e.config.location, userName: b.name, eventDate: e.config.start,
-                                isCheckedIn: b.isCheckedIn
-                            });
-                        }
-                    });
-                }
-            });
-        }
+        ['movie', 'event'].forEach(type => {
+            const dataObj = allData[type + 's'];
+            if(dataObj) {
+                Object.entries(dataObj).forEach(([itemId, item]) => {
+                    if(item.rounds) {
+                        Object.entries(item.rounds).forEach(([rId, rData]) => {
+                            if(rData.bookings) {
+                                Object.entries(rData.bookings).forEach(([bookingKey, b]) => {
+                                    if(b.email === myEmail) {
+                                        myHistory.push({ 
+                                            timestamp: b.timestamp, itemTitle: item.info.title, 
+                                            detail: type==='movie' ? `ที่นั่ง ${bookingKey}` : 'บัตรเข้าร่วมงาน', 
+                                            slip: b.slipUrl, status: b.paymentStatus, type: type, itemId: itemId, roundId: rId, bookingKey: bookingKey, 
+                                            price: rData.config.price || 0, location: rData.config.location, userName: b.name, eventDate: rData.config.showStart,
+                                            isCheckedIn: b.isCheckedIn
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                    }
+                });
+            }
+        });
 
         myHistory.sort((a,b) => b.timestamp - a.timestamp);
-
         hList.innerHTML = '';
         if(myHistory.length === 0) {
             hList.innerHTML = '<tr><td colspan="3" style="text-align:center;">ไม่พบประวัติการจองในอีเมลนี้</td></tr>';
         } else {
             myHistory.forEach(h => {
                 let actionHtml = '';
-                
                 if (h.status === 'รอชำระเงิน') {
                     const timeLeftMin = Math.floor((10 * 60 * 1000 - (Date.now() - h.timestamp)) / 60000);
                     if (timeLeftMin >= 0) {
-                        actionHtml = `<button class="btn-sm" style="background:#f39c12; color:white; margin-top:5px; font-weight:bold;" onclick="openPayLaterModal('${h.type}', '${h.itemId}', '${h.bookingKey}', ${h.price})">💰 ชำระเงิน (${timeLeftMin} นาที)</button>`;
+                        actionHtml = `<button class="btn-sm" style="background:#f39c12; color:white; margin-top:5px; font-weight:bold;" onclick="openPayLaterModal('${h.type}', '${h.itemId}', '${h.roundId}', '${h.bookingKey}', ${h.price})">💰 ชำระเงิน (${timeLeftMin} นาที)</button>`;
                     } else {
                         actionHtml = `<span style="color:red; font-size:0.8rem; display:block; margin-top:5px;">หมดเวลาชำระเงิน</span>`;
                     }
                 } else {
-                    const qrDataStr = `TICKET|${h.type}|${h.itemId}|${h.bookingKey}|${h.userName}`;
+                    const qrDataStr = `TICKET|${h.type}|${h.itemId}|${h.roundId}|${h.bookingKey}|${h.userName}`;
                     const dateStr = new Date(h.eventDate).toLocaleDateString();
                     const timeStr = new Date(h.eventDate).toLocaleTimeString([], {timeStyle: 'short'});
-                    
                     actionHtml = `
                         <button class="btn-sm" style="background:#8e44ad; color:white; margin-top:5px; font-weight:bold;" 
                         onclick="viewTicket('${h.itemTitle}', '${h.location || ''}', '${dateStr}', '${timeStr}', '${h.detail}', '${h.userName}', '${qrDataStr}', ${h.isCheckedIn ? true : false})">
                         🎫 ดู E-Ticket</button>
                     `;
-                    if (h.slip) {
-                        actionHtml += `<a href="${h.slip}" target="_blank" style="font-size:0.8rem; color:#1a73e8; display:block; margin-top:5px;">ดูสลิปของฉัน</a>`;
-                    }
+                    if (h.slip) actionHtml += `<a href="${h.slip}" target="_blank" style="font-size:0.8rem; color:#1a73e8; display:block; margin-top:5px;">ดูสลิปของฉัน</a>`;
                 }
 
                 let badgeColor = h.status === 'รอชำระเงิน' ? '#f39c12' : (h.status === 'ฟรี' ? '#2ecc71' : '#17a2b8');
                 let checkInBadge = h.isCheckedIn ? `<br><span style="color:#2ecc71; font-size:0.8rem; font-weight:bold;">(เช็คอินแล้ว)</span>` : `<br><span style="color:#e74c3c; font-size:0.8rem;">(ยังไม่เช็คอิน)</span>`;
-
                 if(h.status === 'รอชำระเงิน') checkInBadge = '';
 
                 hList.innerHTML += `<tr>
                     <td>${new Date(h.timestamp).toLocaleDateString()} <br><small>${new Date(h.timestamp).toLocaleTimeString()}</small></td>
                     <td>${h.itemTitle} <br><small style="color:#666;">${h.detail}</small></td>
-                    <td>
-                        <span style="background:${badgeColor}; color:white; padding:3px 8px; border-radius:10px; font-size:0.8rem;">${h.status || 'ยืนยันแล้ว'}</span>
-                        ${checkInBadge}
-                        <div style="margin-top:5px;">${actionHtml}</div>
-                    </td>
+                    <td><span style="background:${badgeColor}; color:white; padding:3px 8px; border-radius:10px; font-size:0.8rem;">${h.status || 'ยืนยันแล้ว'}</span>${checkInBadge}<div style="margin-top:5px;">${actionHtml}</div></td>
                 </tr>`;
             });
         }
@@ -1762,112 +1644,233 @@
         tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">กำลังโหลด...</td></tr>';
         
         let allBookings = [];
-        
-        if(allData.movies) {
-            Object.entries(allData.movies).forEach(([mId, m]) => {
-                if(m.bookings) {
-                    Object.entries(m.bookings).forEach(([seatId, b]) => {
-                        allBookings.push({
-                            path: `movies/${mId}/bookings/${seatId}`,
-                            type: 'movie', itemId: mId, seat: seatId,
-                            title: m.config.title, data: b
+        ['movie', 'event'].forEach(type => {
+            const dataObj = allData[type + 's'];
+            if(dataObj) {
+                Object.entries(dataObj).forEach(([itemId, item]) => {
+                    if(item.rounds) {
+                        Object.entries(item.rounds).forEach(([rId, rData]) => {
+                            if(rData.bookings) {
+                                Object.entries(rData.bookings).forEach(([bookingKey, b]) => {
+                                    allBookings.push({
+                                        path: `${type}s/${itemId}/rounds/${rId}/bookings/${bookingKey}`,
+                                        title: item.info.title, seat: type==='movie'?`ที่นั่ง: ${bookingKey}`:'บัตรเข้าร่วม',
+                                        data: b, type: type, itemId: itemId, roundId: rId
+                                    });
+                                });
+                            }
                         });
-                    });
-                }
-            });
-        }
-        if(allData.events) {
-            Object.entries(allData.events).forEach(([eId, e]) => {
-                if(e.bookings) {
-                    Object.entries(e.bookings).forEach(([bId, b]) => {
-                        allBookings.push({
-                            path: `events/${eId}/bookings/${bId}`,
-                            type: 'event', itemId: eId, seat: 'บัตรเข้าร่วม',
-                            title: e.config.title, data: b
-                        });
-                    });
-                }
-            });
-        }
+                    }
+                });
+            }
+        });
         
         allBookings.sort((a,b) => b.data.timestamp - a.data.timestamp);
-        
         tbody.innerHTML = '';
-        if(allBookings.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">ยังไม่มีคำสั่งซื้อในระบบ</td></tr>';
-            return;
-        }
+        if(allBookings.length === 0) return tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">ยังไม่มีคำสั่งซื้อในระบบ</td></tr>';
         
         allBookings.forEach(order => {
             const b = order.data;
             const dDate = new Date(b.timestamp).toLocaleString();
             const slipLink = b.slipUrl ? `<a href="${b.slipUrl}" target="_blank" style="color:#1a73e8; font-weight:bold;">ดูสลิป</a>` : '-';
             
-            const statusOpts = ['รอชำระเงิน', 'รอตรวจสอบ', 'ยืนยันแล้ว', 'ฟรี', 'ยกเลิก'];
-            let selectHtml = `<select onchange="updateOrderStatus('${order.path}', this.value, '${order.type}', '${order.itemId}')" style="padding:5px; border-radius:4px; border:1px solid #ddd; font-family:'Sarabun';">`;
-            statusOpts.forEach(opt => {
-                selectHtml += `<option value="${opt}" ${b.paymentStatus === opt ? 'selected' : ''}>${opt}</option>`;
-            });
+            let selectHtml = `<select onchange="updateOrderStatus('${order.path}', this.value, '${order.type}', '${order.itemId}', '${order.roundId}')" style="padding:5px; border-radius:4px; border:1px solid #ddd; font-family:'Sarabun';">`;
+            ['รอชำระเงิน', 'รอตรวจสอบ', 'ยืนยันแล้ว', 'ฟรี', 'ยกเลิก'].forEach(opt => selectHtml += `<option value="${opt}" ${b.paymentStatus === opt ? 'selected' : ''}>${opt}</option>`);
             selectHtml += `</select>`;
 
             let checkInStatus = b.isCheckedIn ? `<span style="color:#2ecc71; font-weight:bold;">✅ เช็คอินแล้ว</span>` : `<span style="color:#e74c3c;">❌ ยังไม่เช็คอิน</span>`;
             
-            tbody.innerHTML += `<tr>
-                <td>${dDate}</td>
-                <td><b>${order.title}</b><br><small style="color:#666;">${order.type==='movie'?'ที่นั่ง: '+order.seat : order.seat}</small></td>
-                <td>${b.name}<br><small>${b.phone} | ${b.email}</small></td>
-                <td>${slipLink}</td>
-                <td>${selectHtml}</td>
-                <td>${checkInStatus}</td>
-            </tr>`;
+            tbody.innerHTML += `<tr><td>${dDate}</td><td><b>${order.title}</b><br><small style="color:#666;">${order.seat}</small></td><td>${b.name}<br><small>${b.phone}</small></td><td>${slipLink}</td><td>${selectHtml}</td><td>${checkInStatus}</td></tr>`;
         });
     };
 
-    window.updateOrderStatus = (path, newStatus, type, itemId) => {
+    window.updateOrderStatus = (path, newStatus, type, itemId, roundId) => {
         if(userRole !== 'admin') return;
-        
         if(newStatus === 'ยกเลิก') {
             if(confirm("การยกเลิกจะทำการ 'ลบข้อมูลการจองนี้' เพื่อคืนที่นั่ง/โควต้า ให้ผู้ใช้อื่น ยืนยันหรือไม่?")) {
                 remove(ref(db, path)).then(() => {
-                    if(type === 'event') runTransaction(ref(db, `events/${itemId}/currentBooked`), (c) => (c || 1) - 1);
+                    if(type === 'event') runTransaction(ref(db, `events/${itemId}/rounds/${roundId}/currentBooked`), (c) => (c || 1) - 1);
                     alert("ยกเลิกและคืนที่นั่งเรียบร้อย");
                 });
-            } else {
-                if(!document.getElementById('page-orders').classList.contains('hidden')) window.showOrderManagement();
-            }
+            } else { if(!document.getElementById('page-orders').classList.contains('hidden')) window.showOrderManagement(); }
         } else {
             const updates = { paymentStatus: newStatus };
-            if (newStatus === 'รอชำระเงิน') {
-                updates.timestamp = Date.now();
-                alert("ระบบได้รีเซ็ตเวลาให้ลูกค้าชำระเงินใหม่ 10 นาทีแล้ว");
-            }
+            if (newStatus === 'รอชำระเงิน') { updates.timestamp = Date.now(); alert("ระบบได้รีเซ็ตเวลาให้ลูกค้าชำระเงินใหม่ 10 นาทีแล้ว"); }
             update(ref(db, path), updates);
         }
     };
 
-    // --- Admin Ticket Types Management ---
+    // 🌟 --- ระบบเพิ่มและแก้ไขข้อมูลหลัก / รอบ (Parent-Child Forms) --- 🌟
+
+    window.openItemModal = (type) => {
+        if(userRole !== 'admin') return;
+        document.getElementById('item-main-modal').classList.add('active');
+        document.getElementById('im-id').value = '';
+        document.getElementById('im-type').value = type;
+        document.getElementById('im-modal-title').innerText = `เพิ่มข้อมูล ${type==='movie'?'หนัง':'อีเวนต์'} (ใหม่)`;
+        document.querySelectorAll('#item-main-modal input:not([type=hidden]), #item-main-modal textarea').forEach(i => i.value = '');
+    }
+
+    window.editCurrentItem = () => {
+        if(userRole !== 'admin') return;
+        document.getElementById('item-main-modal').classList.add('active');
+        document.getElementById('im-id').value = currentItemId;
+        document.getElementById('im-type').value = currentType;
+        document.getElementById('im-modal-title').innerText = "แก้ไขข้อมูลหลัก";
+        
+        const info = allData[currentType + 's'][currentItemId].info;
+        document.getElementById('im-title').value = info.title || '';
+        document.getElementById('im-image').value = info.image || '';
+        document.getElementById('im-detail').value = info.detail || '';
+        document.getElementById('im-dates').value = info.showDates || '';
+    }
+
+    window.saveMainItem = (e) => {
+        e.preventDefault();
+        if(userRole !== 'admin') return;
+        const id = document.getElementById('im-id').value;
+        const type = document.getElementById('im-type').value;
+        const isNew = (id === '');
+        
+        const payload = { 
+            title: document.getElementById('im-title').value, 
+            image: document.getElementById('im-image').value,
+            detail: document.getElementById('im-detail').value,
+            showDates: document.getElementById('im-dates').value
+        };
+
+        const targetRef = isNew ? push(ref(db, `${type}s`)) : ref(db, `${type}s/${id}/info`);
+        
+        if (isNew) {
+            set(targetRef, { info: payload }).then(() => {
+                document.getElementById('item-main-modal').classList.remove('active');
+                goHome();
+            });
+        } else {
+            set(targetRef, payload).then(() => {
+                document.getElementById('item-main-modal').classList.remove('active');
+            });
+        }
+    }
+
+    window.deleteCurrentItem = () => {
+        if(userRole !== 'admin') return;
+        if(confirm(`ยืนยันการลบรายการนี้ทิ้งทั้งหมด? (ลบหนัง/อีเวนต์ และรอบทั้งหมดทิ้ง)`)) {
+            remove(ref(db, `${currentType}s/${currentItemId}`)).then(() => { goHome(); });
+        }
+    }
+
+    window.openRoundModal = () => {
+        if(userRole !== 'admin') return;
+        document.getElementById('item-round-modal').classList.add('active');
+        document.getElementById('rd-id').value = '';
+        document.getElementById('rd-modal-title').innerText = `เพิ่มรอบใหม่`;
+        document.querySelectorAll('#item-round-modal input:not([type=hidden])').forEach(i => i.value = '');
+        populateTicketTypeDropdownRound('');
+        
+        if(currentType === 'movie') { document.getElementById('rd-movie-fields').classList.remove('hidden'); document.getElementById('rd-event-fields').classList.add('hidden'); } 
+        else { document.getElementById('rd-movie-fields').classList.add('hidden'); document.getElementById('rd-event-fields').classList.remove('hidden'); }
+    }
+
+    window.editRoundItem = (roundId) => {
+        if(userRole !== 'admin') return;
+        window.openRoundModal();
+        document.getElementById('rd-modal-title').innerText = "แก้ไขรอบ";
+        document.getElementById('rd-id').value = roundId;
+        const conf = allData[currentType + 's'][currentItemId].rounds[roundId].config;
+        
+        document.getElementById('rd-location').value = conf.location || '';
+        document.getElementById('rd-price').value = conf.price || '';
+        document.getElementById('rd-book-start').value = conf.bookStart || '';
+        document.getElementById('rd-book-end').value = conf.bookEnd || '';
+        document.getElementById('rd-show-start').value = conf.showStart || '';
+        document.getElementById('rd-show-end').value = conf.showEnd || '';
+
+        populateTicketTypeDropdownRound(conf.ticketType || '');
+
+        if(currentType === 'movie') { 
+            document.getElementById('rd-rows').value = conf.rows || ''; 
+            document.getElementById('rd-cols').value = conf.cols || ''; 
+            document.getElementById('rd-blocked').value = conf.blocked || ''; 
+        } else { 
+            document.getElementById('rd-cap').value = conf.capacity || ''; 
+        }
+    }
+
+    window.saveRoundItem = (e) => {
+        e.preventDefault();
+        if(userRole !== 'admin') return;
+        const rId = document.getElementById('rd-id').value;
+        const isNew = (rId === '');
+        
+        const payload = { 
+            location: document.getElementById('rd-location').value,
+            ticketType: document.getElementById('rd-ticket-type').value,
+            price: document.getElementById('rd-price').value,
+            bookStart: document.getElementById('rd-book-start').value, 
+            bookEnd: document.getElementById('rd-book-end').value,
+            showStart: document.getElementById('rd-show-start').value,
+            showEnd: document.getElementById('rd-show-end').value
+        };
+
+        if(currentType === 'movie') { 
+            payload.rows = parseInt(document.getElementById('rd-rows').value); 
+            payload.cols = parseInt(document.getElementById('rd-cols').value); 
+            payload.blocked = document.getElementById('rd-blocked').value; 
+        } else { 
+            payload.capacity = parseInt(document.getElementById('rd-cap').value); 
+        }
+        
+        const path = `${currentType}s/${currentItemId}/rounds`;
+        const targetRef = isNew ? push(ref(db, path)) : ref(db, `${path}/${rId}/config`);
+        
+        if(isNew) {
+            const saveObj = { config: payload };
+            if(currentType === 'event') saveObj.currentBooked = 0;
+            set(targetRef, saveObj).then(() => { document.getElementById('item-round-modal').classList.remove('active'); });
+        } else {
+            set(targetRef, payload).then(() => { document.getElementById('item-round-modal').classList.remove('active'); });
+        }
+    }
+
+    window.deleteRoundItem = (rId) => {
+        if(userRole !== 'admin') return;
+        if(confirm("ยืนยันการลบรอบนี้? (ข้อมูลผู้ที่จองในรอบนี้จะหายไปด้วย)")) {
+            remove(ref(db, `${currentType}s/${currentItemId}/rounds/${rId}`));
+        }
+    }
+
+    function populateTicketTypeDropdownRound(val) {
+        const select = document.getElementById('rd-ticket-type');
+        select.innerHTML = '<option value="" data-price="">-- เลือกประเภทบัตร --</option>';
+        if(allData.ticketTypes) {
+            Object.values(allData.ticketTypes).forEach(t => {
+                select.innerHTML += `<option value="${t.name}" data-price="${t.price}" ${t.name===val?'selected':''}>${t.name} (฿${t.price})</option>`;
+            });
+        }
+        if(val && !select.querySelector(`option[value="${val}"]`)) {
+            select.innerHTML += `<option value="${val}" data-price="" selected>${val} (ข้อมูลเดิม)</option>`;
+        }
+    }
+    window.updatePriceFromTypeRound = () => {
+        const select = document.getElementById('rd-ticket-type');
+        const p = select.options[select.selectedIndex].getAttribute('data-price');
+        if(p) document.getElementById('rd-price').value = p;
+    }
+
+
+    // --- Ticket Types Management ---
     window.showTicketTypesManagement = () => {
         if(userRole !== 'admin') return;
         window.showPage('page-ticket-types');
         const list = document.getElementById('ticket-types-list');
         list.innerHTML = '';
-        
         if (allData.ticketTypes) {
             Object.entries(allData.ticketTypes).forEach(([id, t]) => {
-                list.innerHTML += `<tr>
-                    <td>${t.name}</td>
-                    <td>฿${t.price}</td>
-                    <td>
-                        <button class="btn-sm btn-edit" onclick="openTicketTypeModal('${id}', '${t.name}', ${t.price})">แก้ไข</button>
-                        <button class="btn-sm btn-del" onclick="deleteTicketType('${id}')">ลบ</button>
-                    </td>
-                </tr>`;
+                list.innerHTML += `<tr><td>${t.name}</td><td>฿${t.price}</td><td><button class="btn-sm btn-edit" onclick="openTicketTypeModal('${id}', '${t.name}', ${t.price})">แก้ไข</button><button class="btn-sm btn-del" onclick="deleteTicketType('${id}')">ลบ</button></td></tr>`;
             });
-        } else {
-            list.innerHTML = '<tr><td colspan="3" style="text-align:center;">ยังไม่มีประเภทบัตร</td></tr>';
-        }
+        } else list.innerHTML = '<tr><td colspan="3" style="text-align:center;">ยังไม่มีประเภทบัตร</td></tr>';
     }
-
     window.openTicketTypeModal = (id = '', name = '', price = '') => {
         if(userRole !== 'admin') return;
         document.getElementById('tt-modal-title').innerText = id ? 'แก้ไขประเภทบัตร' : 'เพิ่มประเภทบัตร';
@@ -1876,217 +1879,32 @@
         document.getElementById('tt-price').value = price;
         document.getElementById('ticket-type-modal').classList.add('active');
     }
-
     window.saveTicketType = (e) => {
-        e.preventDefault();
-        if(userRole !== 'admin') return;
+        e.preventDefault(); if(userRole !== 'admin') return;
         const id = document.getElementById('tt-id').value;
-        const name = document.getElementById('tt-name').value;
-        const price = parseInt(document.getElementById('tt-price').value);
-
         const targetRef = id ? ref(db, `ticketTypes/${id}`) : push(ref(db, 'ticketTypes'));
-        
-        set(targetRef, { name: name, price: price }).then(() => {
+        set(targetRef, { name: document.getElementById('tt-name').value, price: parseInt(document.getElementById('tt-price').value) }).then(() => {
             document.getElementById('ticket-type-modal').classList.remove('active');
         });
     }
-
     window.deleteTicketType = (id) => {
         if(userRole !== 'admin') return;
-        if(confirm("ยืนยันการลบประเภทบัตรนี้?")) {
-            remove(ref(db, `ticketTypes/${id}`));
-        }
+        if(confirm("ยืนยันการลบประเภทบัตรนี้?")) remove(ref(db, `ticketTypes/${id}`));
     }
 
-    window.updatePriceFromType = () => {
-        const select = document.getElementById('adm-ticket-type');
-        const selectedOption = select.options[select.selectedIndex];
-        const price = selectedOption.getAttribute('data-price');
-        if(price !== null && price !== "") {
-            document.getElementById('adm-price').value = price;
-        }
-    }
-
-    function populateTicketTypeDropdown(selectedValue = '') {
-        const select = document.getElementById('adm-ticket-type');
-        select.innerHTML = '<option value="" data-price="">-- เลือกประเภทบัตร --</option>';
-        if(allData.ticketTypes) {
-            Object.values(allData.ticketTypes).forEach(t => {
-                const isSelected = (t.name === selectedValue) ? 'selected' : '';
-                select.innerHTML += `<option value="${t.name}" data-price="${t.price}" ${isSelected}>${t.name} (฿${t.price})</option>`;
-            });
-        }
-        if(selectedValue && !select.querySelector(`option[value="${selectedValue}"]`)) {
-            select.innerHTML += `<option value="${selectedValue}" data-price="" selected>${selectedValue} (ข้อมูลเดิม)</option>`;
-        }
-    }
-
-    // --- Authentication & Handlers ---
-    window.handleAuth = (e) => {
-        e.preventDefault();
-        const email = document.getElementById('auth-email').value;
-        const pass = document.getElementById('auth-pass').value;
-
-        if(isRegistering) {
-            createUserWithEmailAndPassword(auth, email, pass).then((cred) => {
-                const code = document.getElementById('reg-admin-code').value;
-                const role = (code === 'ADMIN999') ? 'admin' : 'user';
-                set(ref(db, 'users/' + cred.user.uid), {
-                    name: document.getElementById('reg-name').value,
-                    phone: document.getElementById('reg-phone').value,
-                    idCard: document.getElementById('reg-idcard').value,
-                    email: email,
-                    role: role
-                });
-            }).catch(err => alert("Error: " + err.message));
-        } else {
-            signInWithEmailAndPassword(auth, email, pass).then(()=>{
-                window.goHome();
-            }).catch(err => alert("Error: " + err.message));
-        }
-    };
-    
-    window.doLogout = () => { signOut(auth).then(()=>window.goHome()); };
-    
-    window.toggleAuthMode = () => {
-        isRegistering = !isRegistering;
-        document.getElementById('auth-title').innerText = isRegistering ? "สมัครสมาชิกใหม่" : "เข้าสู่ระบบ";
-        document.getElementById('btn-auth-submit').innerText = isRegistering ? "ลงทะเบียน" : "เข้าสู่ระบบ";
-        document.getElementById('toggle-auth').innerText = isRegistering ? "มีบัญชีอยู่แล้ว? เข้าสู่ระบบ" : "ยังไม่มีบัญชี? สมัครสมาชิก";
-        document.getElementById('register-fields').classList.toggle('hidden');
-
-        const fpLink = document.getElementById('forgot-password-link');
-        if (fpLink) {
-            if (isRegistering) fpLink.classList.add('hidden');
-            else fpLink.classList.remove('hidden');
-        }
-    }
-
-    window.updateUserProfile = (e) => {
-        e.preventDefault();
-        update(ref(db, `users/${currentUser.uid}`), {
-            name: document.getElementById('p-name').value,
-            phone: document.getElementById('p-phone').value
-        }).then(() => alert("บันทึกข้อมูลสำเร็จ"));
-    }
-
-    window.showForgotPasswordModal = () => {
-        document.getElementById('forgot-password-modal').classList.add('active');
-    };
-
-    window.handleForgotPassword = () => {
-        const emailInput = document.getElementById('reset-email');
-        const email = emailInput.value.trim();
-
-        if (!email) {
-            alert("กรุณากรอกอีเมลของคุณ");
-            return;
-        }
-
-        sendPasswordResetEmail(auth, email)
-            .then(() => {
-                alert(`ส่งลิงก์สำหรับตั้งรหัสผ่านใหม่ไปยังอีเมล\n${email}\nเรียบร้อยแล้ว กรุณาตรวจสอบกล่องจดหมาย (หรือโฟลเดอร์จดหมายขยะ)`);
-                document.getElementById('forgot-password-modal').classList.remove('active');
-                emailInput.value = '';
-            })
-            .catch((error) => {
-                console.error("Error resetting password:", error);
-                if (error.code === 'auth/user-not-found') {
-                    alert("ไม่พบผู้ใช้งานที่ใช้อีเมลนี้ในระบบ");
-                } else if (error.code === 'auth/invalid-email') {
-                    alert("รูปแบบอีเมลไม่ถูกต้อง");
-                } else if (error.code === 'auth/too-many-requests') {
-                     alert("คุณส่งคำขอถี่เกินไป กรุณารอสักครู่แล้วลองใหม่");
-                } else {
-                    alert("เกิดข้อผิดพลาด: " + error.message);
-                }
-            });
-    };
-    
-    // --- Admin Functions ---
-    window.showUserManagement = () => {
-        if(userRole !== 'admin') return;
-        window.showPage('page-users');
-        onValue(ref(db, 'users'), (snap) => {
-            const list = document.getElementById('user-list-admin');
-            list.innerHTML = '';
-            snap.forEach(child => {
-                const u = child.val();
-                const uid = child.key;
-                list.innerHTML += `<tr>
-                    <td>${u.name || '-'}</td>
-                    <td>${u.email}</td>
-                    <td>${u.phone || '-'}</td>
-                    <td>${u.idCard || '-'}</td>
-                    <td><span class="tag ${u.role==='admin'?'event':'movie'}">${u.role}</span></td>
-                    <td>
-                        <button class="btn-sm" style="background:#17a2b8; color:white;" onclick="viewUserHistoryAdmin('${u.email}', '${u.name || 'ไม่มีชื่อ'}')">ประวัติ</button>
-                        <button class="btn-sm btn-edit" onclick="editUserAdmin('${uid}')">แก้ไข</button>
-                        <button class="btn-sm btn-del" onclick="deleteUserAdmin('${uid}')">ลบ</button>
-                    </td>
-                </tr>`;
-            });
-        });
-    }
-
-    window.editUserAdmin = (uid) => {
-        onValue(ref(db, 'users/' + uid), (snap) => {
-            const u = snap.val();
-            document.getElementById('edit-u-uid').value = uid;
-            document.getElementById('edit-u-name').value = u.name || '';
-            document.getElementById('edit-u-phone').value = u.phone || '';
-            document.getElementById('edit-u-idcard').value = u.idCard || '';
-            document.getElementById('edit-u-role').value = u.role || 'user';
-            document.getElementById('user-edit-modal').classList.add('active');
-        }, { onlyOnce: true });
-    }
-    window.saveUserAdmin = () => {
-        const uid = document.getElementById('edit-u-uid').value;
-        const updates = { 
-            name: document.getElementById('edit-u-name').value, 
-            phone: document.getElementById('edit-u-phone').value, 
-            idCard: document.getElementById('edit-u-idcard').value,
-            role: document.getElementById('edit-u-role').value 
-        };
-        update(ref(db, 'users/' + uid), updates).then(() => { 
-            document.getElementById('user-edit-modal').classList.remove('active'); 
-            alert("อัปเดตข้อมูลสมาชิกเรียบร้อย"); 
-        });
-    }
-    window.deleteUserAdmin = (uid) => {
-        if(confirm("ยืนยันการลบ?")) remove(ref(db, 'users/' + uid));
-    }
-
-
-    // 🌟 --- ระบบจัดการแบนเนอร์ (Admin) --- 🌟
+    // --- Banner Management ---
     window.showBannerManagement = () => {
         if(userRole !== 'admin') return;
         window.showPage('page-banners');
-        
         const list = document.getElementById('banners-list-admin');
         list.innerHTML = '';
-        
         if (allData.settings && allData.settings.banners) {
             Object.entries(allData.settings.banners).forEach(([id, b]) => {
-                const statusBadge = (b.isActive === true || b.isActive === 'true') 
-                                    ? '<span style="color:#2ecc71; font-weight:bold;">เปิดใช้งาน</span>' 
-                                    : '<span style="color:#e74c3c;">ปิดใช้งาน</span>';
-                                    
-                list.innerHTML += `<tr>
-                    <td><img src="${b.imageUrl}" style="width:100px; height:50px; object-fit:cover; border-radius:4px;"></td>
-                    <td><a href="${b.linkUrl}" target="_blank" style="color:#1a73e8;">${b.linkUrl ? 'ลิ้งค์' : '-'}</a></td>
-                    <td>${statusBadge}</td>
-                    <td>
-                        <button class="btn-sm btn-edit" onclick="openBannerFormModal('${id}', '${b.imageUrl}', '${b.linkUrl || ''}', '${b.isActive}')">แก้ไข</button>
-                        <button class="btn-sm btn-del" onclick="deleteBanner('${id}')">ลบ</button>
-                    </td>
-                </tr>`;
+                const statusBadge = (b.isActive === true || b.isActive === 'true') ? '<span style="color:#2ecc71; font-weight:bold;">เปิดใช้งาน</span>' : '<span style="color:#e74c3c;">ปิดใช้งาน</span>';
+                list.innerHTML += `<tr><td><img src="${b.imageUrl}" style="width:100px; height:50px; object-fit:cover; border-radius:4px;"></td><td><a href="${b.linkUrl}" target="_blank" style="color:#1a73e8;">${b.linkUrl ? 'ลิ้งค์' : '-'}</a></td><td>${statusBadge}</td><td><button class="btn-sm btn-edit" onclick="openBannerFormModal('${id}', '${b.imageUrl}', '${b.linkUrl || ''}', '${b.isActive}')">แก้ไข</button><button class="btn-sm btn-del" onclick="deleteBanner('${id}')">ลบ</button></td></tr>`;
             });
-        } else {
-            list.innerHTML = '<tr><td colspan="4" style="text-align:center;">ยังไม่มีแบนเนอร์ในระบบ</td></tr>';
-        }
+        } else list.innerHTML = '<tr><td colspan="4" style="text-align:center;">ยังไม่มีแบนเนอร์ในระบบ</td></tr>';
     }
-
     window.openBannerFormModal = (id = '', imgUrl = '', linkUrl = '', isActive = 'true') => {
         if(userRole !== 'admin') return;
         document.getElementById('bf-modal-title').innerText = id ? 'แก้ไขแบนเนอร์' : 'เพิ่มแบนเนอร์ใหม่';
@@ -2096,110 +1914,91 @@
         document.getElementById('bf-active').value = isActive === 'false' ? 'false' : 'true';
         document.getElementById('banner-form-modal').classList.add('active');
     }
-
     window.saveBannerData = (e) => {
-        e.preventDefault();
-        if(userRole !== 'admin') return;
-        
+        e.preventDefault(); if(userRole !== 'admin') return;
         const id = document.getElementById('bf-id').value;
         const targetRef = id ? ref(db, `settings/banners/${id}`) : push(ref(db, 'settings/banners'));
-        
-        const data = {
-            imageUrl: document.getElementById('bf-image').value,
-            linkUrl: document.getElementById('bf-link').value,
-            isActive: document.getElementById('bf-active').value === 'true'
-        };
-        
-        set(targetRef, data).then(() => {
+        set(targetRef, { imageUrl: document.getElementById('bf-image').value, linkUrl: document.getElementById('bf-link').value, isActive: document.getElementById('bf-active').value === 'true' }).then(() => {
             document.getElementById('banner-form-modal').classList.remove('active');
-            alert('บันทึกแบนเนอร์เรียบร้อย');
-            if(!document.getElementById('page-banners').classList.contains('hidden')) window.showBannerManagement();
         });
     }
-
     window.deleteBanner = (id) => {
         if(userRole !== 'admin') return;
-        if(confirm("ยืนยันการลบแบนเนอร์นี้?")) {
-            remove(ref(db, `settings/banners/${id}`));
-        }
+        if(confirm("ยืนยันการลบแบนเนอร์นี้?")) remove(ref(db, `settings/banners/${id}`));
     }
 
-    window.openAdminModal = (type) => {
-        if(userRole !== 'admin') return;
-        document.getElementById('admin-modal').classList.add('active');
-        document.getElementById('adm-id').value = '';
-        document.getElementById('adm-type').value = type;
-        document.getElementById('adm-title-text').innerText = `เพิ่ม ${type}`;
-        document.querySelectorAll('#admin-modal input:not([type=hidden]), #admin-modal textarea').forEach(i => i.value = '');
-        
-        populateTicketTypeDropdown('');
-
-        if(type === 'movie') { document.getElementById('adm-movie-fields').classList.remove('hidden'); document.getElementById('adm-event-fields').classList.add('hidden'); } 
-        else { document.getElementById('adm-movie-fields').classList.add('hidden'); document.getElementById('adm-event-fields').classList.remove('hidden'); }
-    }
-    window.closeAdminModal = () => document.getElementById('admin-modal').classList.remove('active');
-    
-    window.editItem = (id, type) => {
-        if(userRole !== 'admin') return;
-        window.openAdminModal(type);
-        document.getElementById('adm-title-text').innerText = "แก้ไขข้อมูล";
-        document.getElementById('adm-id').value = id;
-        const data = (type==='movie' ? allData.movies[id].config : allData.events[id].config);
-        
-        document.getElementById('adm-title').value = data.title || '';
-        document.getElementById('adm-start').value = data.start || '';
-        document.getElementById('adm-end').value = data.end || '';
-        document.getElementById('adm-image').value = data.image || '';
-        document.getElementById('adm-detail').value = data.detail || '';
-        document.getElementById('adm-location').value = data.location || '';
-        document.getElementById('adm-price').value = data.price || '';
-
-        populateTicketTypeDropdown(data.ticketType || '');
-
-        if(type==='movie') { 
-            document.getElementById('adm-rows').value = data.rows || ''; 
-            document.getElementById('adm-cols').value = data.cols || ''; 
-            document.getElementById('adm-blocked').value = data.blocked || ''; 
-        } else { 
-            document.getElementById('adm-cap').value = data.capacity || ''; 
-        }
-    }
-    window.deleteItem = (id, type) => {
-        if(userRole !== 'admin') return;
-        if(confirm("ยืนยันการลบ?")) remove(ref(db, `${type==='movie'?'movies':'events'}/${id}`));
-    }
-    window.saveAdminItem = (e) => {
+    // --- Auth & Users Management ---
+    window.handleAuth = (e) => {
         e.preventDefault();
-        if(userRole !== 'admin') return;
-        const id = document.getElementById('adm-id').value;
-        const type = document.getElementById('adm-type').value;
-        const isNew = (id === '');
-        
-        const payload = { 
-            title: document.getElementById('adm-title').value, 
-            start: document.getElementById('adm-start').value, 
-            end: document.getElementById('adm-end').value,
-            image: document.getElementById('adm-image').value,
-            detail: document.getElementById('adm-detail').value,
-            location: document.getElementById('adm-location').value,
-            ticketType: document.getElementById('adm-ticket-type').value,
-            price: document.getElementById('adm-price').value
-        };
+        const email = document.getElementById('auth-email').value;
+        const pass = document.getElementById('auth-pass').value;
 
-        if(type === 'movie') { 
-            payload.rows = parseInt(document.getElementById('adm-rows').value); 
-            payload.cols = parseInt(document.getElementById('adm-cols').value); 
-            payload.blocked = document.getElementById('adm-blocked').value; 
-        } else { 
-            payload.capacity = parseInt(document.getElementById('adm-cap').value); 
+        if(isRegistering) {
+            createUserWithEmailAndPassword(auth, email, pass).then((cred) => {
+                const code = document.getElementById('reg-admin-code').value;
+                set(ref(db, 'users/' + cred.user.uid), {
+                    name: document.getElementById('reg-name').value,
+                    phone: document.getElementById('reg-phone').value,
+                    idCard: document.getElementById('reg-idcard').value,
+                    email: email, role: (code === 'ADMIN999') ? 'admin' : 'user'
+                });
+            }).catch(err => alert("Error: " + err.message));
+        } else {
+            signInWithEmailAndPassword(auth, email, pass).then(()=>window.goHome()).catch(err => alert("Error: " + err.message));
         }
-        
-        const targetRef = isNew ? push(ref(db, type === 'movie' ? 'movies' : 'events')) : ref(db, `${type === 'movie' ? 'movies' : 'events'}/${id}`);
-        const updateData = isNew ? { config: payload } : { config: payload };
-        if(isNew && type === 'event') updateData.currentBooked = 0;
-        
-        (isNew ? set(targetRef, updateData) : update(targetRef, { config: payload })).then(() => window.closeAdminModal());
+    };
+    
+    window.doLogout = () => { signOut(auth).then(()=>window.goHome()); };
+    window.toggleAuthMode = () => {
+        isRegistering = !isRegistering;
+        document.getElementById('auth-title').innerText = isRegistering ? "สมัครสมาชิกใหม่" : "เข้าสู่ระบบ";
+        document.getElementById('btn-auth-submit').innerText = isRegistering ? "ลงทะเบียน" : "เข้าสู่ระบบ";
+        document.getElementById('toggle-auth').innerText = isRegistering ? "มีบัญชีอยู่แล้ว? เข้าสู่ระบบ" : "ยังไม่มีบัญชี? สมัครสมาชิก";
+        document.getElementById('register-fields').classList.toggle('hidden');
+        const fpLink = document.getElementById('forgot-password-link');
+        if (fpLink) { if (isRegistering) fpLink.classList.add('hidden'); else fpLink.classList.remove('hidden'); }
     }
+    window.updateUserProfile = (e) => {
+        e.preventDefault();
+        update(ref(db, `users/${currentUser.uid}`), { name: document.getElementById('p-name').value, phone: document.getElementById('p-phone').value }).then(() => alert("บันทึกข้อมูลสำเร็จ"));
+    }
+    window.showForgotPasswordModal = () => document.getElementById('forgot-password-modal').classList.add('active');
+    window.handleForgotPassword = () => {
+        const email = document.getElementById('reset-email').value.trim();
+        if (!email) return alert("กรุณากรอกอีเมลของคุณ");
+        sendPasswordResetEmail(auth, email).then(() => {
+            alert(`ส่งลิงก์สำหรับตั้งรหัสผ่านใหม่ไปยังอีเมลเรียบร้อยแล้ว`);
+            document.getElementById('forgot-password-modal').classList.remove('active');
+        }).catch((error) => alert("เกิดข้อผิดพลาด: " + error.message));
+    };
+    
+    window.showUserManagement = () => {
+        if(userRole !== 'admin') return;
+        window.showPage('page-users');
+        onValue(ref(db, 'users'), (snap) => {
+            const list = document.getElementById('user-list-admin');
+            list.innerHTML = '';
+            snap.forEach(child => {
+                const u = child.val();
+                list.innerHTML += `<tr><td>${u.name || '-'}</td><td>${u.email}</td><td>${u.phone || '-'}</td><td>${u.idCard || '-'}</td><td><span class="tag ${u.role==='admin'?'event':'movie'}">${u.role}</span></td><td><button class="btn-sm btn-edit" onclick="editUserAdmin('${child.key}')">แก้ไข</button><button class="btn-sm btn-del" onclick="deleteUserAdmin('${child.key}')">ลบ</button></td></tr>`;
+            });
+        });
+    }
+    window.editUserAdmin = (uid) => {
+        onValue(ref(db, 'users/' + uid), (snap) => {
+            const u = snap.val();
+            document.getElementById('edit-u-uid').value = uid; document.getElementById('edit-u-name').value = u.name || '';
+            document.getElementById('edit-u-phone').value = u.phone || ''; document.getElementById('edit-u-idcard').value = u.idCard || '';
+            document.getElementById('edit-u-role').value = u.role || 'user'; document.getElementById('user-edit-modal').classList.add('active');
+        }, { onlyOnce: true });
+    }
+    window.saveUserAdmin = () => {
+        const uid = document.getElementById('edit-u-uid').value;
+        update(ref(db, 'users/' + uid), { name: document.getElementById('edit-u-name').value, phone: document.getElementById('edit-u-phone').value, idCard: document.getElementById('edit-u-idcard').value, role: document.getElementById('edit-u-role').value }).then(() => { 
+            document.getElementById('user-edit-modal').classList.remove('active'); alert("อัปเดตข้อมูลสมาชิกเรียบร้อย"); 
+        });
+    }
+    window.deleteUserAdmin = (uid) => { if(confirm("ยืนยันการลบ?")) remove(ref(db, 'users/' + uid)); }
 </script>
 
 </body>
