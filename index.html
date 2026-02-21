@@ -277,6 +277,7 @@
                 <label>🔽 เรียงลำดับข้อมูล</label>
                 <select id="filter-sort" onchange="applyFilters()">
                     <option value="closest">รอบฉาย/จัดงาน ล่าสุด</option>
+                    <option value="newest">วันที่จัดงานไกลที่สุด (หลังสุด)</option>
                     <option value="priceAsc">ราคาตั๋ว (ต่ำไปสูง)</option>
                     <option value="priceDesc">ราคาตั๋ว (สูงไปต่ำ)</option>
                 </select>
@@ -752,7 +753,8 @@
                 window.openDetailPage(currentItemId, currentType, false);
             } 
             else if (currentRoundId) {
-                const roundData = allData[currentType + 's'][currentItemId].rounds[currentRoundId] || {};
+                const itemData = allData[currentType + 's'][currentItemId] || {};
+                const roundData = itemData.rounds ? itemData.rounds[currentRoundId] : {};
                 if(currentType === 'movie') {
                     updateSeatStatus(roundData.bookings || {}, roundData.temp_selections || {});
                 } else {
@@ -1015,49 +1017,72 @@
         const allLocations = new Set();
         let allItemsList = [];
 
-        // ดึงข้อมูลตามโครงสร้างใหม่ (Parent-Child)
+        // 🌟 ดึงข้อมูลและจัดการเงื่อนไข
         const processItems = (dataObj, type) => {
             if (!dataObj) return;
             Object.entries(dataObj).forEach(([id, item]) => {
-                if(item.info) {
+                // สำหรับข้อมูลโครงสร้างใหม่ (มี info)
+                if (item.info) {
                     let minPrice = Infinity;
-                    let maxPrice = 0;
                     let earliestStart = Infinity;
-                    let latestStart = 0;
-                    let roundCount = 0;
-                    let matchLocation = false;
+                    let validRoundCount = 0;
                     
                     if (item.rounds) {
                         Object.values(item.rounds).forEach(r => {
                             if(!r.config) return;
-                            roundCount++;
+                            
+                            const loc = r.config.location || 'ไม่ระบุสถานที่';
+                            allLocations.add(loc);
+
+                            // ถ้าเลือกสถานที่แล้ว แต่รอบนี้ไม่ได้จัดที่นี่ ให้ข้ามไป
+                            if (filterLocation && loc !== filterLocation) return;
+
+                            validRoundCount++;
                             const p = parseFloat(r.config.price) || 0;
                             const t = new Date(r.config.showStart).getTime();
-                            if(p < minPrice) minPrice = p;
-                            if(p > maxPrice) maxPrice = p;
-                            if(t < earliestStart) earliestStart = t;
-                            if(t > latestStart) latestStart = t;
                             
-                            const loc = r.config.location;
-                            if(loc) {
-                                allLocations.add(loc);
-                                if(filterLocation && loc === filterLocation) matchLocation = true;
-                            }
+                            if(p < minPrice) minPrice = p;
+                            if(t > 0 && t < earliestStart) earliestStart = t;
                         });
                     }
 
-                    if (!filterLocation) matchLocation = true;
-
-                    if (matchLocation) {
-                        allItemsList.push({
-                            id: id,
-                            type: type,
-                            info: item.info,
-                            roundCount: roundCount,
-                            minPrice: minPrice === Infinity ? 0 : minPrice,
-                            earliestStart: earliestStart === Infinity ? 0 : earliestStart
-                        });
+                    // 🌟 ถ้าเรื่องนี้ "ไม่มีรอบที่ตรงกับสถานที่ที่หาเลย"
+                    if (validRoundCount === 0) {
+                        // ถ้าเป็น User ธรรมดา ไม่ต้องโชว์เลย (เพราะไม่มีรอบให้จอง)
+                        if (userRole !== 'admin') return; 
+                        
+                        // ถ้าเป็น Admin แล้ว "กำลังค้นหาสถานที่" อยู่ ก็ไม่ต้องโชว์
+                        // (แต่ถ้าไม่ได้ค้นหา ให้โชว์เพื่อให้ Admin กดเข้าไปเพิ่มรอบได้)
+                        if (filterLocation !== '') return; 
                     }
+
+                    allItemsList.push({
+                        id: id,
+                        type: type,
+                        info: item.info,
+                        roundCount: validRoundCount, // จำนวนรอบที่โชว์จะเป็นจำนวนที่ผ่าน Filter สถานที่มาแล้ว
+                        minPrice: minPrice === Infinity ? 0 : minPrice,
+                        earliestStart: earliestStart === Infinity ? Number.MAX_SAFE_INTEGER : earliestStart
+                    });
+                }
+                // 🌟 เผื่อกรณีข้อมูลเก่า (โครงสร้างเดิม ยังไม่มี info)
+                else if (item.config) {
+                    const loc = item.config.location || 'ไม่ระบุสถานที่';
+                    allLocations.add(loc);
+                    
+                    if (filterLocation && loc !== filterLocation) return;
+                    
+                    const p = parseFloat(item.config.price) || 0;
+                    const t = new Date(item.config.start).getTime();
+                    
+                    allItemsList.push({
+                        id: id,
+                        type: type,
+                        info: item.config, // ใช้ config แทน info ไปก่อน
+                        roundCount: 1, 
+                        minPrice: p,
+                        earliestStart: t || Number.MAX_SAFE_INTEGER
+                    });
                 }
             });
         };
@@ -1082,13 +1107,18 @@
 
         // จัดเรียง
         filtered.sort((a, b) => {
-            if (filterSort === 'closest') return a.earliestStart - b.earliestStart;
-            if (filterSort === 'newest') return b.earliestStart - a.earliestStart;
-            if (filterSort === 'priceAsc') return a.minPrice - b.minPrice;
-            if (filterSort === 'priceDesc') return b.minPrice - a.minPrice;
+            if (filterSort === 'closest') return a.earliestStart - b.earliestStart; // ใกล้สุดขึ้นก่อน
+            if (filterSort === 'newest') { // ไกลสุดขึ้นก่อน
+                const aT = a.earliestStart === Number.MAX_SAFE_INTEGER ? 0 : a.earliestStart;
+                const bT = b.earliestStart === Number.MAX_SAFE_INTEGER ? 0 : b.earliestStart;
+                return bT - aT;
+            }
+            if (filterSort === 'priceAsc') return a.minPrice - b.minPrice; // ถูกสุดขึ้นก่อน
+            if (filterSort === 'priceDesc') return b.minPrice - a.minPrice; // แพงสุดขึ้นก่อน
             return 0;
         });
 
+        // แสดงผล
         if(filtered.length === 0) {
             gridList.innerHTML = `<div style="grid-column: 1/-1; text-align:center; padding: 40px; color:#777; font-size:1.1rem; background:white; border-radius:12px;">ไม่พบรายการที่ตรงกับเงื่อนไขการค้นหา</div>`;
         } else {
@@ -1099,7 +1129,12 @@
                 
                 const imgUrl = item.info.image || 'https://via.placeholder.com/300x400';
                 const tagText = item.type === 'movie' ? '🎬 ภาพยนตร์' : '🎤 อีเวนต์';
-                const dateText = item.info.showDates || '-';
+                
+                // ถ้าระบบเก่าจะใช้ start ถ้าใหม่ใช้ showDates
+                let dateText = item.info.showDates || 'ดูรอบฉายด้านใน';
+                if(!item.info.showDates && item.info.start) {
+                    dateText = new Date(item.info.start).toLocaleDateString('th-TH');
+                }
                 
                 div.innerHTML = `
                     <img src="${imgUrl}" alt="${item.info.title}">
@@ -1128,12 +1163,14 @@
         document.getElementById('schedule-type-text').innerText = type === 'movie' ? 'ฉายภาพยนตร์' : 'กิจกรรม';
         
         const dataNode = allData[type + 's'] ? allData[type + 's'][itemId] : null;
-        if(!dataNode || !dataNode.info) return goHome();
+        if(!dataNode) return goHome();
 
-        const info = dataNode.info;
+        // รองรับทั้งโครงสร้างใหม่ (info) และโครงสร้างเก่า (config)
+        const info = dataNode.info || dataNode.config;
+        if(!info) return goHome();
 
         document.getElementById('detail-header').innerHTML = `
-            <img src="${info.image}" alt="Poster" onerror="this.src='https://via.placeholder.com/300x400'">
+            <img src="${info.image || 'https://via.placeholder.com/300x400'}" alt="Poster">
             <div class="item-info">
                 <h2 style="margin-top:0; color:${type==='movie'?'#1a73e8':'#d93025'};">${info.title}</h2>
                 <p>📅 <strong>รอบวันที่:</strong> ${info.showDates || '-'}</p>
@@ -1149,16 +1186,40 @@
         list.innerHTML = '';
 
         let roundsArr = [];
+        const locFilter = document.getElementById('filter-location')?.value || '';
+
         if(dataNode.rounds) {
             Object.entries(dataNode.rounds).forEach(([rId, rData]) => {
-                roundsArr.push({ id: rId, ...rData });
+                if(rData.config) {
+                    // กรองเฉพาะรอบที่อยู่สถานที่นั้น (ถ้าเลือกตัวกรองไว้หน้าแรก)
+                    if(locFilter && rData.config.location !== locFilter) return;
+                    roundsArr.push({ id: rId, ...rData });
+                }
             });
+        } 
+        // 🌟 จำลองรอบสำหรับข้อมูลโครงสร้างเก่า 🌟
+        else if (dataNode.config) {
+            if(!locFilter || dataNode.config.location === locFilter) {
+                roundsArr.push({
+                    id: 'old-data',
+                    config: {
+                        ...dataNode.config,
+                        showStart: dataNode.config.start,
+                        showEnd: dataNode.config.end,
+                        bookStart: dataNode.config.start,
+                        bookEnd: dataNode.config.end
+                    },
+                    bookings: dataNode.bookings || {},
+                    temp_selections: dataNode.temp_selections || {},
+                    currentBooked: dataNode.currentBooked || 0
+                });
+            }
         }
         
         roundsArr.sort((a,b) => new Date(a.config.showStart) - new Date(b.config.showStart));
 
         if(roundsArr.length === 0) {
-            list.innerHTML = '<p style="color:#777;">ยังไม่มีรอบเปิดให้จอง</p>';
+            list.innerHTML = '<p style="color:#777; text-align:center; padding: 20px;">ไม่พบรอบการแสดงที่ตรงเงื่อนไข หรือยังไม่มีการเปิดรอบ</p>';
             return;
         }
 
@@ -1167,7 +1228,9 @@
         roundsArr.forEach(r => {
             const conf = r.config;
             const sStart = new Date(conf.showStart).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' });
-            const sEnd = new Date(conf.showEnd).toLocaleTimeString('th-TH', { timeStyle: 'short' });
+            let sEnd = 'ไม่ระบุ';
+            if(conf.showEnd) sEnd = new Date(conf.showEnd).toLocaleTimeString('th-TH', { timeStyle: 'short' });
+            
             const bStart = new Date(conf.bookStart).getTime();
             const bEnd = new Date(conf.bookEnd).getTime();
             
@@ -1199,11 +1262,11 @@
                 
                 statsHtml = `
                     <span class="schedule-stats">ว่าง: <span style="color:green">${remain}</span></span>
-                    <span class="schedule-stats">รับได้: ${cap == -1 ? 'ไม่จำกัด' : cap}</span>
+                    <span class="schedule-stats">รับได้ทั้งหมด: ${cap == -1 ? 'ไม่จำกัด' : cap}</span>
                 `;
 
                 if(isFull && userRole !== 'admin') {
-                    btnDisabled = 'disabled'; btnText = 'เต็ม'; btnStyle = 'background:#ccc;';
+                    btnDisabled = 'disabled'; btnText = 'เต็มแล้ว'; btnStyle = 'background:#ccc;';
                 }
             }
 
@@ -1216,13 +1279,16 @@
             }
 
             let adminTools = '';
-            if (userRole === 'admin') {
+            // ซ่อนปุ่มแก้ไข/ลบรอบ ถ้ามันเป็นข้อมูลโครงสร้างเก่า (ป้องกันบัค)
+            if (userRole === 'admin' && r.id !== 'old-data') {
                 adminTools = `
                     <div style="margin-top:10px; display:flex; gap:5px;">
                         <button class="btn-sm btn-edit" onclick="editRoundItem('${r.id}')">แก้ไขรอบ</button>
                         <button class="btn-sm btn-del" onclick="deleteRoundItem('${r.id}')">ลบ</button>
                     </div>
                 `;
+            } else if (userRole === 'admin' && r.id === 'old-data') {
+                 adminTools = `<div style="margin-top:10px; font-size:0.8rem; color:#f39c12;">⚠️ เป็นข้อมูลระบบเก่า ไม่สามารถแก้ไขรอบได้</div>`;
             }
 
             list.innerHTML += `
@@ -1250,7 +1316,18 @@
 
     window.selectShowtime = (roundId) => {
         currentRoundId = roundId;
-        const roundData = allData[currentType + 's'][currentItemId].rounds[roundId];
+        
+        let roundData = {};
+        if (roundId === 'old-data') {
+            const oldConf = allData[currentType + 's'][currentItemId];
+            roundData = {
+                config: { ...oldConf.config, showStart: oldConf.config.start, showEnd: oldConf.config.end, bookStart: oldConf.config.start, bookEnd: oldConf.config.end },
+                bookings: oldConf.bookings || {}, temp_selections: oldConf.temp_selections || {}, currentBooked: oldConf.currentBooked || 0
+            };
+        } else {
+            roundData = allData[currentType + 's'][currentItemId].rounds[roundId];
+        }
+        
         currentRoundConfig = roundData.config;
 
         if(!window.checkTime(currentRoundConfig.bookStart, currentRoundConfig.bookEnd) && userRole !== 'admin') return;
@@ -1299,7 +1376,7 @@
         for(let r=0; r<conf.rows; r++) {
             const rowL = String.fromCharCode(65 + r);
             for(let c=1; c<=conf.cols; c++) {
-                const seatId = `${rowLabel}${c}`;
+                const seatId = `${rowL}${c}`;
                 const seat = document.createElement('div');
                 seat.className = 'seat available';
                 seat.id = `seat-${seatId}`;
@@ -1331,7 +1408,12 @@
     }
 
     window.selectSeat = (seatId) => {
-        const tempPath = `${currentType}s/${currentItemId}/rounds/${currentRoundId}/temp_selections/${seatId}`;
+        // ถ้าระบบเก่า ให้เซฟลงที่เดิม
+        const isOldData = (currentRoundId === 'old-data');
+        const tempPath = isOldData 
+            ? `${currentType}s/${currentItemId}/temp_selections/${seatId}` 
+            : `${currentType}s/${currentItemId}/rounds/${currentRoundId}/temp_selections/${seatId}`;
+
         const tempRef = ref(db, tempPath);
         const userIdToUse = currentUser ? currentUser.uid : guestId;
         
@@ -1399,8 +1481,14 @@
         const bEmail = document.getElementById('inp-conf-email').value.trim();
         if(!bName || !bPhone || !bEmail) { alert("กรุณากรอกข้อมูลให้ครบ"); return; }
 
-        const roundData = allData[currentType + 's'][currentItemId].rounds[currentRoundId];
-        let existingBookings = roundData.bookings || {};
+        const isOldData = (currentRoundId === 'old-data');
+        let existingBookings = {};
+
+        if (isOldData) {
+            existingBookings = allData[currentType + 's'][currentItemId].bookings || {};
+        } else {
+            existingBookings = allData[currentType + 's'][currentItemId].rounds[currentRoundId].bookings || {};
+        }
 
         let isDup = false;
         Object.values(existingBookings).forEach(b => {
@@ -1478,7 +1566,10 @@
             slipUrl: slipUrl, paymentStatus: status, isCheckedIn: false 
         };
 
-        const basePath = `${currentType}s/${currentItemId}/rounds/${currentRoundId}`;
+        const isOldData = (currentRoundId === 'old-data');
+        const basePath = isOldData 
+            ? `${currentType}s/${currentItemId}` 
+            : `${currentType}s/${currentItemId}/rounds/${currentRoundId}`;
 
         if(currentType === 'movie') {
             set(ref(db, `${basePath}/bookings/${selectedTarget}`), bookingData).then(() => {
@@ -1492,7 +1583,9 @@
             const eventRoundRef = ref(db, basePath);
             runTransaction(eventRoundRef, (data) => {
                 if(data) {
-                    if(data.config.capacity != -1 && (data.currentBooked||0) >= data.config.capacity) return;
+                    // ถ้าเก่า config.capacity อยู่ใน data.config | ถ้าใหม่ อยู่ใน data.config ของรอบ
+                    const cap = data.config.capacity;
+                    if(cap != -1 && (data.currentBooked||0) >= cap) return;
                     data.currentBooked = (data.currentBooked || 0) + 1;
                 } return data;
             }).then((res) => {
@@ -1521,7 +1614,10 @@
         if(!slipUrl) { alert("⚠️ กรุณาแนบลิ้งค์สลิป"); return; }
 
         const { type, itemId, roundId, bookingKey } = payLaterData;
-        const path = `${type}s/${itemId}/rounds/${roundId}/bookings/${bookingKey}`;
+        const isOldData = (roundId === 'old-data');
+        const path = isOldData 
+            ? `${type}s/${itemId}/bookings/${bookingKey}` 
+            : `${type}s/${itemId}/rounds/${roundId}/bookings/${bookingKey}`;
 
         update(ref(db, path), { slipUrl: slipUrl, paymentStatus: 'รอตรวจสอบ', timestamp: Date.now() }).then(() => {
             alert("✅ บันทึกสลิปสำเร็จ โปรดรอแอดมินตรวจสอบ");
@@ -1576,19 +1672,37 @@
             const dataObj = allData[type + 's'];
             if(dataObj) {
                 Object.entries(dataObj).forEach(([itemId, item]) => {
+                    const title = item.info ? item.info.title : (item.config ? item.config.title : 'ไม่มีชื่อ');
+                    
+                    // 1. ตรวจสอบข้อมูลรอบโครงสร้างใหม่
                     if(item.rounds) {
                         Object.entries(item.rounds).forEach(([rId, rData]) => {
                             if(rData.bookings) {
                                 Object.entries(rData.bookings).forEach(([bookingKey, b]) => {
                                     if(b.email === myEmail) {
                                         myHistory.push({ 
-                                            timestamp: b.timestamp, itemTitle: item.info.title, 
+                                            timestamp: b.timestamp, itemTitle: title, 
                                             detail: type==='movie' ? `ที่นั่ง ${bookingKey}` : 'บัตรเข้าร่วมงาน', 
                                             slip: b.slipUrl, status: b.paymentStatus, type: type, itemId: itemId, roundId: rId, bookingKey: bookingKey, 
                                             price: rData.config.price || 0, location: rData.config.location, userName: b.name, eventDate: rData.config.showStart,
                                             isCheckedIn: b.isCheckedIn
                                         });
                                     }
+                                });
+                            }
+                        });
+                    }
+
+                    // 2. ตรวจสอบข้อมูลรอบโครงสร้างเก่า (ที่ไม่มี rounds แต่มี bookings)
+                    if (item.bookings) {
+                        Object.entries(item.bookings).forEach(([bookingKey, b]) => {
+                            if(b.email === myEmail) {
+                                myHistory.push({ 
+                                    timestamp: b.timestamp, itemTitle: title, 
+                                    detail: type==='movie' ? `ที่นั่ง ${bookingKey} (ข้อมูลเก่า)` : 'บัตรเข้าร่วมงาน (ข้อมูลเก่า)', 
+                                    slip: b.slipUrl, status: b.paymentStatus, type: type, itemId: itemId, roundId: 'old-data', bookingKey: bookingKey, 
+                                    price: item.config.price || 0, location: item.config.location, userName: b.name, eventDate: item.config.start,
+                                    isCheckedIn: b.isCheckedIn
                                 });
                             }
                         });
@@ -1613,8 +1727,8 @@
                     }
                 } else {
                     const qrDataStr = `TICKET|${h.type}|${h.itemId}|${h.roundId}|${h.bookingKey}|${h.userName}`;
-                    const dateStr = new Date(h.eventDate).toLocaleDateString();
-                    const timeStr = new Date(h.eventDate).toLocaleTimeString([], {timeStyle: 'short'});
+                    const dateStr = h.eventDate ? new Date(h.eventDate).toLocaleDateString() : '-';
+                    const timeStr = h.eventDate ? new Date(h.eventDate).toLocaleTimeString([], {timeStyle: 'short'}) : '-';
                     actionHtml = `
                         <button class="btn-sm" style="background:#8e44ad; color:white; margin-top:5px; font-weight:bold;" 
                         onclick="viewTicket('${h.itemTitle}', '${h.location || ''}', '${dateStr}', '${timeStr}', '${h.detail}', '${h.userName}', '${qrDataStr}', ${h.isCheckedIn ? true : false})">
@@ -1648,17 +1762,31 @@
             const dataObj = allData[type + 's'];
             if(dataObj) {
                 Object.entries(dataObj).forEach(([itemId, item]) => {
+                    const title = item.info ? item.info.title : (item.config ? item.config.title : 'ไม่มีชื่อ');
+                    
+                    // โครงสร้างใหม่
                     if(item.rounds) {
                         Object.entries(item.rounds).forEach(([rId, rData]) => {
                             if(rData.bookings) {
                                 Object.entries(rData.bookings).forEach(([bookingKey, b]) => {
                                     allBookings.push({
                                         path: `${type}s/${itemId}/rounds/${rId}/bookings/${bookingKey}`,
-                                        title: item.info.title, seat: type==='movie'?`ที่นั่ง: ${bookingKey}`:'บัตรเข้าร่วม',
+                                        title: title, seat: type==='movie'?`ที่นั่ง: ${bookingKey}`:'บัตรเข้าร่วม',
                                         data: b, type: type, itemId: itemId, roundId: rId
                                     });
                                 });
                             }
+                        });
+                    }
+
+                    // โครงสร้างเก่า
+                    if(item.bookings) {
+                        Object.entries(item.bookings).forEach(([bookingKey, b]) => {
+                            allBookings.push({
+                                path: `${type}s/${itemId}/bookings/${bookingKey}`,
+                                title: title + " (ข้อมูลเก่า)", seat: type==='movie'?`ที่นั่ง: ${bookingKey}`:'บัตรเข้าร่วม',
+                                data: b, type: type, itemId: itemId, roundId: 'old-data'
+                            });
                         });
                     }
                 });
@@ -1689,7 +1817,12 @@
         if(newStatus === 'ยกเลิก') {
             if(confirm("การยกเลิกจะทำการ 'ลบข้อมูลการจองนี้' เพื่อคืนที่นั่ง/โควต้า ให้ผู้ใช้อื่น ยืนยันหรือไม่?")) {
                 remove(ref(db, path)).then(() => {
-                    if(type === 'event') runTransaction(ref(db, `events/${itemId}/rounds/${roundId}/currentBooked`), (c) => (c || 1) - 1);
+                    if(type === 'event') {
+                        const eventPath = roundId === 'old-data' 
+                            ? `events/${itemId}/currentBooked` 
+                            : `events/${itemId}/rounds/${roundId}/currentBooked`;
+                        runTransaction(ref(db, eventPath), (c) => (c || 1) - 1);
+                    }
                     alert("ยกเลิกและคืนที่นั่งเรียบร้อย");
                 });
             } else { if(!document.getElementById('page-orders').classList.contains('hidden')) window.showOrderManagement(); }
@@ -1718,7 +1851,8 @@
         document.getElementById('im-type').value = currentType;
         document.getElementById('im-modal-title').innerText = "แก้ไขข้อมูลหลัก";
         
-        const info = allData[currentType + 's'][currentItemId].info;
+        // ดึง info (ถ้าไม่มีใช้ config ของเดิม)
+        const info = allData[currentType + 's'][currentItemId].info || allData[currentType + 's'][currentItemId].config;
         document.getElementById('im-title').value = info.title || '';
         document.getElementById('im-image').value = info.image || '';
         document.getElementById('im-detail').value = info.detail || '';
@@ -1739,15 +1873,16 @@
             showDates: document.getElementById('im-dates').value
         };
 
-        const targetRef = isNew ? push(ref(db, `${type}s`)) : ref(db, `${type}s/${id}/info`);
-        
         if (isNew) {
+            const targetRef = push(ref(db, `${type}s`));
             set(targetRef, { info: payload }).then(() => {
                 document.getElementById('item-main-modal').classList.remove('active');
                 goHome();
             });
         } else {
-            set(targetRef, payload).then(() => {
+            // ถ้าเป็นการแก้ไข เราอัปเดตลง node .info ทิ้งไว้เลย (ระบบจะแปลงอัตโนมัติ)
+            const targetRef = ref(db, `${type}s/${id}/info`);
+            update(targetRef, payload).then(() => {
                 document.getElementById('item-main-modal').classList.remove('active');
             });
         }
@@ -1822,14 +1957,15 @@
         }
         
         const path = `${currentType}s/${currentItemId}/rounds`;
-        const targetRef = isNew ? push(ref(db, path)) : ref(db, `${path}/${rId}/config`);
         
         if(isNew) {
+            const targetRef = push(ref(db, path));
             const saveObj = { config: payload };
             if(currentType === 'event') saveObj.currentBooked = 0;
             set(targetRef, saveObj).then(() => { document.getElementById('item-round-modal').classList.remove('active'); });
         } else {
-            set(targetRef, payload).then(() => { document.getElementById('item-round-modal').classList.remove('active'); });
+            const targetRef = ref(db, `${path}/${rId}/config`);
+            update(targetRef, payload).then(() => { document.getElementById('item-round-modal').classList.remove('active'); });
         }
     }
 
