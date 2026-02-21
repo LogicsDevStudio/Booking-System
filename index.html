@@ -133,66 +133,44 @@
         }
 
         /* 🌟 สไตล์สำหรับ Banner Slider 🌟 */
-        #banner-slider-container {
-            position: relative;
-            width: 100%;
-            max-height: 350px;
-            overflow: hidden;
-            border-radius: 12px;
-            margin-bottom: 25px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-        #banner-slider-track {
-            display: flex;
-            transition: transform 0.5s ease-in-out;
-            width: 100%;
-        }
-        .banner-slide {
-            flex: 0 0 100%;
-            box-sizing: border-box;
-        }
-        .banner-slide img {
-            width: 100%;
-            height: 350px;
-            object-fit: cover;
-            display: block;
-            transition: transform 0.3s;
-        }
-        .banner-slide a:hover img {
-            transform: scale(1.02);
-        }
-        .banner-dots-wrapper {
-            position: absolute;
-            bottom: 15px;
-            left: 0;
-            right: 0;
-            text-align: center;
-            z-index: 10;
-        }
-        .slider-dot {
-            display: inline-block;
-            width: 10px;
-            height: 10px;
-            margin: 0 5px;
-            background: rgba(255, 255, 255, 0.5);
-            border-radius: 50%;
-            cursor: pointer;
-            transition: background 0.3s;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        }
-        .slider-dot.active {
-            background: #fff;
-            transform: scale(1.2);
-        }
+        #banner-slider-container { position: relative; width: 100%; max-height: 350px; overflow: hidden; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        #banner-slider-track { display: flex; transition: transform 0.5s ease-in-out; width: 100%; }
+        .banner-slide { flex: 0 0 100%; box-sizing: border-box; }
+        .banner-slide img { width: 100%; height: 350px; object-fit: cover; display: block; transition: transform 0.3s; }
+        .banner-slide a:hover img { transform: scale(1.02); }
+        .banner-dots-wrapper { position: absolute; bottom: 15px; left: 0; right: 0; text-align: center; z-index: 10; }
+        .slider-dot { display: inline-block; width: 10px; height: 10px; margin: 0 5px; background: rgba(255, 255, 255, 0.5); border-radius: 50%; cursor: pointer; transition: background 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+        .slider-dot.active { background: #fff; transform: scale(1.2); }
         
-        /* สไตล์สำหรับแผงค้นหาและตัวกรอง */
-        .filter-bar {
-            display: flex; gap: 15px; flex-wrap: wrap; 
-            margin-bottom: 25px; background: #fff; 
-            padding: 20px; border-radius: 12px; 
+        /* 🌟 สไตล์สำหรับ Tab สลับการแสดงผล 🌟 */
+        .tab-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            background: #fff;
+            border-radius: 30px;
+            padding: 5px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            align-items: flex-end;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
         }
+        .tab-btn {
+            flex: 1;
+            padding: 10px 20px;
+            text-align: center;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            color: #555;
+            transition: all 0.3s;
+            font-size: 1.05rem;
+        }
+        .tab-btn.active { background: #1a73e8; color: white; box-shadow: 0 2px 8px rgba(26,115,232,0.3); }
+        .tab-btn.event.active { background: #d93025; box-shadow: 0 2px 8px rgba(217,48,37,0.3); }
+
+        /* สไตล์สำหรับแผงค้นหาและตัวกรอง */
+        .filter-bar { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 25px; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); align-items: flex-end; }
         .filter-item { flex: 1; min-width: 200px; }
         .filter-item label { display: block; font-weight: bold; font-size: 0.9rem; color: #555; margin-bottom: 8px; }
         .filter-item select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ddd; font-family: 'Sarabun'; cursor: pointer; outline: none;}
@@ -256,21 +234,18 @@
             <div class="banner-dots-wrapper" id="banner-slider-dots"></div>
         </div>
 
-        <h1 style="margin-bottom: 15px;">รายการที่เปิดจอง</h1>
+        <h1 style="margin-bottom: 15px; text-align: center;">รายการที่เปิดจอง</h1>
+
+        <div class="tab-container">
+            <div id="tab-movie" class="tab-btn active" onclick="switchHomeTab('movie')">🎬 ภาพยนตร์</div>
+            <div id="tab-event" class="tab-btn event" onclick="switchHomeTab('event')">🎤 อีเวนต์</div>
+        </div>
 
         <div class="filter-bar">
             <div class="filter-item">
                 <label>📍 ค้นหาสถานที่ / โรงภาพยนตร์</label>
                 <select id="filter-location" onchange="applyFilters()">
                     <option value="">-- ดูทุกสถานที่ --</option>
-                </select>
-            </div>
-            <div class="filter-item">
-                <label>🏷️ ประเภทรายการ</label>
-                <select id="filter-category" onchange="applyFilters()">
-                    <option value="all">ทั้งหมด (หนัง/อีเวนต์)</option>
-                    <option value="movie">🎬 ภาพยนตร์เท่านั้น</option>
-                    <option value="event">🎤 อีเวนต์เท่านั้น</option>
                 </select>
             </div>
             <div class="filter-item">
@@ -717,6 +692,9 @@
     let bannerInterval = null;
     let currentBannerIndex = 0;
     let lastBannerDataString = "";
+    
+    // 🌟 ตัวแปรติดตามว่าตอนนี้อยู่ Tab ไหน (ค่าเริ่มต้นเป็นหนัง) 🌟
+    let currentHomeTab = 'movie';
 
     const PROMPTPAY_NUMBER = "0812345678"; 
 
@@ -994,9 +972,24 @@
         }
     }
 
-    // 🌟 --- ระบบ Filter ค้นหาและจัดเรียง --- 🌟
+
+    // 🌟 --- ฟังก์ชันเปลี่ยน Tab --- 🌟
+    window.switchHomeTab = (tab) => {
+        currentHomeTab = tab;
+        document.getElementById('tab-movie').classList.toggle('active', tab === 'movie');
+        document.getElementById('tab-event').classList.toggle('active', tab === 'event');
+        
+        // เคลียร์ค่าค้นหาสถานที่เมื่อเปลี่ยนแท็บ เพื่อไม่ให้งง
+        const locSelect = document.getElementById('filter-location');
+        if (locSelect) locSelect.value = '';
+
+        window.renderHomeList();
+    };
+
     window.applyFilters = () => { window.renderHomeList(); };
 
+
+    // 🌟 --- ระบบ Home List อัจฉริยะ --- 🌟
     window.renderHomeList = () => {
         const gridList = document.getElementById('items-grid');
         if(!gridList) return;
@@ -1011,17 +1004,17 @@
         buildBannerSlider(); 
 
         const filterLocation = document.getElementById('filter-location')?.value || '';
-        const filterCategory = document.getElementById('filter-category')?.value || 'all';
         const filterSort = document.getElementById('filter-sort')?.value || 'closest';
 
         const allLocations = new Set();
         let allItemsList = [];
 
-        // 🌟 ดึงข้อมูลและจัดการเงื่อนไข
+        // ฟังก์ชันดึงข้อมูล ดึงแค่ Tab ที่เรากำลังดูอยู่!
         const processItems = (dataObj, type) => {
             if (!dataObj) return;
             Object.entries(dataObj).forEach(([id, item]) => {
-                // สำหรับข้อมูลโครงสร้างใหม่ (มี info)
+                
+                // --- โครงสร้างใหม่ ---
                 if (item.info) {
                     let minPrice = Infinity;
                     let earliestStart = Infinity;
@@ -1046,13 +1039,9 @@
                         });
                     }
 
-                    // 🌟 ถ้าเรื่องนี้ "ไม่มีรอบที่ตรงกับสถานที่ที่หาเลย"
+                    // ถ้าไม่มีรอบที่ตรงกับสถานที่ที่หาเลย
                     if (validRoundCount === 0) {
-                        // ถ้าเป็น User ธรรมดา ไม่ต้องโชว์เลย (เพราะไม่มีรอบให้จอง)
                         if (userRole !== 'admin') return; 
-                        
-                        // ถ้าเป็น Admin แล้ว "กำลังค้นหาสถานที่" อยู่ ก็ไม่ต้องโชว์
-                        // (แต่ถ้าไม่ได้ค้นหา ให้โชว์เพื่อให้ Admin กดเข้าไปเพิ่มรอบได้)
                         if (filterLocation !== '') return; 
                     }
 
@@ -1060,12 +1049,13 @@
                         id: id,
                         type: type,
                         info: item.info,
-                        roundCount: validRoundCount, // จำนวนรอบที่โชว์จะเป็นจำนวนที่ผ่าน Filter สถานที่มาแล้ว
+                        roundCount: validRoundCount,
                         minPrice: minPrice === Infinity ? 0 : minPrice,
                         earliestStart: earliestStart === Infinity ? Number.MAX_SAFE_INTEGER : earliestStart
                     });
                 }
-                // 🌟 เผื่อกรณีข้อมูลเก่า (โครงสร้างเดิม ยังไม่มี info)
+                
+                // --- โครงสร้างเก่า ---
                 else if (item.config) {
                     const loc = item.config.location || 'ไม่ระบุสถานที่';
                     allLocations.add(loc);
@@ -1078,7 +1068,7 @@
                     allItemsList.push({
                         id: id,
                         type: type,
-                        info: item.config, // ใช้ config แทน info ไปก่อน
+                        info: item.config,
                         roundCount: 1, 
                         minPrice: p,
                         earliestStart: t || Number.MAX_SAFE_INTEGER
@@ -1087,10 +1077,14 @@
             });
         };
 
-        processItems(allData.movies, 'movie');
-        processItems(allData.events, 'event');
+        // เรียกใช้ฟังก์ชันประมวลผล ตาม Tab ที่เลือกเท่านั้น!
+        if (currentHomeTab === 'movie') {
+            processItems(allData.movies, 'movie');
+        } else {
+            processItems(allData.events, 'event');
+        }
 
-        // อัปเดต Dropdown เลือกสถานที่
+        // อัปเดต Dropdown เลือกสถานที่ (จะมีเฉพาะสถานที่ของหนัง หรือ เฉพาะของอีเวนต์เท่านั้น)
         const locSelect = document.getElementById('filter-location');
         if(locSelect) {
             locSelect.innerHTML = '<option value="">-- ดูทุกสถานที่ --</option>';
@@ -1102,11 +1096,8 @@
             });
         }
 
-        // กรองหมวดหมู่
-        let filtered = allItemsList.filter(item => filterCategory === 'all' || item.type === filterCategory);
-
         // จัดเรียง
-        filtered.sort((a, b) => {
+        allItemsList.sort((a, b) => {
             if (filterSort === 'closest') return a.earliestStart - b.earliestStart; // ใกล้สุดขึ้นก่อน
             if (filterSort === 'newest') { // ไกลสุดขึ้นก่อน
                 const aT = a.earliestStart === Number.MAX_SAFE_INTEGER ? 0 : a.earliestStart;
@@ -1119,10 +1110,11 @@
         });
 
         // แสดงผล
-        if(filtered.length === 0) {
-            gridList.innerHTML = `<div style="grid-column: 1/-1; text-align:center; padding: 40px; color:#777; font-size:1.1rem; background:white; border-radius:12px;">ไม่พบรายการที่ตรงกับเงื่อนไขการค้นหา</div>`;
+        if(allItemsList.length === 0) {
+            const txt = currentHomeTab === 'movie' ? 'ภาพยนตร์' : 'อีเวนต์';
+            gridList.innerHTML = `<div style="grid-column: 1/-1; text-align:center; padding: 40px; color:#777; font-size:1.1rem; background:white; border-radius:12px;">ไม่พบ${txt}ที่ตรงกับเงื่อนไขการค้นหา</div>`;
         } else {
-            filtered.forEach(item => {
+            allItemsList.forEach(item => {
                 const div = document.createElement('div');
                 div.className = 'card';
                 div.onclick = () => openDetailPage(item.id, item.type);
@@ -1130,7 +1122,6 @@
                 const imgUrl = item.info.image || 'https://via.placeholder.com/300x400';
                 const tagText = item.type === 'movie' ? '🎬 ภาพยนตร์' : '🎤 อีเวนต์';
                 
-                // ถ้าระบบเก่าจะใช้ start ถ้าใหม่ใช้ showDates
                 let dateText = item.info.showDates || 'ดูรอบฉายด้านใน';
                 if(!item.info.showDates && item.info.start) {
                     dateText = new Date(item.info.start).toLocaleDateString('th-TH');
@@ -1374,9 +1365,9 @@
         if (conf.blocked) blockedList = Array.isArray(conf.blocked) ? conf.blocked : String(conf.blocked).split(',').map(x => x.trim());
 
         for(let r=0; r<conf.rows; r++) {
-            const rowL = String.fromCharCode(65 + r);
+            const rowLabel = String.fromCharCode(65 + r);
             for(let c=1; c<=conf.cols; c++) {
-                const seatId = `${rowL}${c}`;
+                const seatId = `${rowLabel}${c}`;
                 const seat = document.createElement('div');
                 seat.className = 'seat available';
                 seat.id = `seat-${seatId}`;
