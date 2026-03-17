@@ -153,6 +153,18 @@
         .filter-item { flex: 1; min-width: 200px; }
         .filter-item label { display: block; font-weight: bold; font-size: 0.9rem; color: #555; margin-bottom: 8px; }
         .filter-item select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ddd; font-family: 'Sarabun'; cursor: pointer; outline: none;}
+
+        /* สีสำหรับที่นั่งแบบ Normal (อิงสีเขียวเดิม) */
+        .seat.tier-normal.available { border-color: #28a745; color: #28a745; }
+        .seat.tier-normal.available:hover { background-color: #28a745; color: white; }
+
+        /* สีสำหรับที่นั่งแบบ VIP (สีม่วง) */
+        .seat.tier-vip.available { border-color: #9b59b6; color: #9b59b6; }
+        .seat.tier-vip.available:hover { background-color: #9b59b6; color: white; }
+
+        /* เพิ่มในส่วน Legend (คำอธิบายสีด้านล่างแผนผังที่นั่ง) */
+        .dot-legend.tier-normal { border: 2px solid #28a745; }
+        .dot-legend.tier-vip { border: 2px solid #9b59b6; }
     </style>
 </head>
 <body>
@@ -166,6 +178,8 @@
         <span id="nav-admin-orders" class="nav-item hidden" onclick="showOrderManagement()" style="color:#d93025;">จัดการคำสั่งซื้อ</span>
         <span id="nav-admin-users" class="nav-item hidden" onclick="showUserManagement()" style="color:#d93025;">จัดการสมาชิก</span>
         <span id="nav-admin-tickets" class="nav-item hidden" onclick="showTicketTypesManagement()" style="color:#d93025;">จัดการประเภทบัตร</span>
+        <span id="nav-admin-promos" class="nav-item hidden" onclick="showPromotionsManagement()" style="color:#d93025;">จัดการโค้ดส่วนลด</span>
+        
         <span id="nav-login" class="nav-item" onclick="showPage('page-auth')">เข้าสู่ระบบ</span>
         <span id="nav-logout" class="btn-logout hidden" onclick="doLogout()">ออกจากระบบ</span>
     </div>
@@ -267,7 +281,8 @@
             <div class="screen">จอภาพยนตร์ / เวที</div>
             <div class="seat-map" id="seat-map"></div>
             <div class="legend">
-                <div class="legend-item"><div class="dot-legend" style="border:2px solid #28a745;"></div> ว่าง</div>
+                <div class="legend-item"><div class="dot-legend tier-normal"></div> ว่าง (ปกติ)</div>
+                <div class="legend-item"><div class="dot-legend tier-vip"></div> ว่าง (VIP)</div>
                 <div class="legend-item"><div class="dot-legend" style="background:#f39c12;"></div> รอชำระเงิน</div>
                 <div class="legend-item"><div class="dot-legend" style="background:#dc3545;"></div> จองแล้ว</div>
                 <div class="legend-item"><div class="dot-legend" style="background:#e2e6ea;"></div> ปิด</div>
@@ -311,6 +326,30 @@
 
     <div id="page-banners" class="hidden">
         <div class="nav-back" onclick="goHome()">⬅ ย้อนกลับ</div><div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;"><h2 style="margin:0;">🖼️ จัดการแบนเนอร์โฆษณา</h2><button class="btn-sm" style="background:#2ecc71; padding:10px 20px; font-size:1rem;" onclick="openBannerFormModal()">+ เพิ่มแบนเนอร์ใหม่</button></div><div style="overflow-x:auto; margin-top:20px;"><table><thead><tr><th>รูปภาพ</th><th>ลิ้งค์ (URL)</th><th>สถานะ</th><th>จัดการ</th></tr></thead><tbody id="banners-list-admin"></tbody></table></div>
+    </div>
+
+    <div id="page-promotions" class="hidden">
+        <div class="nav-back" onclick="goHome()">⬅ ย้อนกลับ</div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+            <h2 style="margin: 0;">🎟️ จัดการโค้ดส่วนลด (Promotions)</h2>
+            <button class="btn-sm" style="background:#2ecc71; padding:10px 20px; font-size:1rem;" onclick="openPromoModal()">+ สร้างโค้ดใหม่</button>
+        </div>
+        <div style="overflow-x: auto; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                <thead>
+                    <tr style="border-bottom: 2px solid #ddd;">
+                        <th style="padding: 10px;">โค้ดส่วนลด</th>
+                        <th style="padding: 10px;">ประเภท</th>
+                        <th style="padding: 10px;">มูลค่า</th>
+                        <th style="padding: 10px;">สิทธิ์ที่ใช้ / ทั้งหมด</th>
+                        <th style="padding: 10px;">สถานะ</th>
+                        <th style="padding: 10px; text-align: center;">จัดการ</th>
+                    </tr>
+                </thead>
+                <tbody id="promo-list">
+                    </tbody>
+            </table>
+        </div>
     </div>
 
 </div>
@@ -495,7 +534,47 @@
 <div id="item-round-modal" class="modal"><div class="modal-content"><span class="close-btn" onclick="document.getElementById('item-round-modal').classList.remove('active')">&times;</span><h3 id="rd-modal-title">จัดการรอบ</h3><form onsubmit="saveRoundItem(event)"><input type="hidden" id="rd-id"><div class="form-group"><label>สถานที่จัดงาน / โรงภาพยนตร์ (เฉพาะรอบนี้):</label><input type="text" id="rd-location" required></div><div style="display:flex; gap:10px;"><div class="form-group" style="flex:1"><label>ประเภทบัตร:</label><select id="rd-ticket-type" onchange="updatePriceFromTypeRound()" required><option value="">-- โหลดข้อมูล --</option></select></div><div class="form-group" style="flex:1"><label>ราคา (บาท):</label><input type="number" id="rd-price" required></div></div><div style="display:flex; gap:10px;"><div class="form-group" style="flex:1"><label>เปิดให้จอง:</label><input type="datetime-local" id="rd-book-start" required></div><div class="form-group" style="flex:1"><label>ปิดรับจอง:</label><input type="datetime-local" id="rd-book-end" required></div></div><div style="display:flex; gap:10px;"><div class="form-group" style="flex:1"><label>เวลาเริ่มแสดง:</label><input type="datetime-local" id="rd-show-start" required></div><div class="form-group" style="flex:1"><label>เวลาสิ้นสุด:</label><input type="datetime-local" id="rd-show-end" required></div></div><div id="rd-movie-fields" class="hidden" style="background:#f9f9f9; padding:10px; border-radius:5px; margin-bottom:15px;"><div style="display:flex; gap:10px;"><div class="form-group" style="flex:1"><label>จำนวนแถว (A, B...):</label><input type="number" id="rd-rows"></div><div class="form-group" style="flex:1"><label>จำนวนที่นั่ง/แถว:</label><input type="number" id="rd-cols"></div></div><div class="form-group"><label>ปิดที่นั่ง (Blocked ex: A1,A2):</label><input type="text" id="rd-blocked"></div></div><div id="rd-event-fields" class="hidden" style="background:#f9f9f9; padding:10px; border-radius:5px; margin-bottom:15px;"><div class="form-group"><label>ความจุ (-1=ไม่จำกัด):</label><input type="number" id="rd-cap"></div></div><div class="modal-buttons"><button type="button" class="btn-secondary" onclick="document.getElementById('item-round-modal').classList.remove('active')">ยกเลิก</button><button type="submit" class="btn-primary" style="width:auto; background:#f39c12;">บันทึกรอบ</button></div></form></div></div>
 
 <div id="ticket-type-modal" class="modal"><div class="modal-content"><span class="close-btn" onclick="document.getElementById('ticket-type-modal').classList.remove('active')">&times;</span><h3 id="tt-modal-title">จัดการประเภทบัตร</h3><form onsubmit="saveTicketType(event)"><input type="hidden" id="tt-id"><div class="form-group"><label>ชื่อประเภทบัตร:</label><input type="text" id="tt-name" required></div><div class="form-group"><label>ราคา (บาท):</label><input type="number" id="tt-price" required min="0"></div><div class="modal-buttons"><button type="button" class="btn-secondary" onclick="document.getElementById('ticket-type-modal').classList.remove('active')">ยกเลิก</button><button type="submit" class="btn-primary" style="width:auto;">บันทึก</button></div></form></div></div>
+
 <div id="user-edit-modal" class="modal"><div class="modal-content"><h3>จัดการข้อมูลสมาชิก</h3><input type="hidden" id="edit-u-uid"><div class="form-group"><label>ชื่อ-นามสกุล</label><input type="text" id="edit-u-name"></div><div class="form-group"><label>เบอร์โทร</label><input type="text" id="edit-u-phone"></div><div class="form-group"><label>เลขบัตรประชาชน</label><input type="text" id="edit-u-idcard"></div><div class="form-group"><label>สิทธิ์การใช้งาน</label><select id="edit-u-role" style="width:100%; padding:10px; margin-top:5px; border-radius:6px; border:1px solid #ddd; font-family:'Sarabun';"><option value="user">User (ทั่วไป)</option><option value="admin">Admin (ผู้ดูแล)</option></select></div><div class="modal-buttons"><button class="btn-secondary" onclick="document.getElementById('user-edit-modal').classList.remove('active')">ยกเลิก</button><button class="btn-primary" onclick="saveUserAdmin()" style="width:auto; margin-left:10px;">บันทึก</button></div></div></div>
+
+<div id="promo-modal" class="modal">
+    <div class="modal-content" style="max-width: 400px;">
+        <span class="close-btn" onclick="document.getElementById('promo-modal').classList.remove('active')">&times;</span>
+        <h3 id="promo-modal-title" style="margin-top: 0; color: #1a73e8;">สร้าง/แก้ไข โค้ดส่วนลด</h3>
+        
+        <div class="form-group" style="margin-top: 15px;">
+            <label>รหัสโค้ด (ภาษาอังกฤษ/ตัวเลข):</label>
+            <input type="text" id="inp-promo-id" placeholder="เช่น SUMMER50" style="text-transform: uppercase;">
+        </div>
+        <div class="form-group">
+            <label>ประเภทส่วนลด:</label>
+            <select id="inp-promo-type">
+                <option value="fixed">ลดเป็นบาท (฿)</option>
+                <option value="percent">ลดเป็นเปอร์เซ็นต์ (%)</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>มูลค่าส่วนลด:</label>
+            <input type="number" id="inp-promo-value" placeholder="เช่น 50 หรือ 10" min="0">
+        </div>
+        <div class="form-group">
+            <label>จำนวนสิทธิ์ทั้งหมด (-1 = ไม่จำกัด):</label>
+            <input type="number" id="inp-promo-limit" value="-1">
+        </div>
+        <div class="form-group">
+            <label>สถานะการใช้งาน:</label>
+            <select id="inp-promo-active">
+                <option value="true">เปิดใช้งาน</option>
+                <option value="false">ปิดใช้งาน</option>
+            </select>
+        </div>
+        
+        <div class="modal-buttons">
+            <button class="btn-secondary" onclick="document.getElementById('promo-modal').classList.remove('active')">ยกเลิก</button>
+            <button class="btn-primary" style="width: auto; margin-left: 10px;" onclick="savePromo()">💾 บันทึกโค้ด</button>
+        </div>
+    </div>
+</div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -540,8 +619,12 @@
     let lastBannerDataString = "";
     
     let currentHomeTab = 'movie';
-
     const PROMPTPAY_NUMBER = "0812345678"; 
+
+    // 🌟 ตัวแปรเก็บสถานะใหม่ สำหรับ Seat Tier & Promo Code
+    let currentSelectedPrice = 0; 
+    let appliedPromoCode = "";
+    let discountValue = 0;
 
     onAuthStateChanged(auth, (user) => {
         currentUser = user;
@@ -569,22 +652,12 @@
     onValue(ref(db, '/'), (snapshot) => {
         allData = snapshot.val() || {};
         window.renderHomeList();
-        
-        // อัปเดต Detail Page แบบ Realtime ถ้าเปิดอยู่
         if(!document.getElementById('page-detail').classList.contains('hidden') && currentItemId) {
-            if(!document.getElementById('schedule-section').classList.contains('hidden')) {
-                window.openDetailPage(currentItemId, currentType, false);
-            } 
+            if(!document.getElementById('schedule-section').classList.contains('hidden')) { window.openDetailPage(currentItemId, currentType, false); } 
             else if (currentRoundId) {
-                const itemData = allData[currentType + 's'][currentItemId] || {};
-                const roundData = itemData.rounds ? itemData.rounds[currentRoundId] : {};
-                if(currentType === 'movie') {
-                    updateSeatStatus(roundData.bookings || {}, roundData.temp_selections || {});
-                } else {
-                    const cap = currentRoundConfig.capacity;
-                    const cur = roundData.currentBooked || 0;
-                    document.getElementById('e-remaining').innerText = cap == -1 ? '∞' : (cap - cur);
-                }
+                const itemData = allData[currentType + 's'][currentItemId] || {}; const roundData = itemData.rounds ? itemData.rounds[currentRoundId] : {};
+                if(currentType === 'movie') { updateSeatStatus(roundData.bookings || {}, roundData.temp_selections || {}); } 
+                else { const cap = currentRoundConfig.capacity; const cur = roundData.currentBooked || 0; document.getElementById('e-remaining').innerText = cap == -1 ? '∞' : (cap - cur); }
             }
         }
         checkAdminPages();
@@ -592,33 +665,14 @@
     });
 
     setInterval(() => {
-        const now = Date.now();
-        const expireTime = 10 * 60 * 1000; 
+        const now = Date.now(); const expireTime = 10 * 60 * 1000; 
         ['movie', 'event'].forEach(type => {
             if(allData[type + 's']) {
                 Object.entries(allData[type + 's']).forEach(([itemId, item]) => {
-                    if(item.rounds) {
-                        Object.entries(item.rounds).forEach(([rId, rData]) => {
-                            if(rData.bookings) {
-                                Object.entries(rData.bookings).forEach(([bookingKey, b]) => {
-                                    if(b.paymentStatus === 'รอชำระเงิน' && (now - b.timestamp > expireTime)) {
-                                        remove(ref(db, `${type}s/${itemId}/rounds/${rId}/bookings/${bookingKey}`)).then(() => {
-                                            if(type === 'event') {
-                                                runTransaction(ref(db, `events/${itemId}/rounds/${rId}/currentBooked`), (c) => (c || 1) - 1);
-                                            }
-                                        });
-                                    }
-                                });
-                            }
-                            if(type === 'movie' && rData.temp_selections) {
-                                Object.entries(rData.temp_selections).forEach(([seatId, t]) => {
-                                    if(now - t.timestamp > expireTime) { 
-                                        remove(ref(db, `movies/${itemId}/rounds/${rId}/temp_selections/${seatId}`)); 
-                                    }
-                                });
-                            }
-                        });
-                    }
+                    if(item.rounds) { Object.entries(item.rounds).forEach(([rId, rData]) => {
+                            if(rData.bookings) { Object.entries(rData.bookings).forEach(([bookingKey, b]) => { if(b.paymentStatus === 'รอชำระเงิน' && (now - b.timestamp > expireTime)) { remove(ref(db, `${type}s/${itemId}/rounds/${rId}/bookings/${bookingKey}`)).then(() => { if(type === 'event') { runTransaction(ref(db, `events/${itemId}/rounds/${rId}/currentBooked`), (c) => (c || 1) - 1); } }); } }); }
+                            if(type === 'movie' && rData.temp_selections) { Object.entries(rData.temp_selections).forEach(([seatId, t]) => { if(now - t.timestamp > expireTime) { remove(ref(db, `movies/${itemId}/rounds/${rId}/temp_selections/${seatId}`)); } }); }
+                    }); }
                 });
             }
         });
@@ -626,45 +680,20 @@
 
     function updateNavbarUI(isLoggedIn) {
         document.getElementById('main-nav').classList.remove('hidden');
-        if(userRole === 'admin') {
-            document.getElementById('nav-admin-scan').classList.remove('hidden');
-            document.getElementById('nav-admin-orders').classList.remove('hidden');
-            document.getElementById('nav-admin-users').classList.remove('hidden');
-            document.getElementById('nav-admin-tickets').classList.remove('hidden');
-        } else {
-            document.getElementById('nav-admin-scan').classList.add('hidden');
-            document.getElementById('nav-admin-orders').classList.add('hidden');
-            document.getElementById('nav-admin-users').classList.add('hidden');
-            document.getElementById('nav-admin-tickets').classList.add('hidden');
-        }
-
-        if(isLoggedIn) {
-            document.getElementById('nav-profile').classList.remove('hidden');
-            document.getElementById('nav-logout').classList.remove('hidden');
-            document.getElementById('nav-login').classList.add('hidden');
-        } else {
-            document.getElementById('nav-profile').classList.add('hidden');
-            document.getElementById('nav-logout').classList.add('hidden');
-            document.getElementById('nav-login').classList.remove('hidden');
-        }
+        if(userRole === 'admin') { ['nav-admin-scan','nav-admin-orders','nav-admin-users','nav-admin-tickets'].forEach(id => document.getElementById(id).classList.remove('hidden')); } 
+        else { ['nav-admin-scan','nav-admin-orders','nav-admin-users','nav-admin-tickets'].forEach(id => document.getElementById(id).classList.add('hidden')); }
+        if(isLoggedIn) { document.getElementById('nav-profile').classList.remove('hidden'); document.getElementById('nav-logout').classList.remove('hidden'); document.getElementById('nav-login').classList.add('hidden'); } 
+        else { document.getElementById('nav-profile').classList.add('hidden'); document.getElementById('nav-logout').classList.add('hidden'); document.getElementById('nav-login').classList.remove('hidden'); }
     }
 
     // --- Views ---
     window.showPage = (pid) => {
-        if(pid !== 'page-scan' && html5QrcodeScanner) {
-            html5QrcodeScanner.clear().then(() => { html5QrcodeScanner = null; }).catch(err => { html5QrcodeScanner = null; });
-        }
-        ['page-auth', 'page-home', 'page-detail', 'page-profile', 'page-users', 'page-ticket-types', 'page-orders', 'page-scan', 'page-banners'].forEach(id => {
-            const el = document.getElementById(id); if(el) el.classList.add('hidden');
-        });
+        if(pid !== 'page-scan' && html5QrcodeScanner) { html5QrcodeScanner.clear().then(() => { html5QrcodeScanner = null; }).catch(err => { html5QrcodeScanner = null; }); }
+        ['page-auth', 'page-home', 'page-detail', 'page-profile', 'page-users', 'page-ticket-types', 'page-orders', 'page-scan', 'page-banners'].forEach(id => { const el = document.getElementById(id); if(el) el.classList.add('hidden'); });
         const target = document.getElementById(pid); if(target) target.classList.remove('hidden');
     }
 
-    window.goHome = () => {
-        if(currentType === 'movie' && tempSeatRef) cancelSelection();
-        window.showPage('page-home');
-        window.renderHomeList();
-    }
+    window.goHome = () => { if(currentType === 'movie' && tempSeatRef) cancelSelection(); window.showPage('page-home'); window.renderHomeList(); }
 
     // --- QR Code Scanner Logic ---
     window.showScanPage = () => {
@@ -1120,7 +1149,6 @@
 
     window.selectShowtime = (roundId) => {
         currentRoundId = roundId;
-        
         let roundData = {};
         if (roundId === 'old-data') {
             const oldConf = allData[currentType + 's'][currentItemId];
@@ -1136,6 +1164,7 @@
             document.getElementById('seat-round-time').innerText = new Date(currentRoundConfig.showStart).toLocaleString();
             renderSeatsBase(currentRoundConfig); updateSeatStatus(roundData.bookings || {}, roundData.temp_selections || {});
         } else {
+            currentSelectedPrice = parseInt(currentRoundConfig.price) || 0; // Set ราคาของ Event
             document.getElementById('event-booking-section').classList.remove('hidden');
             document.getElementById('e-round-time').innerText = new Date(currentRoundConfig.showStart).toLocaleString();
             const cap = currentRoundConfig.capacity; const cur = roundData.currentBooked || 0;
@@ -1149,15 +1178,27 @@
 
     window.backToSchedule = () => { if(tempSeatRef) cancelSelection(); currentRoundId = ''; window.openDetailPage(currentItemId, currentType, false); }
 
+    // 🌟 1. ปรับปรุงระบบ Seat Tiers แยกโซน (A-B เป็น VIP)
     function renderSeatsBase(conf) {
         const map = document.getElementById('seat-map'); map.innerHTML = ''; map.style.gridTemplateColumns = `repeat(${conf.cols}, 1fr)`;
         let blockedList = []; if (conf.blocked) blockedList = Array.isArray(conf.blocked) ? conf.blocked : String(conf.blocked).split(',').map(x => x.trim());
+        const basePrice = parseInt(conf.price) || 0;
+
         for(let r=0; r<conf.rows; r++) {
             const rowLabel = String.fromCharCode(65 + r);
+            const isVIP = (rowLabel === 'A' || rowLabel === 'B'); // กำหนดให้แถว A และ B เป็น VIP
+            const seatPrice = isVIP ? basePrice + 100 : basePrice; // บวกราคา VIP เพิ่ม 100 บาท
+
             for(let c=1; c<=conf.cols; c++) {
                 const seatId = `${rowLabel}${c}`; const seat = document.createElement('div');
-                seat.className = 'seat available'; seat.id = `seat-${seatId}`; seat.innerText = seatId;
-                if(blockedList.includes(seatId)) { seat.classList.add('blocked'); seat.classList.remove('available'); } else { seat.onclick = () => window.selectSeat(seatId); }
+                seat.className = `seat available`; seat.id = `seat-${seatId}`; seat.innerText = seatId;
+                seat.dataset.price = seatPrice; // เก็บราคาสุทธิของที่นั่งนั้นๆ
+
+                // ตกแต่งสี VIP พิเศษ
+                if(isVIP) { seat.style.border = "2px solid #9b59b6"; seat.style.color = "#9b59b6"; }
+
+                if(blockedList.includes(seatId)) { seat.classList.add('blocked'); seat.classList.remove('available'); seat.style.borderColor = "#dc3545"; seat.style.color = "#dc3545"; } 
+                else { seat.onclick = () => { currentSelectedPrice = seatPrice; window.selectSeat(seatId); } }
                 map.appendChild(seat);
             }
         }
@@ -1167,11 +1208,23 @@
         const myUid = currentUser ? currentUser.uid : guestId;
         document.querySelectorAll('.seat').forEach(s => {
             const sid = s.id.replace('seat-', ''); if(s.classList.contains('blocked')) return;
-            s.className = 'seat available'; s.onclick = () => window.selectSeat(sid);
+            const isVIP = (sid.charAt(0) === 'A' || sid.charAt(0) === 'B');
+            const seatPrice = parseInt(s.dataset.price) || 0;
+
+            s.className = `seat available`; 
+            if(isVIP) { s.style.border = "2px solid #9b59b6"; s.style.color = "#9b59b6"; } else { s.style.border = ""; s.style.color = ""; }
+
+            s.onclick = () => { currentSelectedPrice = seatPrice; window.selectSeat(sid); };
+            
             if(bookings[sid]) {
-                if(bookings[sid].paymentStatus === 'รอชำระเงิน' && bookings[sid].uid === myUid) { s.className = 'seat pending'; s.onclick = () => window.openPayLaterModal(currentType, currentItemId, currentRoundId, sid, currentRoundConfig.price); } 
-                else { s.className = 'seat booked'; s.onclick = null; }
-            } else if(temps[sid]) { if (Date.now() - temps[sid].timestamp < 10 * 60 * 1000) { s.className = 'seat selecting'; s.onclick = null; } }
+                if(bookings[sid].paymentStatus === 'รอชำระเงิน' && bookings[sid].uid === myUid) { 
+                    s.className = `seat pending`; s.style.backgroundColor = "#f39c12"; s.style.color = "white"; s.style.borderColor = "#f39c12";
+                    s.onclick = () => window.openPayLaterModal(currentType, currentItemId, currentRoundId, sid, seatPrice); 
+                } 
+                else { s.className = `seat booked`; s.onclick = null; s.style.backgroundColor = "#dc3545"; s.style.color = "white"; s.style.borderColor = "#dc3545"; }
+            } else if(temps[sid]) { 
+                if (Date.now() - temps[sid].timestamp < 10 * 60 * 1000) { s.className = `seat selecting`; s.onclick = null; s.style.backgroundColor = "#8e44ad"; s.style.color = "white"; s.style.borderColor = "#8e44ad"; } 
+            }
         });
     }
 
@@ -1181,13 +1234,37 @@
         const tempRef = ref(db, tempPath);
         const userIdToUse = currentUser ? currentUser.uid : guestId;
         runTransaction(tempRef, (curr) => { if (curr === null || Date.now() - curr.timestamp > 10 * 60 * 1000) return { timestamp: Date.now(), user_uid: userIdToUse }; return; }).then((res) => {
-            if (res.committed) { selectedTarget = seatId; tempSeatRef = tempRef; onDisconnect(tempRef).remove(); window.openBookingModal(`ที่นั่ง: ${seatId}`); } else alert("ที่นั่งนี้กำลังมีผู้อื่นทำรายการอยู่ครับ");
+            if (res.committed) { selectedTarget = seatId; tempSeatRef = tempRef; onDisconnect(tempRef).remove(); window.openBookingModal(`ที่นั่ง: ${seatId} (ราคา ฿${currentSelectedPrice})`); } else alert("ที่นั่งนี้กำลังมีผู้อื่นทำรายการอยู่ครับ");
         });
     }
 
+    // 🌟 2. แทรก UI และลอจิกโค้ดส่วนลดเข้าไปใน Modal
     window.openBookingModal = (detail) => {
         document.getElementById('booking-form-section').classList.remove('hidden'); document.getElementById('payment-section').classList.add('hidden'); document.getElementById('inp-slip-url').value = ''; clearInterval(paymentTimerInterval);
         document.getElementById('modal-subtitle').innerText = detail; const modal = document.getElementById('booking-modal');
+        
+        // --- ส่วนการสร้างฟอร์มกรอกโค้ดส่วนลดอัตโนมัติ ---
+        const proceedBtn = document.querySelector('button[onclick="proceedToPayment()"]');
+        if (proceedBtn && !document.getElementById('promo-code-container')) {
+            const promoDiv = document.createElement('div');
+            promoDiv.id = 'promo-code-container';
+            promoDiv.style.cssText = "background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;";
+            promoDiv.innerHTML = `
+                <label style="display:block; margin-bottom:5px; font-weight:bold; color:#333;">🎟️ โค้ดส่วนลด (Promo Code)</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="inp-promo-code" placeholder="กรอกโค้ด (ถ้ามี)" style="flex:1; padding:10px; border:1px solid #ccc; border-radius:4px; text-transform: uppercase; font-family:'Sarabun';">
+                    <button type="button" onclick="applyPromoCode()" style="background:#8e44ad; color:white; border:none; padding:10px 15px; border-radius:4px; cursor:pointer; font-family:'Sarabun'; font-weight:bold; white-space:nowrap;">ใช้งาน</button>
+                </div>
+                <p id="promo-msg" style="margin: 8px 0 0 0; font-size: 0.9rem; font-weight: bold;"></p>
+            `;
+            proceedBtn.parentNode.insertBefore(promoDiv, proceedBtn);
+        }
+        
+        // Reset state สิทธิ์ส่วนลด
+        appliedPromoCode = ""; discountValue = 0;
+        const inpPromo = document.getElementById('inp-promo-code'); if(inpPromo) inpPromo.value = '';
+        const msgPromo = document.getElementById('promo-msg'); if(msgPromo) msgPromo.innerText = '';
+
         if(currentUser) {
             document.getElementById('inp-conf-name').value = userData.name || ''; document.getElementById('inp-conf-phone').value = userData.phone || ''; document.getElementById('inp-conf-email').value = userData.email || currentUser.email; document.getElementById('inp-conf-idcard').value = userData.idCard || '';
             ['name','phone','email','idcard'].forEach(k => { const el=document.getElementById(`inp-conf-${k}`); el.readOnly=true; el.style.backgroundColor='#f0f0f0';});
@@ -1196,6 +1273,40 @@
             ['name','phone','email','idcard'].forEach(k => { const el=document.getElementById(`inp-conf-${k}`); el.readOnly=false; el.style.backgroundColor='#fff'; });
         }
         modal.classList.add('active');
+    }
+
+    // ฟังก์ชันเช็คโค้ดส่วนลดใน Firebase โหนด `promotions`
+    window.applyPromoCode = () => {
+        const codeInput = document.getElementById('inp-promo-code');
+        if(!codeInput) return;
+        const code = codeInput.value.toUpperCase().trim();
+        const msgLabel = document.getElementById('promo-msg');
+
+        if (!code) { msgLabel.innerText = "กรุณากรอกโค้ด"; msgLabel.style.color = "#dc3545"; return; }
+
+        get(ref(db, 'promotions/' + code)).then((snapshot) => {
+            if (snapshot.exists()) {
+                const promo = snapshot.val();
+                if (promo.isActive && (promo.usageLimit === -1 || (promo.usedCount || 0) < promo.usageLimit)) {
+                    if (promo.discountType === 'fixed') { discountValue = promo.discountValue; } 
+                    else if (promo.discountType === 'percent') { discountValue = (currentSelectedPrice * promo.discountValue) / 100; }
+                    
+                    if (discountValue > currentSelectedPrice) discountValue = currentSelectedPrice;
+
+                    appliedPromoCode = code;
+                    msgLabel.innerText = `✅ ใช้โค้ดสำเร็จ! ลดไป ฿${discountValue}`;
+                    msgLabel.style.color = "#28a745";
+                } else {
+                    msgLabel.innerText = "❌ โค้ดนี้ถูกใช้งานครบสิทธิ์แล้ว หรือปิดใช้งาน";
+                    msgLabel.style.color = "#dc3545";
+                    appliedPromoCode = ""; discountValue = 0;
+                }
+            } else {
+                msgLabel.innerText = "❌ ไม่พบโค้ดส่วนลดนี้";
+                msgLabel.style.color = "#dc3545";
+                appliedPromoCode = ""; discountValue = 0;
+            }
+        }).catch(err => console.error(err));
     }
 
     window.cancelSelection = () => { clearInterval(paymentTimerInterval); document.getElementById('booking-modal').classList.remove('active'); if(currentType === 'movie' && tempSeatRef) { remove(tempSeatRef); onDisconnect(tempSeatRef).cancel(); tempSeatRef = null; selectedTarget = ''; } }
@@ -1208,9 +1319,15 @@
         if (isOldData) existingBookings = allData[currentType + 's'][currentItemId].bookings || {}; else existingBookings = allData[currentType + 's'][currentItemId].rounds[currentRoundId].bookings || {};
         let isDup = false; Object.values(existingBookings).forEach(b => { if(b.email === bEmail) isDup = true; if(currentUser && b.uid === currentUser.uid && b.uid !== 'guest') isDup = true; });
         if(isDup) { if(userRole === 'admin') { if(!confirm("บัญชีหรืออีเมลนี้เคยจองรอบนี้แล้ว (Admin) ยืนยันดำเนินการต่อหรือไม่?")) return; } else { alert("❌ คุณได้ทำการจองรอบนี้ไปแล้ว"); return; } }
-        const price = parseInt(currentRoundConfig.price) || 0;
-        if(price === 0) { processFinalBooking(""); return; }
-        document.getElementById('booking-form-section').classList.add('hidden'); document.getElementById('payment-section').classList.remove('hidden'); document.getElementById('pay-amount').innerText = price; document.getElementById('pay-qrcode').src = `https://promptpay.io/${PROMPTPAY_NUMBER}/${price}.png`;
+        
+        // 🌟 คำนวณราคาสุทธิหลังหักส่วนลด
+        const finalPrice = Math.max(0, currentSelectedPrice - discountValue);
+        
+        if(finalPrice === 0) { processFinalBooking(""); return; } // ถ้าใช้โค้ดลดจนเหลือ 0 บาท ระบบจะให้ผ่านเลย
+        
+        document.getElementById('booking-form-section').classList.add('hidden'); document.getElementById('payment-section').classList.remove('hidden'); 
+        document.getElementById('pay-amount').innerText = finalPrice; 
+        document.getElementById('pay-qrcode').src = `https://promptpay.io/${PROMPTPAY_NUMBER}/${finalPrice}.png`;
         startPaymentTimer(10 * 60); 
     }
 
@@ -1229,14 +1346,25 @@
         clearInterval(paymentTimerInterval);
         const bName = document.getElementById('inp-conf-name').value.trim(); const bPhone = document.getElementById('inp-conf-phone').value.trim(); const bEmail = document.getElementById('inp-conf-email').value.trim(); const bIdCard = document.getElementById('inp-conf-idcard').value.trim();
         let status = customStatus; if(!status) status = slipUrl ? 'รอตรวจสอบ' : 'ฟรี';
-        const bookingData = { uid: currentUser ? currentUser.uid : 'guest', name: bName, phone: bPhone, email: bEmail, idCard: bIdCard, timestamp: Date.now(), slipUrl: slipUrl, paymentStatus: status, isCheckedIn: false };
+        
+        // 🌟 แนบข้อมูลการหักส่วนลดและราคาสุทธิลงฐานข้อมูล
+        const finalPrice = Math.max(0, currentSelectedPrice - discountValue);
+        const bookingData = { 
+            uid: currentUser ? currentUser.uid : 'guest', name: bName, phone: bPhone, email: bEmail, idCard: bIdCard, 
+            timestamp: Date.now(), slipUrl: slipUrl, paymentStatus: status, isCheckedIn: false,
+            originalPrice: currentSelectedPrice, discount: discountValue, finalPrice: finalPrice, promoCode: appliedPromoCode
+        };
+
+        // หากมีการใช้ Promo Code จริงๆ ให้ไปบวกยอดการใช้ +1 ใน Firebase
+        if (appliedPromoCode) { runTransaction(ref(db, `promotions/${appliedPromoCode}/usedCount`), (currentCount) => { return (currentCount || 0) + 1; }); }
+
         const isOldData = (currentRoundId === 'old-data');
         const basePath = isOldData ? `${currentType}s/${currentItemId}` : `${currentType}s/${currentItemId}/rounds/${currentRoundId}`;
 
         if(currentType === 'movie') {
             set(ref(db, `${basePath}/bookings/${selectedTarget}`), bookingData).then(() => {
                 if(tempSeatRef) remove(tempSeatRef); window.cancelSelection(); 
-                if(status === 'รอชำระเงิน') alert("✅ บันทึกที่นั่งแล้ว กรุณาชำระเงินที่หน้าประวัติ ภายใน 10 นาที"); else alert("✅ การจองสำเร็จ ระบบได้รับข้อมูลของคุณแล้ว สามารถดู E-Ticket ได้ที่หน้าประวัติการจอง"); window.backToSchedule(); 
+                if(status === 'รอชำระเงิน') alert("✅ บันทึกที่นั่งแล้ว กรุณาชำระเงินที่หน้าประวัติ ภายใน 10 นาที"); else alert("✅ การจองสำเร็จ ระบบได้รับข้อมูลของคุณแล้ว"); window.backToSchedule(); 
             });
         } else {
             const eventRoundRef = ref(db, basePath);
@@ -1245,7 +1373,7 @@
             }).then((res) => {
                 if(res.committed) {
                     push(ref(db, `${basePath}/bookings`), bookingData); window.cancelSelection(); 
-                    if(status === 'รอชำระเงิน') alert("✅ บันทึกที่นั่งแล้ว กรุณาชำระเงินที่หน้าประวัติ ภายใน 10 นาที"); else alert("✅ การจองสำเร็จ ระบบได้รับข้อมูลของคุณแล้ว สามารถดู E-Ticket ได้ที่หน้าประวัติการจอง"); window.backToSchedule(); 
+                    if(status === 'รอชำระเงิน') alert("✅ บันทึกที่นั่งแล้ว กรุณาชำระเงินที่หน้าประวัติ ภายใน 10 นาที"); else alert("✅ การจองสำเร็จ ระบบได้รับข้อมูลของคุณแล้ว"); window.backToSchedule(); 
                 } else alert("❌ ขออภัย บัตรเต็มในขณะที่คุณทำรายการ");
             });
         }
@@ -1285,11 +1413,8 @@
                     const title = item.info ? item.info.title : (item.config ? item.config.title : 'ไม่มีชื่อ');
                     if(item.rounds) {
                         Object.entries(item.rounds).forEach(([rId, rData]) => {
-                            if(rData.bookings) { Object.entries(rData.bookings).forEach(([bookingKey, b]) => { if(b.email === myEmail) { myHistory.push({ timestamp: b.timestamp, itemTitle: title, detail: type==='movie' ? `ที่นั่ง ${bookingKey}` : 'บัตรเข้าร่วมงาน', slip: b.slipUrl, status: b.paymentStatus, type: type, itemId: itemId, roundId: rId, bookingKey: bookingKey, price: rData.config.price || 0, location: rData.config.location, userName: b.name, eventDate: rData.config.showStart, isCheckedIn: b.isCheckedIn }); } }); }
+                            if(rData.bookings) { Object.entries(rData.bookings).forEach(([bookingKey, b]) => { if(b.email === myEmail) { myHistory.push({ timestamp: b.timestamp, itemTitle: title, detail: type==='movie' ? `ที่นั่ง ${bookingKey}` : 'บัตรเข้าร่วมงาน', slip: b.slipUrl, status: b.paymentStatus, type: type, itemId: itemId, roundId: rId, bookingKey: bookingKey, price: b.finalPrice !== undefined ? b.finalPrice : (b.originalPrice || rData.config.price || 0), location: rData.config.location, userName: b.name, eventDate: rData.config.showStart, isCheckedIn: b.isCheckedIn, discountText: b.promoCode ? `ลดด้วยโค้ด ${b.promoCode}` : '' }); } }); }
                         });
-                    }
-                    if (item.bookings) {
-                        Object.entries(item.bookings).forEach(([bookingKey, b]) => { if(b.email === myEmail) { myHistory.push({ timestamp: b.timestamp, itemTitle: title, detail: type==='movie' ? `ที่นั่ง ${bookingKey} (ข้อมูลเก่า)` : 'บัตรเข้าร่วมงาน (ข้อมูลเก่า)', slip: b.slipUrl, status: b.paymentStatus, type: type, itemId: itemId, roundId: 'old-data', bookingKey: bookingKey, price: item.config.price || 0, location: item.config.location, userName: b.name, eventDate: item.config.start, isCheckedIn: b.isCheckedIn }); } });
                     }
                 });
             }
@@ -1314,7 +1439,7 @@
                 let checkInBadge = h.isCheckedIn ? `<br><span style="color:#2ecc71; font-size:0.8rem; font-weight:bold;">(เช็คอินแล้ว)</span>` : `<br><span style="color:#e74c3c; font-size:0.8rem;">(ยังไม่เช็คอิน)</span>`;
                 if(h.status === 'รอชำระเงิน') checkInBadge = '';
 
-                hList.innerHTML += `<tr><td>${new Date(h.timestamp).toLocaleDateString()} <br><small>${new Date(h.timestamp).toLocaleTimeString()}</small></td><td>${h.itemTitle} <br><small style="color:#666;">${h.detail}</small></td><td><span style="background:${badgeColor}; color:white; padding:3px 8px; border-radius:10px; font-size:0.8rem;">${h.status || 'ยืนยันแล้ว'}</span>${checkInBadge}<div style="margin-top:5px;">${actionHtml}</div></td></tr>`;
+                hList.innerHTML += `<tr><td>${new Date(h.timestamp).toLocaleDateString()} <br><small>${new Date(h.timestamp).toLocaleTimeString()}</small></td><td>${h.itemTitle} <br><small style="color:#666;">${h.detail} (฿${h.price})</small><br><small style="color:#e67e22;">${h.discountText}</small></td><td><span style="background:${badgeColor}; color:white; padding:3px 8px; border-radius:10px; font-size:0.8rem;">${h.status || 'ยืนยันแล้ว'}</span>${checkInBadge}<div style="margin-top:5px;">${actionHtml}</div></td></tr>`;
             });
         }
     }
