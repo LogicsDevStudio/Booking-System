@@ -708,11 +708,22 @@
     }
 
     // --- Views ---
+    // 1. ปรับฟังก์ชัน showPage ให้รู้จักหน้า page-promotions ด้วย (หากในโค้ดเดิมยังไม่มี)
+    const originalShowPage = window.showPage;
     window.showPage = (pid) => {
-        if(pid !== 'page-scan' && html5QrcodeScanner) { html5QrcodeScanner.clear().then(() => { html5QrcodeScanner = null; }).catch(err => { html5QrcodeScanner = null; }); }
-        ['page-auth', 'page-home', 'page-detail', 'page-profile', 'page-users', 'page-ticket-types', 'page-orders', 'page-scan', 'page-banners'].forEach(id => { const el = document.getElementById(id); if(el) el.classList.add('hidden'); });
-        const target = document.getElementById(pid); if(target) target.classList.remove('hidden');
-    }
+        // ซ่อนทุกหน้าก่อน
+        ['page-auth', 'page-home', 'page-detail', 'page-profile', 'page-users', 'page-ticket-types', 'page-orders', 'page-scan', 'page-banners', 'page-promotions'].forEach(id => { 
+            const el = document.getElementById(id); 
+            if(el) el.classList.add('hidden'); 
+        });
+        // แสดงหน้าที่เลือก
+        const target = document.getElementById(pid); 
+        if(target) target.classList.remove('hidden');
+        
+        if(pid !== 'page-scan' && typeof html5QrcodeScanner !== 'undefined' && html5QrcodeScanner) { 
+            html5QrcodeScanner.clear().catch(err => {}); 
+        }
+    };
 
     window.goHome = () => { if(currentType === 'movie' && tempSeatRef) cancelSelection(); window.showPage('page-home'); window.renderHomeList(); }
 
@@ -1581,6 +1592,94 @@
     window.editUserAdmin = (uid) => { onValue(ref(db, 'users/' + uid), (snap) => { const u = snap.val(); document.getElementById('edit-u-uid').value = uid; document.getElementById('edit-u-name').value = u.name || ''; document.getElementById('edit-u-phone').value = u.phone || ''; document.getElementById('edit-u-idcard').value = u.idCard || ''; document.getElementById('edit-u-role').value = u.role || 'user'; document.getElementById('user-edit-modal').classList.add('active'); }, { onlyOnce: true }); }
     window.saveUserAdmin = () => { const uid = document.getElementById('edit-u-uid').value; update(ref(db, 'users/' + uid), { name: document.getElementById('edit-u-name').value, phone: document.getElementById('edit-u-phone').value, idCard: document.getElementById('edit-u-idcard').value, role: document.getElementById('edit-u-role').value }).then(() => { document.getElementById('user-edit-modal').classList.remove('active'); alert("อัปเดตข้อมูลสมาชิกเรียบร้อย"); }); }
     window.deleteUserAdmin = (uid) => { if(confirm("ยืนยันการลบ?")) remove(ref(db, 'users/' + uid)); }
+
+    // 2. ฟังก์ชันเปิดหน้าจัดการโค้ดส่วนลด (ตัวที่ Error หาไม่เจอ)
+    window.showPromotionsManagement = () => {
+        window.showPage('page-promotions');
+        
+        // ดึงข้อมูลโค้ดทั้งหมดแบบ Real-time จาก Firebase
+        onValue(ref(db, 'promotions'), (snapshot) => {
+            const list = document.getElementById('promo-list');
+            if(!list) return; // ป้องกัน error ถ้าหา element ไม่เจอ
+            
+            list.innerHTML = '';
+            if(snapshot.exists()) {
+                snapshot.forEach(child => {
+                    const p = child.val();
+                    const code = child.key;
+                    const typeText = p.discountType === 'percent' ? '%' : 'บาท';
+                    const limitText = p.usageLimit == -1 ? '∞ ไม่จำกัด' : `${p.usedCount || 0} / ${p.usageLimit}`;
+                    const statusHtml = p.isActive 
+                        ? `<span style="background:#28a745; color:white; padding:3px 8px; border-radius:10px; font-size:0.8rem;">เปิดใช้งาน</span>` 
+                        : `<span style="background:#dc3545; color:white; padding:3px 8px; border-radius:10px; font-size:0.8rem;">ปิดใช้งาน</span>`;
+                    
+                    list.innerHTML += `
+                        <tr style="border-bottom: 1px solid #eee;">
+                            <td style="padding: 10px; font-weight: bold; color: #8e44ad;">${code}</td>
+                            <td style="padding: 10px;">${p.discountType === 'percent' ? 'เปอร์เซ็นต์ (%)' : 'ราคาคงที่'}</td>
+                            <td style="padding: 10px; font-weight: bold;">${p.discountValue} ${typeText}</td>
+                            <td style="padding: 10px;">${limitText}</td>
+                            <td style="padding: 10px;">${statusHtml}</td>
+                            <td style="padding: 10px; text-align: center;">
+                                <button class="btn-sm" style="background:#f39c12; color:white;" onclick="openPromoModal('${code}', '${p.discountType}', ${p.discountValue}, ${p.usageLimit}, ${p.isActive})">แก้ไข</button>
+                                <button class="btn-sm" style="background:#e74c3c; color:white;" onclick="deletePromo('${code}')">ลบ</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } else {
+                list.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 20px;">ยังไม่มีข้อมูลโค้ดส่วนลด</td></tr>';
+            }
+        });
+    };
+
+    // 3. ฟังก์ชันเปิด Modal สำหรับสร้าง/แก้ไข
+    window.openPromoModal = (code = '', type = 'fixed', value = '', limit = '-1', isActive = true) => {
+        document.getElementById('promo-modal-title').innerText = code ? 'แก้ไขโค้ดส่วนลด' : 'สร้างโค้ดส่วนลดใหม่';
+        
+        const idInp = document.getElementById('inp-promo-id');
+        idInp.value = code;
+        idInp.readOnly = code !== ''; // ถ้าแก้ไข จะล็อกไม่ให้เปลี่ยนชื่อโค้ด
+        idInp.style.backgroundColor = code !== '' ? '#f0f0f0' : '#fff';
+        
+        document.getElementById('inp-promo-type').value = type;
+        document.getElementById('inp-promo-value').value = value;
+        document.getElementById('inp-promo-limit').value = limit;
+        document.getElementById('inp-promo-active').value = isActive.toString();
+        
+        document.getElementById('promo-modal').classList.add('active');
+    };
+
+    // 4. ฟังก์ชันบันทึกข้อมูลลง Firebase
+    window.savePromo = () => {
+        const code = document.getElementById('inp-promo-id').value.trim().toUpperCase();
+        if(!code) return alert('กรุณากรอกรหัสโค้ด');
+        
+        const pData = {
+            discountType: document.getElementById('inp-promo-type').value,
+            discountValue: Number(document.getElementById('inp-promo-value').value) || 0,
+            usageLimit: Number(document.getElementById('inp-promo-limit').value),
+            isActive: document.getElementById('inp-promo-active').value === 'true',
+        };
+
+        // ดึงค่ายอดการใช้เดิมมาด้วย (ป้องกันยอด usedCount หายตอนแก้ไข)
+        get(ref(db, `promotions/${code}`)).then(snap => {
+            if(snap.exists()) { pData.usedCount = snap.val().usedCount || 0; } 
+            else { pData.usedCount = 0; }
+            
+            set(ref(db, `promotions/${code}`), pData).then(() => {
+                document.getElementById('promo-modal').classList.remove('active');
+                alert('✅ บันทึกข้อมูลโค้ดส่วนลดเรียบร้อย');
+            }).catch(err => alert("เกิดข้อผิดพลาด: " + err.message));
+        });
+    };
+
+    // 5. ฟังก์ชันลบโค้ด
+    window.deletePromo = (code) => {
+        if(confirm(`⚠️ ยืนยันการลบโค้ด "${code}" ใช่หรือไม่? (เมื่อลบแล้วจะไม่สามารถใช้งานได้อีก)`)) {
+            remove(ref(db, `promotions/${code}`));
+        }
+    };
 </script>
 
 </body>
