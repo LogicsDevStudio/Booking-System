@@ -1210,10 +1210,6 @@
 
     window.backToSchedule = () => { if(tempSeatRef) cancelSelection(); currentRoundId = ''; window.openDetailPage(currentItemId, currentType, false); }
 
-    // 🌟 ตัวแปร Global สำหรับระบบส่วนลด
-    let appliedPromoCode = "";
-    let discountValue = 0;
-
     // 🌟 1. ปรับปรุงระบบ Seat Tiers แยกโซน (A-B เป็น VIP)
     window.renderSeatsBase = (conf) => {
         const map = document.getElementById('seat-map'); 
