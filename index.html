@@ -180,6 +180,8 @@
         <span id="nav-admin-tickets" class="nav-item hidden" onclick="showTicketTypesManagement()" style="color:#d93025;">จัดการประเภทบัตร</span>
         <span id="nav-admin-promos" class="nav-item hidden" onclick="showPromotionsManagement()" style="color:#d93025;">จัดการโค้ดส่วนลด</span>
         
+        <span id="nav-admin-dashboard" class="nav-item hidden" onclick="showDashboardAdmin()" style="color:#d93025; font-weight:bold;">📊 แดชบอร์ดที่นั่ง</span>
+        
         <span id="nav-login" class="nav-item" onclick="showPage('page-auth')">เข้าสู่ระบบ</span>
         <span id="nav-logout" class="btn-logout hidden" onclick="doLogout()">ออกจากระบบ</span>
     </div>
@@ -349,6 +351,39 @@
                 <tbody id="promo-list">
                     </tbody>
             </table>
+        </div>
+    </div>
+
+    <div id="page-dashboard" class="hidden">
+        <div class="nav-back" onclick="goHome()">⬅ ย้อนกลับ</div>
+        <h2><i class="fas fa-chart-pie"></i> แดชบอร์ดสรุปจำนวนที่นั่ง</h2>
+        
+        <div style="display:flex; flex-wrap: wrap; gap:15px; margin-bottom: 25px; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <div class="form-group" style="flex:1; min-width: 200px; margin:0;">
+                <label style="font-weight:bold; margin-bottom:5px; display:block;">ประเภท:</label>
+                <select id="dash-type" onchange="loadDashItems()" style="width:100%; padding:10px; border-radius: 5px; border: 1px solid #ccc;">
+                    <option value="movie">ภาพยนตร์ (Movie)</option>
+                    <option value="event">อีเวนต์ (Event)</option>
+                </select>
+            </div>
+            <div class="form-group" style="flex:2; min-width: 200px; margin:0;">
+                <label style="font-weight:bold; margin-bottom:5px; display:block;">เลือกรายการ:</label>
+                <select id="dash-item" onchange="loadDashRounds()" style="width:100%; padding:10px; border-radius: 5px; border: 1px solid #ccc;">
+                    <option value="">-- กรุณาเลือกประเภทก่อน --</option>
+                </select>
+            </div>
+            <div class="form-group" style="flex:2; min-width: 200px; margin:0;">
+                <label style="font-weight:bold; margin-bottom:5px; display:block;">เลือกรอบแสดง:</label>
+                <select id="dash-round" onchange="renderDashboard()" style="width:100%; padding:10px; border-radius: 5px; border: 1px solid #ccc;">
+                    <option value="">-- กรุณาเลือกรายการก่อน --</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="dash-stats" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:20px;">
+            <div style="grid-column: 1 / -1; text-align: center; color: #7f8c8d; padding: 40px; background: #fff; border-radius: 8px; border: 2px dashed #ddd;">
+                กรุณาเลือกรายการและรอบ เพื่อดูสรุปจำนวนที่นั่ง
+            </div>
         </div>
     </div>
 
@@ -757,19 +792,36 @@
         if(!document.getElementById('page-ticket-types').classList.contains('hidden')) window.showTicketTypesManagement();
         if(!document.getElementById('page-orders').classList.contains('hidden')) window.showOrderManagement();
         if(!document.getElementById('page-banners').classList.contains('hidden')) window.showBannerManagement();
+        // 🌟 เพิ่มตรวจสอบหน้าแดชบอร์ดและหน้าโปรโมชัน
+        if(!document.getElementById('page-promotions')?.classList.contains('hidden') && window.showPromotionsManagement) window.showPromotionsManagement();
+        if(!document.getElementById('page-dashboard')?.classList.contains('hidden') && window.renderDashboard) window.renderDashboard();
     }
 
     onValue(ref(db, '/'), (snapshot) => {
         allData = snapshot.val() || {};
         window.renderHomeList();
+        
+        // อัปเดตข้อมูลหน้า Detail (ถ้าเปิดอยู่)
         if(!document.getElementById('page-detail').classList.contains('hidden') && currentItemId) {
-            if(!document.getElementById('schedule-section').classList.contains('hidden')) { window.openDetailPage(currentItemId, currentType, false); } 
+            if(!document.getElementById('schedule-section').classList.contains('hidden')) { 
+                window.openDetailPage(currentItemId, currentType, false); 
+            } 
             else if (currentRoundId) {
-                const itemData = allData[currentType + 's'][currentItemId] || {}; const roundData = itemData.rounds ? itemData.rounds[currentRoundId] : {};
-                if(currentType === 'movie') { updateSeatStatus(roundData.bookings || {}, roundData.temp_selections || {}); } 
-                else { const cap = currentRoundConfig.capacity; const cur = roundData.currentBooked || 0; document.getElementById('e-remaining').innerText = cap == -1 ? '∞' : (cap - cur); }
+                const itemData = allData[currentType + 's']?.[currentItemId] || {}; 
+                const roundData = itemData.rounds ? itemData.rounds[currentRoundId] : {};
+                if(currentType === 'movie') { 
+                    updateSeatStatus(roundData.bookings || {}, roundData.temp_selections || {}); 
+                } 
+                else { 
+                    const cap = currentRoundConfig?.capacity || -1; 
+                    // ป้องกัน Error หากไม่มี bookings
+                    const bookedCount = roundData.bookings ? Object.keys(roundData.bookings).length : 0;
+                    const elem = document.getElementById('e-remaining');
+                    if(elem) elem.innerText = cap == -1 ? '∞' : (cap - bookedCount); 
+                }
             }
         }
+        
         checkAdminPages();
         if(!document.getElementById('page-profile').classList.contains('hidden')) window.showProfile();
     });
@@ -791,8 +843,8 @@
     function updateNavbarUI(isLoggedIn) {
         document.getElementById('main-nav').classList.remove('hidden');
         
-        // 🌟 สร้างตัวแปรเก็บ Array ของเมนูแอดมินทั้งหมด รวมถึง 'nav-admin-promos' ด้วย
-        const adminMenus = ['nav-admin-scan', 'nav-admin-orders', 'nav-admin-users', 'nav-admin-tickets', 'nav-admin-promos'];
+        // 🌟 อัปเดต Array ให้รวมเมนู 'nav-admin-dashboard' ด้วย
+        const adminMenus = ['nav-admin-scan', 'nav-admin-orders', 'nav-admin-users', 'nav-admin-tickets', 'nav-admin-promos', 'nav-admin-dashboard'];
 
         if(userRole === 'admin') { 
             adminMenus.forEach(id => {
@@ -818,14 +870,19 @@
     }
 
     // --- Views ---
-    // 1. ปรับฟังก์ชัน showPage ให้รู้จักหน้า page-promotions ด้วย (หากในโค้ดเดิมยังไม่มี)
-    const originalShowPage = window.showPage;
     window.showPage = (pid) => {
-        // ซ่อนทุกหน้าก่อน
-        ['page-auth', 'page-home', 'page-detail', 'page-profile', 'page-users', 'page-ticket-types', 'page-orders', 'page-scan', 'page-banners', 'page-promotions'].forEach(id => { 
+        // 🌟 อัปเดต Array ซ่อนหน้า ให้รวม 'page-dashboard' ด้วย
+        const allPages = [
+            'page-auth', 'page-home', 'page-detail', 'page-profile', 
+            'page-users', 'page-ticket-types', 'page-orders', 'page-scan', 
+            'page-banners', 'page-promotions', 'page-dashboard'
+        ];
+
+        allPages.forEach(id => { 
             const el = document.getElementById(id); 
             if(el) el.classList.add('hidden'); 
         });
+        
         // แสดงหน้าที่เลือก
         const target = document.getElementById(pid); 
         if(target) target.classList.remove('hidden');
@@ -2088,6 +2145,137 @@
             remove(ref(db, `promotions/${code}`));
         }
     };
+
+    // ==========================================
+    // ระบบ Dashboard สรุปที่นั่ง (สำหรับ Admin)
+    // ==========================================
+
+    // เปิดหน้าแดชบอร์ด
+    window.showDashboardAdmin = () => {
+        if(userRole !== 'admin') return;
+        
+        // ซ่อนทุกหน้า และแสดงหน้าแดชบอร์ด (คุณอาจต้องเปลี่ยนฟังก์ชันนี้ให้ตรงกับระบบเปลี่ยนหน้าของคุณ)
+        document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+        document.getElementById('page-dashboard').classList.remove('hidden');
+        
+        // โหลดรายชื่อภาพยนตร์/อีเวนต์เริ่มต้น
+        loadDashItems();
+    };
+
+    // โหลดรายชื่อภาพยนตร์ หรือ อีเวนต์ มาใส่ใน Dropdown
+    window.loadDashItems = () => {
+        const type = document.getElementById('dash-type').value;
+        const itemSelect = document.getElementById('dash-item');
+        const roundSelect = document.getElementById('dash-round');
+        
+        itemSelect.innerHTML = '<option value="">-- กำลังโหลดข้อมูล... --</option>';
+        roundSelect.innerHTML = '<option value="">-- เลือกรอบ --</option>';
+        document.getElementById('dash-stats').innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #7f8c8d; padding: 40px;">กรุณาเลือกรอบเพื่อดูสรุปจำนวนที่นั่ง</div>';
+
+        onValue(ref(db, type + 's'), (snap) => {
+            itemSelect.innerHTML = '<option value="">-- เลือกรายการ --</option>';
+            if(snap.exists()){
+                snap.forEach(child => {
+                    const data = child.val();
+                    itemSelect.innerHTML += `<option value="${child.key}">${data.title}</option>`;
+                });
+            } else {
+                itemSelect.innerHTML = '<option value="">-- ไม่มีข้อมูล --</option>';
+            }
+        }, { onlyOnce: true });
+    };
+
+    // โหลดรายชื่อ "รอบ" เมื่อมีการเลือกรายการ
+    window.loadDashRounds = () => {
+        const type = document.getElementById('dash-type').value;
+        const itemId = document.getElementById('dash-item').value;
+        const roundSelect = document.getElementById('dash-round');
+
+        if(!itemId) {
+            roundSelect.innerHTML = '<option value="">-- เลือกรอบ --</option>';
+            return;
+        }
+
+        roundSelect.innerHTML = '<option value="">-- กำลังโหลดข้อมูลรอบ... --</option>';
+
+        onValue(ref(db, `${type}s/${itemId}/rounds`), (snap) => {
+            roundSelect.innerHTML = '<option value="">-- เลือกรอบ --</option>';
+            if(snap.exists()){
+                snap.forEach(child => {
+                    const conf = child.val().config;
+                    // แปลงรูปแบบเวลาให้ดูง่าย
+                    const timeStr = conf.showStart ? new Date(conf.showStart).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' }) : 'ไม่ระบุเวลา';
+                    roundSelect.innerHTML += `<option value="${child.key}">${timeStr} (${conf.location || 'ไม่ระบุสถานที่'})</option>`;
+                });
+            } else {
+                roundSelect.innerHTML = '<option value="">-- ยังไม่มีการสร้างรอบ --</option>';
+            }
+        }, { onlyOnce: true });
+    };
+
+    // คำนวณและแสดงผลสถิติที่นั่ง
+    window.renderDashboard = () => {
+        const type = document.getElementById('dash-type').value;
+        const itemId = document.getElementById('dash-item').value;
+        const roundId = document.getElementById('dash-round').value;
+        const statsContainer = document.getElementById('dash-stats');
+
+        if(!roundId) {
+            statsContainer.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #7f8c8d; padding: 40px;">กรุณาเลือกรอบเพื่อดูสรุปจำนวนที่นั่ง</div>';
+            return;
+        }
+
+        // ใช้ onValue แบบ Realtime เพื่อให้ข้อมูลอัปเดตทันทีเวลามีคนจอง
+        onValue(ref(db, `${type}s/${itemId}/rounds/${roundId}`), (snap) => {
+            if(!snap.exists()) return;
+            
+            const roundData = snap.val();
+            const conf = roundData.config;
+            const bookings = roundData.bookings || {};
+
+            let totalSeats = 0;
+            let bookedSeats = Object.keys(bookings).length;
+
+            // คำนวณที่นั่งทั้งหมดตามประเภท (Movie / Event)
+            if(type === 'movie') {
+                const blockedList = conf.blocked ? (Array.isArray(conf.blocked) ? conf.blocked : String(conf.blocked).split(',').map(x=>x.trim()).filter(x=>x)) : [];
+                totalSeats = (conf.rows * conf.cols) - blockedList.length; // หักลบที่นั่งที่ถูกบล็อก
+            } else {
+                totalSeats = conf.capacity === -1 ? 'ไม่จำกัด' : parseInt(conf.capacity);
+            }
+
+            let availableSeats = totalSeats === 'ไม่จำกัด' ? 'ไม่จำกัด' : (totalSeats - bookedSeats);
+            let percentBooked = totalSeats === 'ไม่จำกัด' ? 0 : Math.round((bookedSeats / totalSeats) * 100);
+
+            // วาดการ์ดแสดงผล
+            statsContainer.innerHTML = `
+                <div style="background:#fff; padding:20px; border-radius:10px; box-shadow:0 4px 6px rgba(0,0,0,0.05); border-left: 5px solid #3498db;">
+                    <h4 style="margin-top:0; color:#7f8c8d; font-weight:normal;">ความจุทั้งหมด</h4>
+                    <p style="font-size:2.5rem; font-weight:bold; color:#2c3e50; margin:0;">${totalSeats}</p>
+                </div>
+                
+                <div style="background:#fff; padding:20px; border-radius:10px; box-shadow:0 4px 6px rgba(0,0,0,0.05); border-left: 5px solid #e74c3c;">
+                    <h4 style="margin-top:0; color:#7f8c8d; font-weight:normal;">จองแล้ว (ที่นั่ง)</h4>
+                    <p style="font-size:2.5rem; font-weight:bold; color:#e74c3c; margin:0;">${bookedSeats}</p>
+                </div>
+                
+                <div style="background:#fff; padding:20px; border-radius:10px; box-shadow:0 4px 6px rgba(0,0,0,0.05); border-left: 5px solid #2ecc71;">
+                    <h4 style="margin-top:0; color:#7f8c8d; font-weight:normal;">ที่นั่งคงเหลือ</h4>
+                    <p style="font-size:2.5rem; font-weight:bold; color:#2ecc71; margin:0;">${availableSeats}</p>
+                </div>
+                
+                <div style="grid-column: 1 / -1; background:#fff; padding:25px; border-radius:10px; box-shadow:0 4px 6px rgba(0,0,0,0.05); margin-top: 10px;">
+                    <div style="display:flex; justify-content: space-between; align-items:flex-end;">
+                        <h3 style="margin:0; color:#2c3e50;">อัตราการจอง</h3>
+                        <span style="font-size:1.5rem; font-weight:bold; color:${percentBooked >= 100 ? '#e74c3c' : '#2c3e50'};">${percentBooked}%</span>
+                    </div>
+                    <div style="width:100%; background:#ecf0f1; border-radius:20px; height:24px; overflow:hidden; margin-top:15px; border: 1px solid #ddd;">
+                        <div style="width:${percentBooked}%; background: ${percentBooked >= 100 ? '#e74c3c' : 'linear-gradient(90deg, #3498db, #2ecc71)'}; height:100%; transition:width 0.8s ease-in-out;"></div>
+                    </div>
+                </div>
+            `;
+        });
+    };    
 </script>
 
 </body>
