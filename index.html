@@ -3,493 +3,488 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบจองตั๋ว Realtime (โครงสร้างใหม่)</title>
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
+    <title>ระบบจองตั๋ว Realtime (Minimal UI)</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     
     <style>
-        body { font-family: 'Sarabun', sans-serif; background: #f0f2f5; margin: 0; padding: 0; color: #333; }
-        .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+        /* =========================================
+           🌟 Global & Minimal Styles 🌟
+           ========================================= */
+        body { 
+            font-family: 'Sarabun', sans-serif; 
+            background: #f8f9fa; 
+            color: #2b2b2b;
+            overflow-x: hidden;
+        }
         
+        /* Utility overrides */
+        .hidden { display: none !important; }
+        .cursor-pointer { cursor: pointer; }
+        
+        /* ลูกเล่น Hover & Animations (Micro-interactions) */
+        .hover-lift {
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
+        }
+        .hover-lift:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.08) !important;
+        }
+        .btn:active { transform: scale(0.96); } /* ยุบตัวเวลาคลิก */
+        
+        /* Minimal Inputs */
+        .form-control, .form-select {
+            border: 2px solid #eef0f2;
+            border-radius: 12px;
+            padding: 12px 16px;
+            transition: all 0.3s;
+            background-color: #fcfcfc;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #1a73e8;
+            box-shadow: 0 0 0 4px rgba(26, 115, 232, 0.1);
+            background-color: #fff;
+        }
+
+        /* =========================================
+           🌟 Components 🌟
+           ========================================= */
         /* Navbar */
-        .navbar { background: #fff; padding: 15px 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; overflow-x: auto; }
-        .brand { font-size: 1.2rem; font-weight: bold; color: #1a73e8; cursor: pointer; white-space: nowrap; margin-right: 20px; }
-        .nav-menu { display: flex; gap: 15px; align-items: center; white-space: nowrap; }
-        .nav-item { cursor: pointer; color: #555; font-size: 0.95rem; }
-        .nav-item:hover { color: #1a73e8; }
-        .btn-logout { color: #d93025; cursor: pointer; font-weight: bold; border: 1px solid #d93025; padding: 5px 10px; border-radius: 4px; }
+        #main-nav {
+            backdrop-filter: blur(10px);
+            background-color: rgba(255, 255, 255, 0.9) !important;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .nav-item-custom {
+            font-weight: 500;
+            color: #5f6368;
+            transition: color 0.3s;
+        }
+        .nav-item-custom:hover { color: #1a73e8; }
+        
+        /* Tabs สลับการแสดงผล */
+        .minimal-tabs {
+            background: #fff;
+            padding: 6px;
+            border-radius: 50px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+            display: inline-flex;
+            gap: 5px;
+        }
+        .minimal-tabs .tab-btn {
+            border-radius: 50px;
+            padding: 10px 25px;
+            font-weight: 600;
+            color: #6c757d;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .minimal-tabs .tab-btn.active {
+            background: #1a73e8;
+            color: white;
+            box-shadow: 0 4px 12px rgba(26,115,232,0.3);
+        }
+        .minimal-tabs .tab-btn.event.active {
+            background: #d93025;
+            box-shadow: 0 4px 12px rgba(217,48,37,0.3);
+        }
 
-        /* Auth Page */
-        .auth-container { max-width: 400px; margin: 50px auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; }
-        .auth-input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-family: 'Sarabun'; }
-        .link-text { color: #1a73e8; cursor: pointer; font-size: 0.9rem; margin-top: 15px; display: block; }
-        .admin-code-area { background: #f9f9f9; padding: 10px; margin-top: 10px; border-radius: 6px; font-size: 0.8rem; color: #666; text-align: left; }
-
-        /* General UI */
-        header { text-align: center; margin-bottom: 20px; }
-        h1 { color: #1a73e8; margin: 0; }
-        .btn-primary { width: 100%; padding: 12px; background: #1a73e8; color: white; border: none; border-radius: 6px; font-size: 1rem; cursor: pointer; font-weight: bold; margin-top: 10px; }
-        .btn-secondary { padding: 8px 15px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; }
-
-        .grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
-        .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); position: relative; display: flex; flex-direction: column; cursor: pointer; transition: transform 0.2s;}
-        .card:hover { transform: translateY(-5px); }
-        .card img { width: 100%; height: 250px; object-fit: cover; border-radius: 8px; margin-bottom: 15px; background: #eee;}
-        .tag { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; margin-bottom: 10px; font-weight: bold;}
+        /* Grid & Cards */
+        .grid-container {
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); 
+            gap: 24px; 
+        }
+        .item-card {
+            border: none;
+            border-radius: 20px;
+            overflow: hidden;
+            background: white;
+        }
+        .item-card img {
+            width: 100%;
+            height: 280px;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+        .item-card:hover img {
+            transform: scale(1.05); /* ภาพซูมเข้าเล็กน้อยตอนโฮเวอร์ */
+        }
+        .tag {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
         .tag.movie { background: #e8f0fe; color: #1a73e8; }
         .tag.event { background: #fce8e6; color: #d93025; }
 
-        /* Detail Header Section */
-        .item-details { display: flex; gap: 20px; background: #fff; padding: 20px; border-radius: 12px; margin-top: 15px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); flex-wrap: wrap; }
-        .item-details img { width: 220px; height: 320px; object-fit: cover; border-radius: 8px; flex-shrink: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.1);}
-        .item-info { flex: 1; min-width: 250px; }
-        .item-info p { margin: 8px 0; }
+        /* Detail Section */
+        .item-details img {
+            width: 200px;
+            height: 300px;
+            object-fit: cover;
+            border-radius: 16px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+        }
 
-        /* Admin Controls */
-        .admin-actions { display: flex; gap: 5px; margin-top: auto; border-top: 1px solid #eee; padding-top: 15px; }
-        .btn-sm { padding: 5px 10px; font-size: 0.8rem; border-radius: 4px; cursor: pointer; border: none; color: white; flex: 1; margin-right: 2px;}
-        .btn-edit { background: #f39c12; } .btn-del { background: #e74c3c; } 
-        .admin-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: #e8f0fe; padding: 15px; border-radius: 8px; flex-wrap: wrap; gap: 10px;}
-
-        /* Schedule List Styles */
-        .schedule-item { background: #fff; border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
-        .schedule-info { flex: 1; }
-        .schedule-stats { font-size: 0.9em; color: #666; background: #f8f9fa; padding: 5px 10px; border-radius: 4px; margin-right: 10px; display:inline-block; margin-bottom:5px;}
-        .stat-val { font-weight: bold; color: #333; }
-
-        /* Tables */
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; border-radius: 8px; overflow: hidden; font-size: 0.9rem; }
-        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
-        th { background-color: #f8f9fa; font-weight: 600; }
-
-        /* Seat Styles */
-        .screen { background: #444; color: white; text-align: center; padding: 5px; margin: 20px 0; border-radius: 5px; box-shadow: 0 5px 10px rgba(0,0,0,0.3); }
-        .seat-map { display: grid; justify-content: center; gap: 10px; margin: 20px 0; overflow-x: auto; padding-bottom: 10px; }
+        /* Seats - เพิ่มลูกเล่นเด้งดึ๋ง */
+        .screen {
+            background: linear-gradient(to bottom, #f1f3f4, #e8eaed);
+            color: #5f6368;
+            font-weight: bold;
+            border-top-left-radius: 50px;
+            border-top-right-radius: 50px;
+            border: 2px solid #dadce0;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05) inset;
+        }
+        .seat-map { display: grid; justify-content: center; gap: 12px; margin: 30px 0; }
         .seat { 
-            width: 40px; height: 40px; border-radius: 8px; cursor: pointer; 
-            display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; color: white;
-            transition: all 0.2s; position: relative;
+            width: 42px; height: 42px; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            display: flex; align-items: center; justify-content: center; 
+            font-size: 13px; font-weight: 600; color: white;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
-        .seat.available { background-color: #fff; border: 2px solid #28a745; color: #28a745; }
-        .seat.available:hover { background-color: #28a745; color: white; }
-        .seat.booked { background-color: #dc3545; border: 2px solid #dc3545; cursor: not-allowed; opacity: 0.6; }
-        .seat.selecting { background-color: #ffc107; border: 2px solid #ffc107; color: #333; cursor: not-allowed; animation: pulse 1.5s infinite; }
-        .seat.blocked { background-color: #e2e6ea; border: 2px solid #ced4da; color: #adb5bd; cursor: not-allowed; }
-        .seat.pending { background-color: #f39c12; border: 2px solid #e67e22; color: white; cursor: pointer; animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
-
-        /* Modal & Helpers */
-        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
-        .modal.active { display: flex; }
-        .modal-content { background-color: white; padding: 30px; border-radius: 12px; width: 90%; max-width: 500px; position: relative; max-height: 90vh; overflow-y: auto; }
-        .close-btn { position: absolute; right: 20px; top: 15px; font-size: 24px; cursor: pointer; color: #aaa; }
-        .hidden { display: none !important; }
-        .nav-back { margin-bottom: 20px; cursor: pointer; color: #555; font-weight: bold; }
-        .legend { display: flex; gap: 15px; font-size: 0.9rem; justify-content: center; margin-top: 20px; flex-wrap: wrap;}
-        .legend-item { display: flex; align-items: center; gap: 5px; } .dot-legend { width: 15px; height: 15px; border-radius: 3px; }
-        
-        .form-group { margin-bottom: 15px; text-align: left; }
-        .form-group label { display: block; margin-bottom: 5px; font-weight: 600; }
-        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-family: 'Sarabun'; }
-        .modal-buttons { margin-top: 20px; text-align: right; }
-
-        /* Payment & Ticket UI */
-        .payment-qr-container { background: #f8f9fa; border: 1px solid #ddd; border-radius: 8px; padding: 15px; text-align: center; margin-bottom: 15px; }
-        .payment-qr-container img { width: 200px; height: 200px; object-fit: contain; margin: 10px 0; }
-        .timer-text { font-size: 1.5rem; font-weight: bold; color: #e74c3c; margin: 5px 0; animation: pulse 1s infinite; }
-
-        /* สไตล์หน้า Scan */
-        #qr-reader { width: 100%; border-radius: 8px; overflow: hidden; margin: 0 auto; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        .scan-msg { margin-top: 20px; padding: 15px; border-radius: 8px; font-weight: bold; text-align: center; font-size: 1.1rem;}
-        .scan-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .scan-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-
-        /* E-Ticket Design */
-        #eticket-modal .modal-content { background: transparent; box-shadow: none; max-width: 750px; padding: 0; }
-        #eticket-modal .close-btn { color: white; background: #333; border-radius: 50%; width: 35px; height: 35px; text-align: center; line-height: 35px; right: -10px; top: -15px; opacity: 1; z-index: 100; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
-        .ticket-card { display: flex; background: #fff; border-radius: 16px; box-shadow: 0 15px 35px rgba(0,0,0,0.2); overflow: hidden; position: relative; width: 100%; margin: 0 auto; text-align: left; border: none; padding: 0; }
-        .ticket-card::before, .ticket-card::after { display: none; }
-        .ticket-left { flex: 2; padding: 30px; background: linear-gradient(135deg, #1a73e8 0%, #0d47a1 100%); color: white; position: relative; }
-        .t-subtitle { font-size: 0.9rem; color: #bbdefb; margin-bottom: 5px; font-weight: 600; letter-spacing: 1px; }
-        .t-title-main { font-size: 1.8rem; font-weight: bold; margin-bottom: 25px; text-transform: uppercase; line-height: 1.3;}
-        .t-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .t-label { font-size: 0.8rem; color: #90caf9; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px;}
-        .t-value { font-size: 1.1rem; font-weight: bold; color: white;}
-        .t-value.highlight { color: #ffc107; font-size: 1.4rem; }
-        .ticket-right { flex: 1; min-width: 220px; padding: 30px; background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; border-left: 3px dashed #ccc; }
-        .ticket-right::before, .ticket-right::after { content: ''; position: absolute; left: -16px; width: 30px; height: 30px; background: rgba(0,0,0,0.5); border-radius: 50%; }
-        .ticket-right::before { top: -15px; } .ticket-right::after { bottom: -15px; }
-        .ticket-qr img { width: 160px; height: 160px; border: 1px solid #eee; padding: 8px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-        .scan-text { color: #1a73e8; font-weight: bold; margin-bottom: 15px; font-size: 1.3rem; letter-spacing: 2px; }
-        .watermark-used { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-25deg); font-size: 4rem; color: rgba(220, 53, 69, 0.85); border: 8px solid rgba(220, 53, 69, 0.85); padding: 15px 40px; border-radius: 20px; z-index: 100; pointer-events: none; font-weight: 900; text-transform: uppercase; letter-spacing: 8px; text-shadow: 3px 3px 0px #fff, -3px -3px 0px #fff, 3px -3px 0px #fff, -3px 3px 0px #fff; box-shadow: inset 0 0 20px rgba(220, 53, 69, 0.5), 0 0 20px rgba(220, 53, 69, 0.5); }
-        @media (max-width: 600px) {
-            .ticket-card { flex-direction: column; }
-            .ticket-right { border-left: none; border-top: 3px dashed #ccc; padding: 40px 20px 20px 20px; }
-            .ticket-right::before { top: -16px; left: -15px; }
-            .ticket-right::after { top: -16px; left: auto; right: -15px; bottom: auto;}
-            .watermark-used { font-size: 2.5rem; padding: 10px 20px; }
+        .seat:hover:not(.booked):not(.selecting):not(.blocked) {
+            transform: scale(1.15) translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
         }
-
-        /* 🌟 สไตล์สำหรับ Banner Slider 🌟 */
-        #banner-slider-container { position: relative; width: 100%; max-height: 350px; overflow: hidden; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        #banner-slider-track { display: flex; transition: transform 0.5s ease-in-out; width: 100%; }
-        .banner-slide { flex: 0 0 100%; box-sizing: border-box; }
-        .banner-slide img { width: 100%; height: 350px; object-fit: cover; display: block; transition: transform 0.3s; }
-        .banner-slide a:hover img { transform: scale(1.02); }
-        .banner-dots-wrapper { position: absolute; bottom: 15px; left: 0; right: 0; text-align: center; z-index: 10; }
-        .slider-dot { display: inline-block; width: 10px; height: 10px; margin: 0 5px; background: rgba(255, 255, 255, 0.5); border-radius: 50%; cursor: pointer; transition: background 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
-        .slider-dot.active { background: #fff; transform: scale(1.2); }
+        .seat.available { background-color: #fff; border: 2px solid #10b981; color: #10b981; }
+        .seat.tier-normal.available { border-color: #10b981; color: #10b981; }
+        .seat.tier-normal.available:hover { background-color: #10b981; color: white; }
+        .seat.tier-vip.available { border-color: #8b5cf6; color: #8b5cf6; }
+        .seat.tier-vip.available:hover { background-color: #8b5cf6; color: white; }
+        .seat.booked { background-color: #ef4444; border: 2px solid #ef4444; cursor: not-allowed; opacity: 0.5; }
+        .seat.selecting { background-color: #f59e0b; border: 2px solid #f59e0b; color: #fff; cursor: not-allowed; animation: pulseSeat 1.5s infinite; }
         
-        /* 🌟 สไตล์สำหรับ Tab สลับการแสดงผล 🌟 */
-        .tab-container { display: flex; justify-content: center; margin-bottom: 20px; background: #fff; border-radius: 30px; padding: 5px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); max-width: 400px; margin-left: auto; margin-right: auto; }
-        .tab-btn { flex: 1; padding: 10px 20px; text-align: center; border-radius: 25px; cursor: pointer; font-weight: bold; color: #555; transition: all 0.3s; font-size: 1.05rem; }
-        .tab-btn.active { background: #1a73e8; color: white; box-shadow: 0 2px 8px rgba(26,115,232,0.3); }
-        .tab-btn.event.active { background: #d93025; box-shadow: 0 2px 8px rgba(217,48,37,0.3); }
+        @keyframes pulseSeat { 0% { transform: scale(1); } 50% { transform: scale(1.08); box-shadow: 0 0 15px #f59e0b; } 100% { transform: scale(1); } }
 
-        /* สไตล์สำหรับแผงค้นหาและตัวกรอง */
-        .filter-bar { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 25px; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); align-items: flex-end; }
-        .filter-item { flex: 1; min-width: 200px; }
-        .filter-item label { display: block; font-weight: bold; font-size: 0.9rem; color: #555; margin-bottom: 8px; }
-        .filter-item select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ddd; font-family: 'Sarabun'; cursor: pointer; outline: none;}
+        /* Tables Minimal */
+        .minimal-table th { background: #f8f9fa; color: #5f6368; font-weight: 600; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.5px; border-bottom: 2px solid #eef0f2;}
+        .minimal-table td { vertical-align: middle; border-bottom: 1px solid #f1f3f4; }
 
-        /* สีสำหรับที่นั่งแบบ Normal (อิงสีเขียวเดิม) */
-        .seat.tier-normal.available { border-color: #28a745; color: #28a745; }
-        .seat.tier-normal.available:hover { background-color: #28a745; color: white; }
-
-        /* สีสำหรับที่นั่งแบบ VIP (สีม่วง) */
-        .seat.tier-vip.available { border-color: #9b59b6; color: #9b59b6; }
-        .seat.tier-vip.available:hover { background-color: #9b59b6; color: white; }
-
-        /* เพิ่มในส่วน Legend (คำอธิบายสีด้านล่างแผนผังที่นั่ง) */
-        .dot-legend.tier-normal { border: 2px solid #28a745; }
-        .dot-legend.tier-vip { border: 2px solid #9b59b6; }
+        /* Banner Slider */
+        #banner-slider-container { border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+        .slider-dot { width: 12px; height: 12px; background: rgba(255,255,255,0.4); border-radius: 50px; transition: all 0.4s; }
+        .slider-dot.active { background: #fff; width: 30px; } /* ขยายเป็นวงรีเมื่อ active */
 
         /* =========================================
-           🌟 สไตล์สำหรับ Admin Sidebar 🌟
+           🌟 Admin Sidebar 🌟
            ========================================= */
         .admin-sidebar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            height: 100vh;
-            background-color: #2c3e50; /* สีพื้นหลัง Sidebar */
-            color: white;
-            transition: width 0.3s ease;
-            z-index: 9999;
-            overflow-x: hidden;
-            box-shadow: 2px 0 10px rgba(0,0,0,0.2);
+            position: fixed; top: 0; left: 0; height: 100vh;
+            background-color: #1e293b; color: white;
+            transition: width 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 9999; box-shadow: 4px 0 15px rgba(0,0,0,0.05);
         }
-
-        /* สถานะย่อ (แสดงแค่ไอคอน) */
-        .admin-sidebar.collapsed { width: 65px; }
-
-        /* สถานะขยาย (แสดงข้อความด้วย) */
-        .admin-sidebar.expanded { width: 250px; }
-
-        /* ซ่อน Sidebar ไปเลยถ้าไม่ใช่ Admin */
-        .admin-sidebar.hidden { display: none !important; }
-
-        .sidebar-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 15px;
-            background-color: #1a252f;
-            white-space: nowrap;
-            height: 60px; /* ให้สูงพอดีกับ Navbar ด้านบน ถ้ามี */
-            box-sizing: border-box;
-        }
-
-        .sidebar-header .toggle-btn {
-            background: none;
-            border: none;
-            color: white;
-            cursor: pointer;
-            font-size: 1.4rem;
-            padding: 5px;
-            width: 35px;
-        }
-
-        .sidebar-menu {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
+        .admin-sidebar.collapsed { width: 70px; }
+        .admin-sidebar.expanded { width: 260px; }
+        .sidebar-header { background-color: #0f172a; height: 65px; }
         .sidebar-menu li {
-            padding: 15px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            transition: background 0.2s, color 0.2s;
-            white-space: nowrap;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
+            margin: 8px 10px; border-radius: 12px; padding: 12px 15px; border-bottom: none; color: #cbd5e1;
         }
+        .sidebar-menu li:hover { background-color: #334155; color: #fff; transform: translateX(5px); }
+        body.admin-mode { padding-left: 70px; }
+        body.admin-mode.sidebar-expanded { padding-left: 260px; }
 
-        .sidebar-menu li:hover { 
-            background-color: #34495e; 
-            color: #3498db; 
-        }
-
-        .sidebar-menu li i {
-            min-width: 35px; /* ล็อกความกว้างไอคอนให้ตรงกัน */
-            text-align: center;
-            font-size: 1.2rem;
-        }
-
-        /* ซ่อนข้อความเมื่อเมนูถูกพับ */
-        .admin-sidebar.collapsed .menu-text { 
-            display: none; 
-        }
-
-        /* ดันเนื้อหาหลักของเว็บไม่ให้โดน Sidebar บัง (เฉพาะตอนแอดมินล็อกอิน) */
-        body.admin-mode { 
-            padding-left: 65px; 
-            transition: padding-left 0.3s ease; 
-        }
-        body.admin-mode.sidebar-expanded { 
-            padding-left: 250px; 
-        }
+        /* =========================================
+           🌟 E-Ticket (Modern) 🌟
+           ========================================= */
+        .ticket-card { border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.15); border: none; }
+        .ticket-left { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); }
+        .t-value.highlight { color: #10b981; }
     </style>
 </head>
 <body>
 
 <nav id="admin-sidebar" class="admin-sidebar collapsed hidden">
-    <div class="sidebar-header">
-        <span class="menu-text" style="font-weight: bold; font-size: 1.1rem;"><i class="fas fa-user-shield"></i> ผู้ดูแลระบบ</span>
-        <button onclick="toggleSidebar()" class="toggle-btn" title="ย่อ/ขยาย เมนู">
+    <div class="sidebar-header d-flex align-items-center justify-content-between p-3">
+        <span class="menu-text fw-bold fs-5 text-truncate"><i class="fas fa-user-shield me-2 text-primary"></i> แอดมิน</span>
+        <button onclick="toggleSidebar()" class="btn btn-link text-white text-decoration-none p-0 toggle-btn" title="ย่อ/ขยาย">
             <i class="fas fa-bars"></i>
         </button>
     </div>
-    <ul class="sidebar-menu">
-        <li onclick="showDashboardAdmin()">
-            <i class="fas fa-chart-pie"></i> <span class="menu-text">แดชบอร์ดที่นั่ง</span>
-        </li>
-        <li onclick="showScanPage()">
-            <i class="fas fa-qrcode"></i> <span class="menu-text">สแกนตั๋ว</span>
-        </li>
-        <li onclick="showOrderManagement()">
-            <i class="fas fa-receipt"></i> <span class="menu-text">จัดการคำสั่งซื้อ</span>
-        </li>
-        <li onclick="showUserManagement()">
-            <i class="fas fa-users"></i> <span class="menu-text">จัดการสมาชิก</span>
-        </li>
-        <li onclick="showTicketTypesManagement()">
-            <i class="fas fa-ticket-alt"></i> <span class="menu-text">ประเภทบัตร</span>
-        </li>
-        <li onclick="showPromotionsManagement()">
-            <i class="fas fa-tags"></i> <span class="menu-text">โค้ดส่วนลด</span>
-        </li>
+    <ul class="sidebar-menu list-unstyled mt-3">
+        <li onclick="showDashboardAdmin()" class="cursor-pointer"><i class="fas fa-chart-pie me-2"></i> <span class="menu-text">แดชบอร์ด</span></li>
+        <li onclick="showScanPage()" class="cursor-pointer"><i class="fas fa-qrcode me-2"></i> <span class="menu-text">สแกนตั๋ว</span></li>
+        <li onclick="showOrderManagement()" class="cursor-pointer"><i class="fas fa-receipt me-2"></i> <span class="menu-text">คำสั่งซื้อ</span></li>
+        <li onclick="showUserManagement()" class="cursor-pointer"><i class="fas fa-users me-2"></i> <span class="menu-text">สมาชิก</span></li>
+        <li onclick="showTicketTypesManagement()" class="cursor-pointer"><i class="fas fa-ticket-alt me-2"></i> <span class="menu-text">ประเภทบัตร</span></li>
+        <li onclick="showPromotionsManagement()" class="cursor-pointer"><i class="fas fa-tags me-2"></i> <span class="menu-text">โค้ดส่วนลด</span></li>
     </ul>
 </nav>
 
-<nav class="navbar hidden" id="main-nav">
-    <div class="brand" onclick="goHome()">🎟️ TicketSystem</div>
-    <div class="nav-menu">
-        <span class="nav-item" onclick="goHome()">หน้าหลัก</span>
-        <span id="nav-profile" class="nav-item hidden" onclick="showProfile()">ข้อมูลส่วนตัว/ประวัติ</span>
-        
-        <span id="nav-login" class="nav-item" onclick="showPage('page-auth')">เข้าสู่ระบบ</span>
-        <span id="nav-logout" class="btn-logout hidden" onclick="doLogout()">ออกจากระบบ</span>
+<nav class="navbar navbar-expand-lg sticky-top hidden shadow-sm py-3" id="main-nav">
+    <div class="container-fluid px-4 px-md-5">
+        <span class="navbar-brand fw-bold text-primary cursor-pointer fs-4" onclick="goHome()">🎟️ TicketSystem</span>
+        <div class="d-flex align-items-center gap-4">
+            <span class="nav-item-custom cursor-pointer" onclick="goHome()">หน้าหลัก</span>
+            <span id="nav-profile" class="nav-item-custom cursor-pointer hidden" onclick="showProfile()">โปรไฟล์ของฉัน</span>
+            <span id="nav-login" class="btn btn-primary rounded-pill px-4 fw-bold" onclick="showPage('page-auth')">เข้าสู่ระบบ</span>
+            <span id="nav-logout" class="btn btn-outline-danger rounded-pill px-4 fw-bold hidden" onclick="doLogout()">ออกจากระบบ</span>
+        </div>
     </div>
 </nav>
 
-<div class="container">
+<div class="container py-4 my-3">
 
-    <div id="page-auth" class="auth-container">
-        <h2 id="auth-title">เข้าสู่ระบบ</h2>
+    <div id="page-auth" class="card border-0 shadow-lg rounded-4 p-4 p-md-5 mx-auto hover-lift" style="max-width: 450px; margin-top: 5vh;">
+        <div class="text-center mb-4">
+            <h2 id="auth-title" class="fw-bold text-dark">เข้าสู่ระบบ</h2>
+            <p class="text-muted small">ยินดีต้อนรับกลับเข้าสู่ระบบจองตั๋ว</p>
+        </div>
         <form id="auth-form" onsubmit="handleAuth(event)">
-            <input type="email" id="auth-email" class="auth-input" placeholder="อีเมล" required>
-            <input type="password" id="auth-pass" class="auth-input" placeholder="รหัสผ่าน" required>
-            
-            <div id="forgot-password-link" style="text-align: right; margin-top: -10px; margin-bottom: 15px;">
-                <a href="javascript:void(0)" onclick="showForgotPasswordModal()" style="font-size: 0.85rem; color: #1a73e8; text-decoration: none; font-weight: 600;">ลืมรหัสผ่าน?</a>
+            <div class="mb-3">
+                <input type="email" id="auth-email" class="form-control" placeholder="อีเมล" required>
+            </div>
+            <div class="mb-3">
+                <input type="password" id="auth-pass" class="form-control" placeholder="รหัสผ่าน" required>
+            </div>
+            <div class="text-end mb-4">
+                <a href="javascript:void(0)" onclick="showForgotPasswordModal()" class="text-decoration-none small fw-bold text-primary">ลืมรหัสผ่าน?</a>
             </div>
 
             <div id="register-fields" class="hidden">
-                <input type="text" id="reg-name" class="auth-input" placeholder="ชื่อ-นามสกุล">
-                <input type="tel" id="reg-phone" class="auth-input" placeholder="เบอร์โทรศัพท์">
-                <input type="text" id="reg-idcard" class="auth-input" placeholder="เลขบัตรประชาชน (13 หลัก)" maxlength="13">
-                <div class="admin-code-area">
-                    <label>รหัสผู้ดูแลระบบ (ถ้ามี):</label>
-                    <input type="text" id="reg-admin-code" class="auth-input" placeholder="ใส่รหัสเพื่อเป็น Admin" style="margin-top:5px;">
-                    <small>* ใส่รหัส "ADMIN999" เพื่อรับสิทธิ์ Admin</small>
+                <div class="mb-3"><input type="text" id="reg-name" class="form-control" placeholder="ชื่อ-นามสกุล"></div>
+                <div class="mb-3"><input type="tel" id="reg-phone" class="form-control" placeholder="เบอร์โทรศัพท์"></div>
+                <div class="mb-3"><input type="text" id="reg-idcard" class="form-control" placeholder="เลขบัตรประชาชน (13 หลัก)" maxlength="13"></div>
+                <div class="bg-light p-3 rounded-3 mb-3 border">
+                    <label class="form-label small fw-bold text-secondary">รหัสผู้ดูแลระบบ (ถ้ามี):</label>
+                    <input type="text" id="reg-admin-code" class="form-control form-control-sm" placeholder="ใส่รหัสเพื่อเป็น Admin">
+                    <div class="form-text small text-muted"><i class="fas fa-info-circle"></i> ใส่ "ADMIN999" เพื่อรับสิทธิ์</div>
                 </div>
             </div>
-            <button type="submit" class="btn-primary" id="btn-auth-submit">เข้าสู่ระบบ</button>
+            <button type="submit" class="btn btn-primary w-100 rounded-pill py-2 fw-bold fs-6 shadow-sm" id="btn-auth-submit">เข้าสู่ระบบ</button>
         </form>
-        <span class="link-text" id="toggle-auth" onclick="toggleAuthMode()">ยังไม่มีบัญชี? สมัครสมาชิก</span>
+        <div class="text-center mt-4">
+            <span class="text-secondary small">ยังไม่มีบัญชี?</span> 
+            <span class="text-primary fw-bold cursor-pointer ms-1" id="toggle-auth" onclick="toggleAuthMode()">สมัครสมาชิกใหม่</span>
+        </div>
     </div>
 
     <div id="page-home" class="hidden">
-        <div id="admin-panel-home" class="admin-bar hidden">
-            <span>🔧 <b>Admin Dashboard</b></span>
-            <div>
-                <button class="btn-sm" style="background:#8e44ad; padding:8px 15px;" onclick="showBannerManagement()">🖼️ จัดการแบนเนอร์</button>
-                <button class="btn-sm" style="background:#2ecc71; padding:8px 15px;" onclick="openItemModal('movie')">+ เพิ่มหนังใหม่</button>
-                <button class="btn-sm" style="background:#2ecc71; padding:8px 15px;" onclick="openItemModal('event')">+ เพิ่มอีเวนต์ใหม่</button>
+        
+        <div id="admin-panel-home" class="admin-bar hidden bg-white rounded-4 shadow-sm p-3 mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2 border-start border-4 border-primary">
+            <span class="fw-bold text-dark"><i class="fas fa-tools text-primary me-2"></i>เมนูด่วนสำหรับแอดมิน</span>
+            <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-outline-primary rounded-pill fw-bold" onclick="showBannerManagement()"><i class="fas fa-image me-1"></i> แบนเนอร์</button>
+                <button class="btn btn-sm btn-success rounded-pill fw-bold" onclick="openItemModal('movie')"><i class="fas fa-plus me-1"></i> เพิ่มหนัง</button>
+                <button class="btn btn-sm btn-danger rounded-pill fw-bold" onclick="openItemModal('event')"><i class="fas fa-plus me-1"></i> เพิ่มอีเวนต์</button>
             </div>
         </div>
 
-        <div id="banner-slider-container" class="hidden">
-            <div id="banner-slider-track"></div>
-            <div class="banner-dots-wrapper" id="banner-slider-dots"></div>
+        <div id="banner-slider-container" class="hidden position-relative overflow-hidden mb-5">
+            <div id="banner-slider-track" class="d-flex w-100" style="transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);"></div>
+            <div class="banner-dots-wrapper position-absolute bottom-0 w-100 text-center pb-3" id="banner-slider-dots"></div>
         </div>
 
-        <h1 style="margin-bottom: 15px; text-align: center;">รายการที่เปิดจอง</h1>
-
-        <div class="tab-container">
-            <div id="tab-movie" class="tab-btn active" onclick="switchHomeTab('movie')">🎬 ภาพยนตร์</div>
-            <div id="tab-event" class="tab-btn event" onclick="switchHomeTab('event')">🎤 อีเวนต์</div>
+        <div class="text-center mb-4">
+            <h1 class="fw-bold text-dark mb-4">เลือกประสบการณ์ของคุณ</h1>
+            <div class="minimal-tabs text-center">
+                <div id="tab-movie" class="tab-btn cursor-pointer active" onclick="switchHomeTab('movie')"><i class="fas fa-film me-2"></i>ภาพยนตร์</div>
+                <div id="tab-event" class="tab-btn cursor-pointer event" onclick="switchHomeTab('event')"><i class="fas fa-microphone-alt me-2"></i>อีเวนต์ & คอนเสิร์ต</div>
+            </div>
         </div>
 
-        <div class="filter-bar">
-            <div class="filter-item">
-                <label>📍 ค้นหาสถานที่ / โรงภาพยนตร์</label>
-                <select id="filter-location" onchange="applyFilters()">
+        <div class="row g-3 mb-5 bg-white p-3 rounded-4 shadow-sm align-items-end mx-auto" style="max-width: 800px;">
+            <div class="col-md-6">
+                <label class="form-label small fw-bold text-secondary"><i class="fas fa-map-marker-alt text-danger me-1"></i> สถานที่จัดงาน</label>
+                <select id="filter-location" class="form-select border-0 bg-light" onchange="applyFilters()">
                     <option value="">-- ดูทุกสถานที่ --</option>
                 </select>
             </div>
-            <div class="filter-item">
-                <label>🔽 เรียงลำดับข้อมูล</label>
-                <select id="filter-sort" onchange="applyFilters()">
-                    <option value="closest">รอบฉาย/จัดงาน ล่าสุด</option>
-                    <option value="newest">วันที่จัดงานไกลที่สุด (หลังสุด)</option>
-                    <option value="priceAsc">ราคาตั๋ว (ต่ำไปสูง)</option>
-                    <option value="priceDesc">ราคาตั๋ว (สูงไปต่ำ)</option>
+            <div class="col-md-6">
+                <label class="form-label small fw-bold text-secondary"><i class="fas fa-sort-amount-down text-primary me-1"></i> เรียงลำดับ</label>
+                <select id="filter-sort" class="form-select border-0 bg-light" onchange="applyFilters()">
+                    <option value="closest">รอบฉายล่าสุด</option>
+                    <option value="newest">วันที่จัดงานไกลที่สุด</option>
+                    <option value="priceAsc">ราคา (ต่ำไปสูง)</option>
+                    <option value="priceDesc">ราคา (สูงไปต่ำ)</option>
                 </select>
             </div>
         </div>
 
-        <div id="items-grid" class="grid-container" style="margin-bottom: 30px;"></div>
+        <div id="items-grid" class="grid-container mb-5"></div>
     </div>
 
     <div id="page-detail" class="hidden">
-        <button class="btn-secondary" onclick="goHome()">⬅ ย้อนกลับไปหน้าหลัก</button>
-        <div class="item-details" id="detail-header"></div>
+        <button class="btn btn-light rounded-pill mb-4 px-4 shadow-sm hover-lift text-secondary fw-bold" onclick="goHome()"><i class="fas fa-arrow-left me-2"></i>ย้อนกลับ</button>
+        
+        <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
+            <div class="card-body p-4 p-md-5 d-flex flex-column flex-md-row gap-4" id="detail-header">
+                </div>
+        </div>
 
-        <div id="admin-panel-detail" class="admin-bar hidden">
-            <span>🔧 <b>จัดการรอบ (Admin)</b></span>
-            <div>
-                <button class="btn-sm btn-edit" style="padding:8px 15px;" onclick="editCurrentItem()">✏️ แก้ไขข้อมูลหลัก</button>
-                <button class="btn-sm" style="background:#2ecc71; padding:8px 15px;" onclick="openRoundModal()">+ เพิ่มรอบใหม่</button>
-                <button class="btn-sm btn-del" style="padding:8px 15px; margin-left: 5px;" onclick="deleteCurrentItem()">🗑️ ลบเรื่องนี้</button>
+        <div id="admin-panel-detail" class="admin-bar hidden bg-white rounded-4 shadow-sm p-3 mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2 border-start border-4 border-warning">
+            <span class="fw-bold text-dark"><i class="fas fa-cogs text-warning me-2"></i>จัดการรอบ (Admin)</span>
+            <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-outline-dark rounded-pill" onclick="editCurrentItem()"><i class="fas fa-edit"></i> แก้ไข</button>
+                <button class="btn btn-sm btn-success rounded-pill" onclick="openRoundModal()"><i class="fas fa-plus"></i> เพิ่มรอบ</button>
+                <button class="btn btn-sm btn-danger rounded-pill" onclick="deleteCurrentItem()"><i class="fas fa-trash"></i> ลบ</button>
             </div>
         </div>
 
-        <div id="schedule-section">
-            <h3>เลือกรอบ <span id="schedule-type-text"></span></h3>
-            <div class="schedule-list" id="schedule-list"></div>
+        <div id="schedule-section" class="bg-white p-4 rounded-4 shadow-sm mb-5">
+            <h4 class="fw-bold mb-4 border-bottom pb-2">เลือกรอบ <span id="schedule-type-text" class="text-primary"></span></h4>
+            <div class="schedule-list d-flex flex-column gap-3" id="schedule-list"></div>
         </div>
         
-        <div id="movie-seat-section" class="hidden">
-            <div style="margin: 10px 0; display:flex; align-items:center; gap:15px;">
-                <button class="btn-sm" onclick="backToSchedule()" style="background:#6c757d">⬅ เลือกรอบอื่น</button>
-                <span style="font-weight:bold; font-size:1.1rem;">รอบเวลา: <span id="seat-round-time" style="color:#1a73e8;"></span></span>
+        <div id="movie-seat-section" class="hidden bg-white p-4 rounded-4 shadow-sm mb-5 text-center">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <button class="btn btn-light rounded-pill fw-bold" onclick="backToSchedule()"><i class="fas fa-chevron-left"></i> เปลี่ยนรอบ</button>
+                <span class="fs-5 fw-bold text-dark">รอบ: <span id="seat-round-time" class="text-primary badge bg-primary bg-opacity-10 py-2 px-3 rounded-pill"></span></span>
             </div>
-            <div class="screen">จอภาพยนตร์ / เวที</div>
+            
+            <div class="screen py-2 mb-5 mx-auto w-75">หน้าจอภาพยนตร์ / เวที</div>
+            
             <div class="seat-map" id="seat-map"></div>
-            <div class="legend">
-                <div class="legend-item"><div class="dot-legend tier-normal"></div> ว่าง (ปกติ)</div>
-                <div class="legend-item"><div class="dot-legend tier-vip"></div> ว่าง (VIP)</div>
-                <div class="legend-item"><div class="dot-legend" style="background:#f39c12;"></div> รอชำระเงิน</div>
-                <div class="legend-item"><div class="dot-legend" style="background:#dc3545;"></div> จองแล้ว</div>
-                <div class="legend-item"><div class="dot-legend" style="background:#e2e6ea;"></div> ปิด</div>
+            
+            <div class="d-flex justify-content-center flex-wrap gap-4 mt-5 pt-4 border-top">
+                <div class="d-flex align-items-center gap-2 small fw-bold"><div style="width:16px; height:16px; border-radius:4px; border:2px solid #10b981;"></div> ว่าง (ปกติ)</div>
+                <div class="d-flex align-items-center gap-2 small fw-bold"><div style="width:16px; height:16px; border-radius:4px; border:2px solid #8b5cf6;"></div> ว่าง (VIP)</div>
+                <div class="d-flex align-items-center gap-2 small fw-bold"><div style="width:16px; height:16px; border-radius:4px; background:#f59e0b;"></div> รอชำระเงิน</div>
+                <div class="d-flex align-items-center gap-2 small fw-bold"><div style="width:16px; height:16px; border-radius:4px; background:#ef4444;"></div> จองแล้ว</div>
             </div>
         </div>
 
-        <div id="event-booking-section" class="hidden">
-             <div style="margin: 10px 0; display:flex; align-items:center; gap:15px;">
-                <button class="btn-sm" onclick="backToSchedule()" style="background:#6c757d">⬅ เลือกรอบอื่น</button>
-                <span style="font-weight:bold; font-size:1.1rem;">รอบเวลา: <span id="e-round-time" style="color:#d93025;"></span></span>
+        <div id="event-booking-section" class="hidden bg-white p-4 rounded-4 shadow-sm mb-5 text-center">
+             <div class="d-flex justify-content-between align-items-center mb-4">
+                <button class="btn btn-light rounded-pill fw-bold" onclick="backToSchedule()"><i class="fas fa-chevron-left"></i> เปลี่ยนรอบ</button>
+                <span class="fs-5 fw-bold text-dark">รอบ: <span id="e-round-time" class="text-danger badge bg-danger bg-opacity-10 py-2 px-3 rounded-pill"></span></span>
             </div>
-            <div class="card" style="cursor:default; text-align:center;">
-                <h3 style="margin-top:0;">ยืนยันการลงทะเบียน</h3>
-                <p style="font-size:1.1rem;">ที่นั่ง/สิทธิ์ คงเหลือ: <span id="e-remaining" style="color:#d93025; font-weight:bold; font-size:1.3rem;"></span> / <span id="e-capacity"></span></p>
-                <button id="btn-event-book" class="btn-primary" style="width:100%; max-width:300px; margin-top:15px;">ดำเนินการจอง</button>
+            <div class="card border-0 bg-light rounded-4 p-5 text-center mx-auto" style="max-width: 500px;">
+                <h3 class="fw-bold mb-3">ยืนยันการลงทะเบียน</h3>
+                <p class="fs-5 mb-4 text-secondary">ที่นั่ง/สิทธิ์ คงเหลือ: <br><span id="e-remaining" class="text-danger fw-bold fs-1"></span> / <span id="e-capacity"></span></p>
+                <button id="btn-event-book" class="btn btn-danger btn-lg rounded-pill w-100 fw-bold shadow-sm hover-lift">ดำเนินการจองสิทธิ์</button>
             </div>
         </div>
     </div>
 
     <div id="page-profile" class="hidden">
-        <div class="nav-back" onclick="goHome()">⬅ ย้อนกลับ</div><h2>👤 ข้อมูลส่วนตัว</h2>
-        <div class="card" style="margin-bottom:20px; cursor:default;"><form onsubmit="updateUserProfile(event)"><label>ชื่อ-นามสกุล:</label> <input type="text" id="p-name" class="auth-input"><label>เบอร์โทร:</label> <input type="tel" id="p-phone" class="auth-input"><label>เลขบัตรประชาชน:</label> <input type="text" id="p-idcard" class="auth-input" readonly style="background:#eee; color:#777;"><button type="submit" class="btn-primary" style="width:auto; margin-top:10px;">บันทึกการแก้ไข</button></form></div>
-        <h3>📜 ประวัติการจอง</h3><table id="history-table"><thead><tr><th>วันที่</th><th>รายการ</th><th>สถานะ / การจัดการ</th></tr></thead><tbody id="history-list"></tbody></table>
-    </div>
-
-    <div id="page-scan" class="hidden">
-        <div class="nav-back" onclick="goHome()">⬅ ย้อนกลับ</div><h2 style="text-align: center; color: #1a73e8;">📷 ระบบเช็คอิน (Scan QR Code)</h2><div style="max-width: 500px; margin: 0 auto;"><div id="qr-reader"></div><div id="scan-result" style="display:none;"></div><div style="text-align: center; margin-top: 15px;"><button class="btn-secondary" onclick="restartScanner()">เริ่มสแกนใหม่</button></div></div>
-    </div>
-
-    <div id="page-orders" class="hidden">
-        <div class="nav-back" onclick="goHome()">⬅ ย้อนกลับ</div><h2>📋 จัดการคำสั่งซื้อทั้งหมด</h2><div style="overflow-x:auto;"><table><thead><tr><th>วันที่จอง</th><th>รายการ</th><th>ข้อมูลผู้จอง</th><th>สลิป</th><th>สถานะเงิน</th><th>สถานะเช็คอิน</th></tr></thead><tbody id="all-orders-list"></tbody></table></div>
-    </div>
-
-    <div id="page-users" class="hidden">
-        <div class="nav-back" onclick="goHome()">⬅ ย้อนกลับ</div><h2>👥 จัดการบัญชีผู้ใช้</h2><div style="overflow-x:auto;"><table><thead><tr><th>ชื่อ</th><th>อีเมล</th><th>เบอร์โทร</th><th>ID Card</th><th>Role</th><th>จัดการ</th></tr></thead><tbody id="user-list-admin"></tbody></table></div>
-    </div>
-
-    <div id="page-ticket-types" class="hidden">
-        <div class="nav-back" onclick="goHome()">⬅ ย้อนกลับ</div><div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;"><h2 style="margin:0;">🎫 จัดการประเภทบัตร</h2><button class="btn-sm" style="background:#2ecc71; padding:10px 20px; font-size:1rem;" onclick="openTicketTypeModal()">+ เพิ่มประเภทบัตร</button></div><div style="overflow-x:auto; margin-top:20px;"><table><thead><tr><th>ชื่อประเภทบัตร</th><th>ราคา (บาท)</th><th>จัดการ</th></tr></thead><tbody id="ticket-types-list"></tbody></table></div>
-    </div>
-
-    <div id="page-banners" class="hidden">
-        <div class="nav-back" onclick="goHome()">⬅ ย้อนกลับ</div><div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;"><h2 style="margin:0;">🖼️ จัดการแบนเนอร์โฆษณา</h2><button class="btn-sm" style="background:#2ecc71; padding:10px 20px; font-size:1rem;" onclick="openBannerFormModal()">+ เพิ่มแบนเนอร์ใหม่</button></div><div style="overflow-x:auto; margin-top:20px;"><table><thead><tr><th>รูปภาพ</th><th>ลิ้งค์ (URL)</th><th>สถานะ</th><th>จัดการ</th></tr></thead><tbody id="banners-list-admin"></tbody></table></div>
-    </div>
-
-    <div id="page-promotions" class="hidden">
-        <div class="nav-back" onclick="goHome()">⬅ ย้อนกลับ</div>
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
-            <h2 style="margin: 0;">🎟️ จัดการโค้ดส่วนลด (Promotions)</h2>
-            <button class="btn-sm" style="background:#2ecc71; padding:10px 20px; font-size:1rem;" onclick="openPromoModal()">+ สร้างโค้ดใหม่</button>
-        </div>
-        <div style="overflow-x: auto; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-            <table style="width: 100%; border-collapse: collapse; text-align: left;">
-                <thead>
-                    <tr style="border-bottom: 2px solid #ddd;">
-                        <th style="padding: 10px;">โค้ดส่วนลด</th>
-                        <th style="padding: 10px;">ประเภท</th>
-                        <th style="padding: 10px;">มูลค่า</th>
-                        <th style="padding: 10px;">สิทธิ์ที่ใช้ / ทั้งหมด</th>
-                        <th style="padding: 10px;">สถานะ</th>
-                        <th style="padding: 10px; text-align: center;">จัดการ</th>
-                    </tr>
-                </thead>
-                <tbody id="promo-list">
-                    </tbody>
-            </table>
-        </div>
-    </div>
-
-    <div id="page-dashboard" class="hidden">
-        <div class="nav-back" onclick="goHome()">⬅ ย้อนกลับ</div>
-        <h2><i class="fas fa-chart-pie"></i> แดชบอร์ดสรุปจำนวนที่นั่ง</h2>
-        
-        <div style="display:flex; flex-wrap: wrap; gap:15px; margin-bottom: 25px; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-            <div class="form-group" style="flex:1; min-width: 200px; margin:0;">
-                <label style="font-weight:bold; margin-bottom:5px; display:block;">ประเภท:</label>
-                <select id="dash-type" onchange="loadDashItems()" style="width:100%; padding:10px; border-radius: 5px; border: 1px solid #ccc;">
-                    <option value="movie">ภาพยนตร์ (Movie)</option>
-                    <option value="event">อีเวนต์ (Event)</option>
-                </select>
+        <button class="btn btn-light rounded-pill mb-4 px-4 shadow-sm hover-lift text-secondary fw-bold" onclick="goHome()"><i class="fas fa-arrow-left me-2"></i>หน้าหลัก</button>
+        <div class="row g-4">
+            <div class="col-lg-4">
+                <div class="card border-0 shadow-sm rounded-4 p-4">
+                    <h4 class="fw-bold mb-4"><i class="fas fa-user-circle text-primary me-2"></i>ข้อมูลส่วนตัว</h4>
+                    <form onsubmit="updateUserProfile(event)">
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">ชื่อ-นามสกุล</label>
+                            <input type="text" id="p-name" class="form-control">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">เบอร์โทร</label>
+                            <input type="tel" id="p-phone" class="form-control">
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label small text-muted">เลขบัตรประชาชน</label>
+                            <input type="text" id="p-idcard" class="form-control bg-light" readonly>
+                        </div>
+                        <button type="submit" class="btn btn-primary rounded-pill w-100 fw-bold">บันทึกข้อมูล</button>
+                    </form>
+                </div>
             </div>
-            <div class="form-group" style="flex:2; min-width: 200px; margin:0;">
-                <label style="font-weight:bold; margin-bottom:5px; display:block;">เลือกรายการ:</label>
-                <select id="dash-item" onchange="renderAllRoundsDashboard()" style="width:100%; padding:10px; border-radius: 5px; border: 1px solid #ccc;">
-                    <option value="">-- กรุณาเลือกประเภทก่อน --</option>
-                </select>
-            </div>
-        </div>
-
-        <div id="dash-stats" style="display:grid; grid-template-columns: 1fr; gap:20px;">
-            <div style="text-align: center; color: #7f8c8d; padding: 40px; background: #fff; border-radius: 8px; border: 2px dashed #ddd;">
-                กรุณาเลือกรายการ เพื่อดูสรุปจำนวนที่นั่งของทุกรอบ
+            <div class="col-lg-8">
+                <div class="card border-0 shadow-sm rounded-4 p-4">
+                    <h4 class="fw-bold mb-4"><i class="fas fa-history text-secondary me-2"></i>ประวัติการจอง</h4>
+                    <div class="table-responsive">
+                        <table class="table table-hover minimal-table align-middle" id="history-table">
+                            <thead><tr><th>วันที่ทำรายการ</th><th>รายละเอียด</th><th class="text-center">สถานะ</th></tr></thead>
+                            <tbody id="history-list"></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
+    <div id="page-scan" class="hidden text-center">
+        <button class="btn btn-light rounded-pill mb-4 px-4 shadow-sm hover-lift text-secondary fw-bold float-start" onclick="goHome()"><i class="fas fa-arrow-left"></i></button>
+        <div class="clearfix"></div>
+        <h2 class="fw-bold text-primary mb-4"><i class="fas fa-qrcode me-2"></i> ระบบเช็คอิน</h2>
+        <div class="card border-0 shadow-lg rounded-4 p-4 mx-auto" style="max-width: 500px;">
+            <div id="qr-reader" class="rounded-4 overflow-hidden mb-3 border"></div>
+            <div id="scan-result" class="mt-3" style="display:none;"></div>
+            <button class="btn btn-outline-dark rounded-pill mt-3 px-4 fw-bold" onclick="restartScanner()"><i class="fas fa-sync-alt me-2"></i>เริ่มสแกนใหม่</button>
+        </div>
+    </div>
+
+    <style>
+        .admin-page-container { background: #fff; border-radius: 20px; padding: 25px; box-shadow: 0 5px 20px rgba(0,0,0,0.03); margin-bottom: 30px;}
+        .admin-page-title { font-weight: 700; color: #1e293b; margin-bottom: 25px; display: flex; align-items: center; gap: 10px;}
+    </style>
+
+    <div id="page-orders" class="hidden admin-page-container">
+        <button class="btn btn-light btn-sm rounded-pill mb-3" onclick="goHome()"><i class="fas fa-arrow-left"></i> กลับ</button>
+        <h3 class="admin-page-title"><i class="fas fa-receipt text-primary"></i> จัดการคำสั่งซื้อ</h3>
+        <div class="table-responsive"><table class="table table-hover minimal-table"><thead><tr><th>วันที่</th><th>รายการ</th><th>ผู้จอง</th><th>สลิป</th><th>สถานะเงิน</th><th>เช็คอิน</th></tr></thead><tbody id="all-orders-list"></tbody></table></div>
+    </div>
+
+    <div id="page-users" class="hidden admin-page-container">
+        <button class="btn btn-light btn-sm rounded-pill mb-3" onclick="goHome()"><i class="fas fa-arrow-left"></i> กลับ</button>
+        <h3 class="admin-page-title"><i class="fas fa-users text-primary"></i> บัญชีผู้ใช้</h3>
+        <div class="table-responsive"><table class="table table-hover minimal-table"><thead><tr><th>ชื่อ</th><th>อีเมล</th><th>เบอร์โทร</th><th>ID Card</th><th>Role</th><th>จัดการ</th></tr></thead><tbody id="user-list-admin"></tbody></table></div>
+    </div>
+
+    <div id="page-ticket-types" class="hidden admin-page-container">
+        <button class="btn btn-light btn-sm rounded-pill mb-3" onclick="goHome()"><i class="fas fa-arrow-left"></i> กลับ</button>
+        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+            <h3 class="admin-page-title m-0"><i class="fas fa-ticket-alt text-primary"></i> ประเภทบัตร</h3>
+            <button class="btn btn-success rounded-pill fw-bold shadow-sm" onclick="openTicketTypeModal()"><i class="fas fa-plus"></i> เพิ่มใหม่</button>
+        </div>
+        <div class="table-responsive"><table class="table table-hover minimal-table"><thead><tr><th>ชื่อประเภท</th><th>ราคา (บาท)</th><th class="text-end">จัดการ</th></tr></thead><tbody id="ticket-types-list"></tbody></table></div>
+    </div>
+
+    <div id="page-banners" class="hidden admin-page-container">
+        <button class="btn btn-light btn-sm rounded-pill mb-3" onclick="goHome()"><i class="fas fa-arrow-left"></i> กลับ</button>
+        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+            <h3 class="admin-page-title m-0"><i class="fas fa-images text-primary"></i> แบนเนอร์</h3>
+            <button class="btn btn-success rounded-pill fw-bold shadow-sm" onclick="openBannerFormModal()"><i class="fas fa-plus"></i> เพิ่มแบนเนอร์</button>
+        </div>
+        <div class="table-responsive"><table class="table table-hover minimal-table align-middle"><thead><tr><th>รูปภาพ</th><th>ลิงก์ (URL)</th><th>สถานะ</th><th class="text-end">จัดการ</th></tr></thead><tbody id="banners-list-admin"></tbody></table></div>
+    </div>
+
+    <div id="page-promotions" class="hidden admin-page-container">
+        <button class="btn btn-light btn-sm rounded-pill mb-3" onclick="goHome()"><i class="fas fa-arrow-left"></i> กลับ</button>
+        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+            <h3 class="admin-page-title m-0"><i class="fas fa-tags text-primary"></i> โค้ดส่วนลด</h3>
+            <button class="btn btn-success rounded-pill fw-bold shadow-sm" onclick="openPromoModal()"><i class="fas fa-plus"></i> สร้างโค้ด</button>
+        </div>
+        <div class="table-responsive"><table class="table table-hover minimal-table"><thead><tr><th>โค้ด</th><th>ประเภท</th><th>มูลค่า</th><th>สิทธิ์ที่ใช้/ทั้งหมด</th><th>สถานะ</th><th class="text-end">จัดการ</th></tr></thead><tbody id="promo-list"></tbody></table></div>
+    </div>
+
+<div id="page-dashboard" class="hidden">
+    <div class="nav-back" onclick="goHome()">⬅ ย้อนกลับ</div>
+    <h2><i class="fas fa-chart-pie"></i> แดชบอร์ดสรุปจำนวนที่นั่ง</h2>
+    
+    <div class="dashboard-filter" style="display:flex; flex-wrap: wrap; gap:15px; margin-bottom: 25px; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+        <div class="form-group" style="flex:1; min-width: 200px; margin:0;">
+            <label>ประเภท:</label>
+            <select id="dash-type" class="form-control" onchange="loadDashItems()">
+                <option value="movie">ภาพยนตร์ (Movie)</option>
+                <option value="event">อีเวนต์ (Event)</option>
+            </select>
+        </div>
+        <div class="form-group" style="flex:2; min-width: 200px; margin:0;">
+            <label>เลือกรายการ:</label>
+            <select id="dash-item" class="form-control" onchange="renderAllRoundsDashboard()">
+                <option value="">-- กรุณาเลือกประเภทก่อน --</option>
+            </select>
+        </div>
+    </div>
+
+    <div id="dash-stats" style="display:grid; grid-template-columns: 1fr; gap:20px;">
+        <div style="text-align: center; color: #7f8c8d; padding: 40px; background: #fff; border-radius: 8px; border: 2px dashed #ddd;">
+            กรุณาเลือกรายการ เพื่อดูสรุปจำนวนที่นั่งของทุกรอบ
+        </div>
+    </div>
 </div>
 
 <div id="booking-modal" class="modal">
@@ -498,15 +493,16 @@
             <span class="close-btn" onclick="cancelSelection()">&times;</span>
             <h3>1. ข้อมูลผู้จอง</h3>
             <p id="modal-subtitle" style="margin-bottom: 15px; font-weight: bold; color: #1a73e8; font-size:1.1rem;"></p>
-            <div class="form-group"><label>ชื่อ-นามสกุล</label><input type="text" id="inp-conf-name" placeholder="กรุณากรอกชื่อ"></div>
-            <div class="form-group"><label>เบอร์โทรศัพท์</label><input type="tel" id="inp-conf-phone" placeholder="08x-xxx-xxxx"></div>
-            <div class="form-group"><label>อีเมล</label><input type="email" id="inp-conf-email" placeholder="email@example.com"></div>
-            <div class="form-group"><label>เลขบัตรประชาชน (ถ้ามี)</label><input type="text" id="inp-conf-idcard" placeholder="เลข 13 หลัก"></div>
+            <div class="form-group"><label>ชื่อ-นามสกุล</label><input type="text" id="inp-conf-name" class="form-control" placeholder="กรุณากรอกชื่อ"></div>
+            <div class="form-group"><label>เบอร์โทรศัพท์</label><input type="tel" id="inp-conf-phone" class="form-control" placeholder="08x-xxx-xxxx"></div>
+            <div class="form-group"><label>อีเมล</label><input type="email" id="inp-conf-email" class="form-control" placeholder="email@example.com"></div>
+            <div class="form-group"><label>เลขบัตรประชาชน (ถ้ามี)</label><input type="text" id="inp-conf-idcard" class="form-control" placeholder="เลข 13 หลัก"></div>
             <div class="modal-buttons">
                 <button class="btn-secondary" onclick="cancelSelection()">ยกเลิก</button>
-                <button class="btn-primary" onclick="proceedToPayment()" style="width:auto; margin-left:10px;">ดำเนินการชำระเงิน</button>
+                <button class="btn-primary" onclick="proceedToPayment()">ดำเนินการชำระเงิน</button>
             </div>
         </div>
+        
         <div id="payment-section" class="hidden">
             <h3 style="color: #1a73e8; text-align: center;">2. ชำระเงิน (สแกน QR Code)</h3>
             <div class="payment-qr-container">
@@ -518,14 +514,12 @@
             </div>
             <div class="form-group">
                 <label>แนบลิ้งค์หลักฐานการโอนเงิน (URL รูปภาพ)</label>
-                <input type="url" id="inp-slip-url" placeholder="https://...">
+                <input type="url" id="inp-slip-url" class="form-control" placeholder="https://...">
             </div>
-            <div class="modal-buttons" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-                <button class="btn-secondary" onclick="cancelSelection()" style="background:#dc3545;">ยกเลิก</button>
-                <div>
-                    <button class="btn-secondary" onclick="payLater()" style="background:#f39c12; color:white; border:none; margin-right:5px;">ชำระเงินภายหลัง</button>
-                    <button class="btn-primary" onclick="confirmPayment()" style="width:auto; margin:0;">ยืนยันสลิป</button>
-                </div>
+            <div class="modal-buttons">
+                <button class="btn-secondary" onclick="cancelSelection()" style="background:#dc3545; color:white; border:none;">ยกเลิก</button>
+                <button class="btn-secondary" onclick="payLater()" style="background:#f39c12; color:white; border:none;">ชำระเงินภายหลัง</button>
+                <button class="btn-primary" onclick="confirmPayment()">ยืนยันสลิป</button>
             </div>
         </div>
     </div>
@@ -543,11 +537,11 @@
         </div>
         <div class="form-group">
             <label>แนบลิ้งค์หลักฐานการโอนเงิน (URL รูปภาพ)</label>
-            <input type="url" id="pl-slip-url" placeholder="https://...">
+            <input type="url" id="pl-slip-url" class="form-control" placeholder="https://...">
         </div>
         <div class="modal-buttons">
             <button class="btn-secondary" onclick="document.getElementById('pay-later-modal').classList.remove('active')">ปิด</button>
-            <button class="btn-primary" onclick="submitPayLater()" style="width:auto;">บันทึกสลิป</button>
+            <button class="btn-primary" onclick="submitPayLater()">บันทึกสลิป</button>
         </div>
     </div>
 </div>
@@ -593,9 +587,8 @@
                 </div>
             </div>
         </div>
-
-        <div class="modal-buttons" style="display:flex; justify-content:center; gap:15px; margin-top:30px;">
-            <button class="btn-primary" onclick="downloadTicketPDF()" style="background:#8e44ad; width:100%; font-size: 1.1rem; padding: 12px; border-radius: 8px; box-shadow: 0 4px 15px rgba(142,68,173,0.3);">📥 บันทึกเป็น PDF (Download)</button>
+        <div class="modal-buttons" style="justify-content:center; margin-top:30px;">
+            <button class="btn-primary" onclick="downloadTicketPDF()" style="width:100%; font-size: 1.1rem; padding: 12px;">📥 บันทึกเป็น PDF (Download)</button>
         </div>
     </div>
 </div>
@@ -603,44 +596,44 @@
 <div id="forgot-password-modal" class="modal">
     <div class="modal-content" style="max-width: 400px;">
         <span class="close-btn" onclick="document.getElementById('forgot-password-modal').classList.remove('active')">&times;</span>
-        <h3 style="margin-top: 0; color: #1a73e8;">ลืมรหัสผ่าน</h3>
+        <h3>ลืมรหัสผ่าน</h3>
         <p style="font-size: 0.9rem; color: #666; margin-bottom: 20px;">
             กรุณากรอกอีเมลที่คุณใช้สมัครสมาชิก ระบบจะส่งลิงก์สำหรับตั้งรหัสผ่านใหม่ไปยังอีเมลของคุณ
         </p>
-        <div class="form-group" style="margin-bottom: 15px;">
-            <label style="display: block; margin-bottom: 5px; font-weight: bold;">อีเมล (Email)</label>
-            <input type="email" id="reset-email" class="form-control" placeholder="example@email.com" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px;">
+        <div class="form-group">
+            <label>อีเมล (Email)</label>
+            <input type="email" id="reset-email" class="form-control" placeholder="example@email.com">
         </div>
-        <button class="btn-primary" onclick="handleForgotPassword()" style="width: 100%; padding: 12px; font-size: 1rem; border-radius: 5px; cursor: pointer; background: #1a73e8; color: white; border: none;">
-            ส่งลิงก์รีเซ็ตรหัสผ่าน
-        </button>
+        <div class="modal-buttons">
+            <button class="btn-primary" onclick="handleForgotPassword()" style="width: 100%;">ส่งลิงก์รีเซ็ตรหัสผ่าน</button>
+        </div>
     </div>
 </div>
 
 <div id="banner-form-modal" class="modal">
     <div class="modal-content" style="max-width: 500px;">
         <span class="close-btn" onclick="document.getElementById('banner-form-modal').classList.remove('active')">&times;</span>
-        <h3 style="margin-top:0; color:#1a73e8;" id="bf-modal-title">🖼️ เพิ่ม/แก้ไข แบนเนอร์</h3>
+        <h3 id="bf-modal-title">🖼️ เพิ่ม/แก้ไข แบนเนอร์</h3>
         <form onsubmit="saveBannerData(event)">
             <input type="hidden" id="bf-id">
             <div class="form-group">
                 <label>URL รูปภาพแบนเนอร์:</label>
-                <input type="url" id="bf-image" class="auth-input" placeholder="https://..." required>
+                <input type="url" id="bf-image" class="form-control" placeholder="https://..." required>
             </div>
             <div class="form-group">
                 <label>URL ลิ้งค์เมื่อคลิก (ไม่บังคับ):</label>
-                <input type="url" id="bf-link" class="auth-input" placeholder="https://...">
+                <input type="url" id="bf-link" class="form-control" placeholder="https://...">
             </div>
             <div class="form-group">
                 <label>สถานะ:</label>
-                <select id="bf-active" class="auth-input">
+                <select id="bf-active" class="form-control">
                     <option value="true">เปิดใช้งาน (แสดง)</option>
                     <option value="false">ปิดใช้งาน (ซ่อน)</option>
                 </select>
             </div>
             <div class="modal-buttons">
                 <button type="button" class="btn-secondary" onclick="document.getElementById('banner-form-modal').classList.remove('active')">ยกเลิก</button>
-                <button type="submit" class="btn-primary" style="width:auto; background:#2ecc71;">บันทึกข้อมูล</button>
+                <button type="submit" class="btn-primary" style="background:#2ecc71; border:none;">บันทึกข้อมูล</button>
             </div>
         </form>
     </div>
@@ -653,17 +646,19 @@
         <form onsubmit="saveMainItem(event)">
             <input type="hidden" id="im-id">
             <input type="hidden" id="im-type">
-            <div class="form-group"><label>ชื่อรายการ:</label><input type="text" id="im-title" required></div>
-            <div class="form-group"><label>URL รูปภาพ (โปสเตอร์):</label><input type="url" id="im-image" placeholder="https://..." required></div>
-            <div class="form-group"><label>รายละเอียด:</label><textarea id="im-detail" rows="3"></textarea></div>
-            <div class="form-group"><label>สถานที่หลัก (แสดงโชว์หน้าแรก):</label><input type="text" id="im-location" placeholder="เช่น ชื่อโรงหนัง, ลานกิจกรรม"></div>
+            <div class="form-group"><label>ชื่อรายการ:</label><input type="text" id="im-title" class="form-control" required></div>
+            <div class="form-group"><label>URL รูปภาพ (โปสเตอร์):</label><input type="url" id="im-image" class="form-control" placeholder="https://..." required></div>
+            <div class="form-group"><label>รายละเอียด:</label><textarea id="im-detail" class="form-control" rows="3"></textarea></div>
+            <div class="form-group"><label>สถานที่หลัก (แสดงโชว์หน้าแรก):</label><input type="text" id="im-location" class="form-control" placeholder="เช่น ชื่อโรงหนัง, ลานกิจกรรม"></div>
+            
             <div style="display:flex; gap:10px;">
-                <div class="form-group" style="flex:1"><label>รอบวันที่ (แสดงโชว์):</label><input type="text" id="im-dates" placeholder="เช่น 10-12 ตุลาคม 2026"></div>
-                <div class="form-group" style="flex:1"><label>ราคาเริ่มต้น (บาท):</label><input type="number" id="im-price" placeholder="0"></div>
+                <div class="form-group" style="flex:1"><label>รอบวันที่ (แสดงโชว์):</label><input type="text" id="im-dates" class="form-control" placeholder="เช่น 10-12 ตุลาคม 2026"></div>
+                <div class="form-group" style="flex:1"><label>ราคาเริ่มต้น (บาท):</label><input type="number" id="im-price" class="form-control" placeholder="0"></div>
             </div>
+            
             <div class="modal-buttons">
                 <button type="button" class="btn-secondary" onclick="document.getElementById('item-main-modal').classList.remove('active')">ยกเลิก</button>
-                <button type="submit" class="btn-primary" style="width:auto; background:#2ecc71;">บันทึกข้อมูลหลัก</button>
+                <button type="submit" class="btn-primary" style="background:#2ecc71; border:none;">บันทึกข้อมูลหลัก</button>
             </div>
         </form>
     </div>
@@ -675,112 +670,125 @@
         <h3 id="rd-modal-title">จัดการรอบ</h3>
         <form onsubmit="saveRoundItem(event)">
             <input type="hidden" id="rd-id">
-            
             <div class="form-group">
                 <label>สถานที่จัดงาน / โรงภาพยนตร์ (เฉพาะรอบนี้):</label>
-                <input type="text" id="rd-location" required>
+                <input type="text" id="rd-location" class="form-control" required>
             </div>
             
             <div style="display:flex; gap:10px;">
                 <div class="form-group" style="flex:1">
                     <label>ประเภทบัตร:</label>
-                    <select id="rd-ticket-type" onchange="updatePriceFromTypeRound()" required>
+                    <select id="rd-ticket-type" class="form-control" onchange="updatePriceFromTypeRound()" required>
                         <option value="">-- โหลดข้อมูล --</option>
                     </select>
                 </div>
                 <div class="form-group" style="flex:1">
                     <label>ราคา (บาท):</label>
-                    <input type="number" id="rd-price" required>
+                    <input type="number" id="rd-price" class="form-control" required>
                 </div>
             </div>
             
             <div style="display:flex; gap:10px;">
-                <div class="form-group" style="flex:1"><label>เปิดให้จอง:</label><input type="datetime-local" id="rd-book-start" required></div>
-                <div class="form-group" style="flex:1"><label>ปิดรับจอง:</label><input type="datetime-local" id="rd-book-end" required></div>
+                <div class="form-group" style="flex:1"><label>เปิดให้จอง:</label><input type="datetime-local" id="rd-book-start" class="form-control" required></div>
+                <div class="form-group" style="flex:1"><label>ปิดรับจอง:</label><input type="datetime-local" id="rd-book-end" class="form-control" required></div>
             </div>
             
             <div style="display:flex; gap:10px;">
-                <div class="form-group" style="flex:1"><label>เวลาเริ่มแสดง:</label><input type="datetime-local" id="rd-show-start" required></div>
-                <div class="form-group" style="flex:1"><label>เวลาสิ้นสุด:</label><input type="datetime-local" id="rd-show-end" required></div>
+                <div class="form-group" style="flex:1"><label>เวลาเริ่มแสดง:</label><input type="datetime-local" id="rd-show-start" class="form-control" required></div>
+                <div class="form-group" style="flex:1"><label>เวลาสิ้นสุด:</label><input type="datetime-local" id="rd-show-end" class="form-control" required></div>
             </div>
             
-            <div id="rd-movie-fields" class="hidden" style="background:#f9f9f9; padding:10px; border-radius:5px; margin-bottom:15px;">
+            <div id="rd-movie-fields" class="hidden" style="background:#f9f9f9; padding:15px; border-radius:8px; margin-bottom:15px; border: 1px solid #eee;">
                 <div style="display:flex; gap:10px;">
-                    <div class="form-group" style="flex:1"><label>จำนวนแถว (A, B...):</label><input type="number" id="rd-rows"></div>
-                    <div class="form-group" style="flex:1"><label>จำนวนที่นั่ง/แถว:</label><input type="number" id="rd-cols"></div>
+                    <div class="form-group" style="flex:1"><label>จำนวนแถว (A, B...):</label><input type="number" id="rd-rows" class="form-control"></div>
+                    <div class="form-group" style="flex:1"><label>จำนวนที่นั่ง/แถว:</label><input type="number" id="rd-cols" class="form-control"></div>
                 </div>
-                <div class="form-group"><label>ปิดที่นั่ง (Blocked ex: A1,A2):</label><input type="text" id="rd-blocked"></div>
+                <div class="form-group"><label>ปิดที่นั่ง (Blocked ex: A1,A2):</label><input type="text" id="rd-blocked" class="form-control"></div>
                 
                 <div style="display:flex; gap:10px; margin-top:10px; padding-top:10px; border-top:1px solid #ddd; flex-wrap: wrap;">
                     <div class="form-group" style="flex:1; min-width: 100%;">
                         <label>แถวที่นั่ง VIP (เช่น A,B):</label>
-                        <input type="text" id="rd-vip-rows" placeholder="A,B" value="A,B" style="text-transform: uppercase;">
+                        <input type="text" id="rd-vip-rows" class="form-control" placeholder="A,B" value="A,B" style="text-transform: uppercase;">
                     </div>
                     <div class="form-group" style="flex:1; min-width: 200px;">
                         <label>รูปแบบราคา VIP:</label>
-                        <select id="rd-vip-mode" onchange="toggleVipPriceMode()">
+                        <select id="rd-vip-mode" class="form-control" onchange="toggleVipPriceMode()">
                             <option value="add">บวกราคาเพิ่ม (จากราคาปกติ)</option>
                             <option value="ticket">กำหนดตามประเภทบัตรที่มี</option>
                         </select>
                     </div>
                     <div class="form-group" style="flex:1; min-width: 200px;" id="vip-add-section">
                         <label>ราคาที่บวกเพิ่ม (บาท):</label>
-                        <input type="number" id="rd-vip-price" placeholder="100" value="100" min="0">
+                        <input type="number" id="rd-vip-price" class="form-control" placeholder="100" value="100" min="0">
                     </div>
-                    <div class="form-group" style="flex:1; min-width: 200px; display:none;" id="vip-ticket-section">
+                    <div class="form-group hidden" style="flex:1; min-width: 200px;" id="vip-ticket-section">
                         <label>เลือกประเภทบัตร VIP:</label>
-                        <select id="rd-vip-ticket-type">
+                        <select id="rd-vip-ticket-type" class="form-control">
                             <option value="">-- กำลังโหลดข้อมูล --</option>
                         </select>
                     </div>
                 </div>
             </div>
             
-            <div id="rd-event-fields" class="hidden" style="background:#f9f9f9; padding:10px; border-radius:5px; margin-bottom:15px;">
-                <div class="form-group"><label>ความจุ (-1=ไม่จำกัด):</label><input type="number" id="rd-cap"></div>
+            <div id="rd-event-fields" class="hidden" style="background:#f9f9f9; padding:15px; border-radius:8px; margin-bottom:15px; border: 1px solid #eee;">
+                <div class="form-group"><label>ความจุ (-1=ไม่จำกัด):</label><input type="number" id="rd-cap" class="form-control"></div>
             </div>
             
             <div class="modal-buttons">
                 <button type="button" class="btn-secondary" onclick="document.getElementById('item-round-modal').classList.remove('active')">ยกเลิก</button>
-                <button type="submit" class="btn-primary" style="width:auto; background:#f39c12;">บันทึกรอบ</button>
+                <button type="submit" class="btn-primary" style="background:#f39c12; border:none;">บันทึกรอบ</button>
             </div>
         </form>
     </div>
 </div>
 
-<div id="ticket-type-modal" class="modal"><div class="modal-content"><span class="close-btn" onclick="document.getElementById('ticket-type-modal').classList.remove('active')">&times;</span><h3 id="tt-modal-title">จัดการประเภทบัตร</h3><form onsubmit="saveTicketType(event)"><input type="hidden" id="tt-id"><div class="form-group"><label>ชื่อประเภทบัตร:</label><input type="text" id="tt-name" required></div><div class="form-group"><label>ราคา (บาท):</label><input type="number" id="tt-price" required min="0"></div><div class="modal-buttons"><button type="button" class="btn-secondary" onclick="document.getElementById('ticket-type-modal').classList.remove('active')">ยกเลิก</button><button type="submit" class="btn-primary" style="width:auto;">บันทึก</button></div></form></div></div>
+<div id="ticket-type-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="document.getElementById('ticket-type-modal').classList.remove('active')">&times;</span>
+        <h3 id="tt-modal-title">จัดการประเภทบัตร</h3>
+        <form onsubmit="saveTicketType(event)">
+            <input type="hidden" id="tt-id">
+            <div class="form-group"><label>ชื่อประเภทบัตร:</label><input type="text" id="tt-name" class="form-control" required></div>
+            <div class="form-group"><label>ราคา (บาท):</label><input type="number" id="tt-price" class="form-control" required min="0"></div>
+            <div class="modal-buttons">
+                <button type="button" class="btn-secondary" onclick="document.getElementById('ticket-type-modal').classList.remove('active')">ยกเลิก</button>
+                <button type="submit" class="btn-primary">บันทึก</button>
+            </div>
+        </form>
+    </div>
+</div>
 
 <div id="user-edit-modal" class="modal">
     <div class="modal-content">
-        <span class="close-btn" onclick="document.getElementById('user-edit-modal').classList.remove('active')" style="float: right; cursor: pointer; font-size: 1.5rem;">&times;</span>
-        <h3 style="margin-top:0;">จัดการข้อมูลสมาชิก</h3>
+        <span class="close-btn" onclick="document.getElementById('user-edit-modal').classList.remove('active')">&times;</span>
+        <h3>จัดการข้อมูลสมาชิก</h3>
         <input type="hidden" id="edit-u-uid">
         
         <div class="form-group">
             <label>อีเมล (แก้ไขไม่ได้):</label>
-            <input type="text" id="edit-u-email" readonly style="background-color: #e9ecef; cursor: not-allowed; width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-family: 'Sarabun';">
+            <input type="text" id="edit-u-email" class="form-control" readonly style="background-color: #e9ecef; cursor: not-allowed;">
         </div>
         
-        <div class="form-group"><label>ชื่อ-นามสกุล</label><input type="text" id="edit-u-name"></div>
-        <div class="form-group"><label>เบอร์โทร</label><input type="text" id="edit-u-phone"></div>
-        <div class="form-group"><label>เลขบัตรประชาชน</label><input type="text" id="edit-u-idcard"></div>
+        <div class="form-group"><label>ชื่อ-นามสกุล</label><input type="text" id="edit-u-name" class="form-control"></div>
+        <div class="form-group"><label>เบอร์โทร</label><input type="text" id="edit-u-phone" class="form-control"></div>
+        <div class="form-group"><label>เลขบัตรประชาชน</label><input type="text" id="edit-u-idcard" class="form-control"></div>
         <div class="form-group">
             <label>สิทธิ์การใช้งาน</label>
-            <select id="edit-u-role" style="width:100%; padding:10px; margin-top:5px; border-radius:6px; border:1px solid #ddd; font-family:'Sarabun';">
+            <select id="edit-u-role" class="form-control">
                 <option value="user">User (ทั่วไป)</option>
                 <option value="admin">Admin (ผู้ดูแล)</option>
             </select>
         </div>
         
-        <div style="margin-top: 15px; margin-bottom: 15px;">
-            <button type="button" onclick="sendResetPasswordAdmin()" style="width:100%; padding:10px; background-color:#3498db; color:white; border:none; border-radius:5px; cursor:pointer; font-family:'Sarabun'; font-weight:bold;">
+        <div class="form-group">
+            <button type="button" class="btn-secondary" onclick="sendResetPasswordAdmin()" style="width:100%; background-color:#3498db; color:white; border:none;">
                 <i class="fas fa-key"></i> ส่งลิงก์ตั้งรหัสผ่านใหม่ไปที่อีเมลนี้
             </button>
         </div>
         
-        <div class="modal-buttons" style="display:flex; justify-content:flex-end; gap:10px;">
+        <div class="modal-buttons">
             <button class="btn-secondary" onclick="document.getElementById('user-edit-modal').classList.remove('active')">ยกเลิก</button>
-            <button class="btn-primary" onclick="saveUserAdmin()" style="width:auto; margin:0;">บันทึกข้อมูล</button>
+            <button class="btn-primary" onclick="saveUserAdmin()">บันทึกข้อมูล</button>
         </div>
     </div>
 </div>
@@ -788,30 +796,30 @@
 <div id="promo-modal" class="modal">
     <div class="modal-content" style="max-width: 400px;">
         <span class="close-btn" onclick="document.getElementById('promo-modal').classList.remove('active')">&times;</span>
-        <h3 id="promo-modal-title" style="margin-top: 0; color: #1a73e8;">สร้าง/แก้ไข โค้ดส่วนลด</h3>
+        <h3 id="promo-modal-title">สร้าง/แก้ไข โค้ดส่วนลด</h3>
         
-        <div class="form-group" style="margin-top: 15px;">
+        <div class="form-group">
             <label>รหัสโค้ด (ภาษาอังกฤษ/ตัวเลข):</label>
-            <input type="text" id="inp-promo-id" placeholder="เช่น SUMMER50" style="text-transform: uppercase;">
+            <input type="text" id="inp-promo-id" class="form-control" placeholder="เช่น SUMMER50" style="text-transform: uppercase;">
         </div>
         <div class="form-group">
             <label>ประเภทส่วนลด:</label>
-            <select id="inp-promo-type">
+            <select id="inp-promo-type" class="form-control">
                 <option value="fixed">ลดเป็นบาท (฿)</option>
                 <option value="percent">ลดเป็นเปอร์เซ็นต์ (%)</option>
             </select>
         </div>
         <div class="form-group">
             <label>มูลค่าส่วนลด:</label>
-            <input type="number" id="inp-promo-value" placeholder="เช่น 50 หรือ 10" min="0">
+            <input type="number" id="inp-promo-value" class="form-control" placeholder="เช่น 50 หรือ 10" min="0">
         </div>
         <div class="form-group">
             <label>จำนวนสิทธิ์ทั้งหมด (-1 = ไม่จำกัด):</label>
-            <input type="number" id="inp-promo-limit" value="-1">
+            <input type="number" id="inp-promo-limit" class="form-control" value="-1">
         </div>
         <div class="form-group">
             <label>สถานะการใช้งาน:</label>
-            <select id="inp-promo-active">
+            <select id="inp-promo-active" class="form-control">
                 <option value="true">เปิดใช้งาน</option>
                 <option value="false">ปิดใช้งาน</option>
             </select>
@@ -819,7 +827,7 @@
         
         <div class="modal-buttons">
             <button class="btn-secondary" onclick="document.getElementById('promo-modal').classList.remove('active')">ยกเลิก</button>
-            <button class="btn-primary" style="width: auto; margin-left: 10px;" onclick="savePromo()">💾 บันทึกโค้ด</button>
+            <button class="btn-primary" onclick="savePromo()">💾 บันทึกโค้ด</button>
         </div>
     </div>
 </div>
