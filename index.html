@@ -1662,86 +1662,95 @@
 
     // 🌟 2. แทรก UI และลอจิกโค้ดส่วนลดเข้าไปใน Modal
     window.openBookingModal = (detail) => {
-        document.getElementById('booking-form-section').classList.remove('hidden'); 
-        document.getElementById('payment-section').classList.add('hidden'); 
-        document.getElementById('inp-slip-url').value = ''; 
-        clearInterval(paymentTimerInterval);
-        
-        document.getElementById('modal-subtitle').innerText = detail; 
-        const modal = document.getElementById('booking-modal');
-        
-        // --- ส่วนการสร้างฟอร์มกรอกโค้ดส่วนลดอัตโนมัติ ---
-        const proceedBtn = document.querySelector('button[onclick="proceedToPayment()"]');
-        if (proceedBtn && !document.getElementById('promo-code-container')) {
-            const promoDiv = document.createElement('div');
-            promoDiv.id = 'promo-code-container';
-            promoDiv.style.cssText = "background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;";
-            promoDiv.innerHTML = `
-                <label style="display:block; margin-bottom:5px; font-weight:bold; color:#333;">🎟️ โค้ดส่วนลด (Promo Code)</label>
-                <div style="display: flex; gap: 10px;">
-                    <input type="text" id="inp-promo-code" placeholder="กรอกโค้ด (ถ้ามี)" style="flex:1; padding:10px; border:1px solid #ccc; border-radius:4px; text-transform: uppercase; font-family:'Sarabun';">
-                    <button type="button" onclick="applyPromoCode()" style="background:#8e44ad; color:white; border:none; padding:10px 15px; border-radius:4px; cursor:pointer; font-family:'Sarabun'; font-weight:bold; white-space:nowrap;">ใช้งาน</button>
-                </div>
-                <p id="promo-msg" style="margin: 8px 0 0 0; font-size: 0.9rem; font-weight: bold;"></p>
-            `;
-            proceedBtn.parentNode.insertBefore(promoDiv, proceedBtn);
+        document.getElementById('booking-form-section').classList.remove('hidden'); 
+        document.getElementById('payment-section').classList.add('hidden'); 
+        document.getElementById('inp-slip-url').value = ''; 
+        clearInterval(paymentTimerInterval);
+        
+        document.getElementById('modal-subtitle').innerText = detail; 
+        const modal = document.getElementById('booking-modal');
+        
+        // --- ส่วนการสร้างฟอร์มกรอกโค้ดส่วนลดอัตโนมัติ ---
+        const proceedBtn = document.querySelector('button[onclick="proceedToPayment()"]');
+        if (proceedBtn && !document.getElementById('promo-code-container')) {
+            const promoDiv = document.createElement('div');
+            promoDiv.id = 'promo-code-container';
+            // 🌟 ใช้ Class CSS แทน Inline Styles ให้เหมือนโครงสร้างหลัก
+            promoDiv.className = 'bg-light p-3 rounded mb-3 border shadow-sm';
+            promoDiv.innerHTML = `
+                <label class="fw-bold text-dark mb-2 d-block">🎟️ โค้ดส่วนลด (Promo Code)</label>
+                <div class="d-flex align-items-center gap-2">
+                    <input type="text" id="inp-promo-code" class="form-control text-uppercase" placeholder="กรอกโค้ด (ถ้ามี)" style="font-family:'Sarabun';">
+                    <button type="button" onclick="applyPromoCode()" class="btn fw-bold text-white text-nowrap px-4" style="background-color: #8e44ad; font-family:'Sarabun';">ใช้งาน</button>
+                </div>
+                <p id="promo-msg" class="mt-2 mb-0 fw-bold small"></p>
+            `;
+            proceedBtn.parentNode.insertBefore(promoDiv, proceedBtn);
+        }
+        
+        // Reset state สิทธิ์ส่วนลด
+        appliedPromoCode = ""; 
+        discountValue = 0;
+        const inpPromo = document.getElementById('inp-promo-code'); if(inpPromo) inpPromo.value = '';
+        const msgPromo = document.getElementById('promo-msg'); 
+        if(msgPromo) {
+            msgPromo.innerText = '';
+            msgPromo.className = 'mt-2 mb-0 fw-bold small'; // Reset class
         }
-        
-        // Reset state สิทธิ์ส่วนลด
-        appliedPromoCode = ""; 
-        discountValue = 0;
-        const inpPromo = document.getElementById('inp-promo-code'); if(inpPromo) inpPromo.value = '';
-        const msgPromo = document.getElementById('promo-msg'); if(msgPromo) msgPromo.innerText = '';
 
-        if(currentUser) {
-            document.getElementById('inp-conf-name').value = userData?.name || ''; 
-            document.getElementById('inp-conf-phone').value = userData?.phone || ''; 
-            document.getElementById('inp-conf-email').value = userData?.email || currentUser.email; 
-            document.getElementById('inp-conf-idcard').value = userData?.idCard || '';
-            ['name','phone','email','idcard'].forEach(k => { const el=document.getElementById(`inp-conf-${k}`); el.readOnly=true; el.style.backgroundColor='#f0f0f0';});
-        } else {
-            document.getElementById('inp-conf-name').value = ''; 
-            document.getElementById('inp-conf-phone').value = ''; 
-            document.getElementById('inp-conf-email').value = ''; 
-            document.getElementById('inp-conf-idcard').value = '';
-            ['name','phone','email','idcard'].forEach(k => { const el=document.getElementById(`inp-conf-${k}`); el.readOnly=false; el.style.backgroundColor='#fff'; });
-        }
-        modal.classList.add('active');
-    }
+        if(currentUser) {
+            document.getElementById('inp-conf-name').value = userData?.name || ''; 
+            document.getElementById('inp-conf-phone').value = userData?.phone || ''; 
+            document.getElementById('inp-conf-email').value = userData?.email || currentUser.email; 
+            document.getElementById('inp-conf-idcard').value = userData?.idCard || '';
+            ['name','phone','email','idcard'].forEach(k => { const el=document.getElementById(`inp-conf-${k}`); el.readOnly=true; el.style.backgroundColor='#f0f0f0';});
+        } else {
+            document.getElementById('inp-conf-name').value = ''; 
+            document.getElementById('inp-conf-phone').value = ''; 
+            document.getElementById('inp-conf-email').value = ''; 
+            document.getElementById('inp-conf-idcard').value = '';
+            ['name','phone','email','idcard'].forEach(k => { const el=document.getElementById(`inp-conf-${k}`); el.readOnly=false; el.style.backgroundColor='#fff'; });
+        }
+        modal.classList.add('active');
+    }   
 
     // ฟังก์ชันเช็คโค้ดส่วนลดใน Firebase โหนด `promotions`
     window.applyPromoCode = () => {
-        const codeInput = document.getElementById('inp-promo-code');
-        if(!codeInput) return;
-        const code = codeInput.value.toUpperCase().trim();
-        const msgLabel = document.getElementById('promo-msg');
+        const codeInput = document.getElementById('inp-promo-code');
+        if(!codeInput) return;
+        const code = codeInput.value.toUpperCase().trim();
+        const msgLabel = document.getElementById('promo-msg');
 
-        if (!code) { msgLabel.innerText = "กรุณากรอกโค้ด"; msgLabel.style.color = "#dc3545"; return; }
+        if (!code) { 
+            msgLabel.innerText = "กรุณากรอกโค้ด"; 
+            msgLabel.className = "mt-2 mb-0 fw-bold small text-danger"; 
+            return; 
+        }
 
-        get(ref(db, 'promotions/' + code)).then((snapshot) => {
-            if (snapshot.exists()) {
-                const promo = snapshot.val();
-                if (promo.isActive && (promo.usageLimit === -1 || (promo.usedCount || 0) < promo.usageLimit)) {
-                    if (promo.discountType === 'fixed') { discountValue = promo.discountValue; } 
-                    else if (promo.discountType === 'percent') { discountValue = (currentSelectedPrice * promo.discountValue) / 100; }
-                    
-                    if (discountValue > currentSelectedPrice) discountValue = currentSelectedPrice;
+        get(ref(db, 'promotions/' + code)).then((snapshot) => {
+            if (snapshot.exists()) {
+                const promo = snapshot.val();
+                if (promo.isActive && (promo.usageLimit === -1 || (promo.usedCount || 0) < promo.usageLimit)) {
+                    if (promo.discountType === 'fixed') { discountValue = promo.discountValue; } 
+                    else if (promo.discountType === 'percent') { discountValue = (currentSelectedPrice * promo.discountValue) / 100; }
+                    
+                    if (discountValue > currentSelectedPrice) discountValue = currentSelectedPrice;
 
-                    appliedPromoCode = code;
-                    msgLabel.innerText = `✅ ใช้โค้ดสำเร็จ! ลดไป ฿${discountValue}`;
-                    msgLabel.style.color = "#28a745";
-                } else {
-                    msgLabel.innerText = "❌ โค้ดนี้ถูกใช้งานครบสิทธิ์แล้ว หรือปิดใช้งาน";
-                    msgLabel.style.color = "#dc3545";
-                    appliedPromoCode = ""; discountValue = 0;
-                }
-            } else {
-                msgLabel.innerText = "❌ ไม่พบโค้ดส่วนลดนี้";
-                msgLabel.style.color = "#dc3545";
-                appliedPromoCode = ""; discountValue = 0;
-            }
-        }).catch(err => console.error(err));
-    }
+                    appliedPromoCode = code;
+                    msgLabel.innerText = `✅ ใช้โค้ดสำเร็จ! ลดไป ฿${discountValue}`;
+                    msgLabel.className = "mt-2 mb-0 fw-bold small text-success";
+                } else {
+                    msgLabel.innerText = "❌ โค้ดนี้ถูกใช้งานครบสิทธิ์แล้ว หรือปิดใช้งาน";
+                    msgLabel.className = "mt-2 mb-0 fw-bold small text-danger";
+                    appliedPromoCode = ""; discountValue = 0;
+                }
+            } else {
+                msgLabel.innerText = "❌ ไม่พบโค้ดส่วนลดนี้";
+                msgLabel.className = "mt-2 mb-0 fw-bold small text-danger";
+                appliedPromoCode = ""; discountValue = 0;
+            }
+        }).catch(err => console.error(err));
+    }
 
     window.cancelSelection = () => { 
         clearInterval(paymentTimerInterval); 
@@ -1755,49 +1764,80 @@
     }
 
     window.proceedToPayment = () => {
-        const bName = document.getElementById('inp-conf-name').value.trim(); 
-        const bPhone = document.getElementById('inp-conf-phone').value.trim(); 
-        const bEmail = document.getElementById('inp-conf-email').value.trim();
-        if(!bName || !bPhone || !bEmail) { alert("กรุณากรอกข้อมูลให้ครบ"); return; }
-        
-        const isOldData = (currentRoundId === 'old-data');
-        let existingBookings = {};
-        if (isOldData) existingBookings = allData[currentType + 's']?.[currentItemId]?.bookings || {}; 
-        else existingBookings = allData[currentType + 's']?.[currentItemId]?.rounds?.[currentRoundId]?.bookings || {};
-        
-        let isDup = false; 
-        Object.values(existingBookings).forEach(b => { 
-            if(b.email === bEmail) isDup = true; 
-            if(currentUser && b.uid === currentUser.uid && b.uid !== 'guest') isDup = true; 
-        });
-        
-        if(isDup) { 
-            if(userRole === 'admin') { 
-                if(!confirm("บัญชีหรืออีเมลนี้เคยจองรอบนี้แล้ว (Admin) ยืนยันดำเนินการต่อหรือไม่?")) return; 
-            } else { 
-                alert("❌ คุณได้ทำการจองรอบนี้ไปแล้ว"); return; 
-            } 
-        }
-        
-        // 🌟 คำนวณราคาสุทธิหลังหักส่วนลด
-        const finalPrice = Math.max(0, currentSelectedPrice - discountValue);
-        
-        // ถ้าใช้โค้ดลดจนเหลือ 0 บาท หรือราคาเดิมคือ 0 ให้ข้ามขั้นตอนโอนเงินไปเลย
-        if(finalPrice === 0) { 
-            window.processFinalBooking(""); 
-            return; 
-        } 
-        
-        document.getElementById('booking-form-section').classList.add('hidden'); 
-        document.getElementById('payment-section').classList.remove('hidden'); 
-        document.getElementById('pay-amount').innerText = finalPrice; 
-        
-        // แสดง QR Code PromptPay ตามราคาสุทธิ
-        if(typeof PROMPTPAY_NUMBER !== 'undefined') {
-            document.getElementById('pay-qrcode').src = `https://promptpay.io/${PROMPTPAY_NUMBER}/${finalPrice}.png`;
-        }
-        window.startPaymentTimer(10 * 60); 
-    }
+        // 🌟 1. หาหรือสร้างกล่องแสดงข้อความ Error (แทนการใช้ alert ธรรมดา)
+        let errorMsgDiv = document.getElementById('form-error-msg');
+        if (!errorMsgDiv) {
+            errorMsgDiv = document.createElement('div');
+            errorMsgDiv.id = 'form-error-msg';
+            // ใช้คลาส Bootstrap จัดสไตล์ให้สวยงาม เข้ากับระบบ
+            errorMsgDiv.className = 'alert alert-danger py-2 mt-3 mb-0 d-none fw-bold small text-center';
+            errorMsgDiv.style.borderRadius = '8px';
+            const proceedBtn = document.querySelector('button[onclick="proceedToPayment()"]');
+            if(proceedBtn) proceedBtn.parentNode.insertBefore(errorMsgDiv, proceedBtn);
+        }
+
+        // ฟังก์ชันย่อยสำหรับแสดง/ซ่อน Error
+        const showError = (msg) => {
+            if(errorMsgDiv) {
+                errorMsgDiv.innerHTML = `❌ ${msg}`;
+                errorMsgDiv.classList.remove('d-none');
+            } else { alert(msg); } // สำรองไว้เผื่อหาปุ่มไม่เจอ
+        };
+        
+        // ซ่อน Error ไว้ก่อนเมื่อเริ่มกดปุ่มใหม่
+        if(errorMsgDiv) errorMsgDiv.classList.add('d-none');
+
+        const bName = document.getElementById('inp-conf-name').value.trim(); 
+        const bPhone = document.getElementById('inp-conf-phone').value.trim(); 
+        const bEmail = document.getElementById('inp-conf-email').value.trim();
+        
+        // 🌟 2. แจ้งเตือนถ้ากรอกไม่ครบ
+        if(!bName || !bPhone || !bEmail) { 
+            showError("กรุณากรอกข้อมูลให้ครบถ้วนก่อนดำเนินการต่อ"); 
+            return; 
+        }
+        
+        const isOldData = (currentRoundId === 'old-data');
+        let existingBookings = {};
+        if (isOldData) existingBookings = allData[currentType + 's']?.[currentItemId]?.bookings || {}; 
+        else existingBookings = allData[currentType + 's']?.[currentItemId]?.rounds?.[currentRoundId]?.bookings || {};
+        
+        let isDup = false; 
+        Object.values(existingBookings).forEach(b => { 
+            if(b.email === bEmail) isDup = true; 
+            if(currentUser && b.uid === currentUser.uid && b.uid !== 'guest') isDup = true; 
+        });
+        
+        // 🌟 3. แจ้งเตือนการจองซ้ำ
+        if(isDup) { 
+            if(userRole === 'admin') { 
+                // สำหรับ Admin ยังคงใช้ confirm() ของเบราว์เซอร์ได้ เพราะสะดวกในการกดยืนยันไวๆ
+                if(!confirm("⚠️ บัญชีหรืออีเมลนี้เคยจองรอบนี้แล้ว (Admin) ยืนยันดำเนินการจองซ้ำหรือไม่?")) return; 
+            } else { 
+                showError("คุณได้ทำการจองรอบนี้ไปแล้ว ไม่สามารถจองซ้ำได้"); 
+                return; 
+            } 
+        }
+        
+        // 🌟 คำนวณราคาสุทธิหลังหักส่วนลด
+        const finalPrice = Math.max(0, currentSelectedPrice - discountValue);
+        
+        // ถ้าใช้โค้ดลดจนเหลือ 0 บาท หรือราคาเดิมคือ 0 ให้ข้ามขั้นตอนโอนเงินไปเลย
+        if(finalPrice === 0) { 
+            window.processFinalBooking(""); 
+            return; 
+        } 
+        
+        document.getElementById('booking-form-section').classList.add('hidden'); 
+        document.getElementById('payment-section').classList.remove('hidden'); 
+        document.getElementById('pay-amount').innerText = finalPrice; 
+        
+        // แสดง QR Code PromptPay ตามราคาสุทธิ
+        if(typeof PROMPTPAY_NUMBER !== 'undefined') {
+            document.getElementById('pay-qrcode').src = `https://promptpay.io/${PROMPTPAY_NUMBER}/${finalPrice}.png`;
+        }
+        window.startPaymentTimer(10 * 60); 
+    }
 
     window.startPaymentTimer = (durationInSeconds) => {
         clearInterval(paymentTimerInterval); 
@@ -2246,43 +2286,65 @@
 
     // 2. ฟังก์ชันเปิดหน้าจัดการโค้ดส่วนลด (ตัวที่ Error หาไม่เจอ)
     window.showPromotionsManagement = () => {
-        window.showPage('page-promotions');
-        
-        // ดึงข้อมูลโค้ดทั้งหมดแบบ Real-time จาก Firebase
-        onValue(ref(db, 'promotions'), (snapshot) => {
-            const list = document.getElementById('promo-list');
-            if(!list) return; // ป้องกัน error ถ้าหา element ไม่เจอ
-            
-            list.innerHTML = '';
-            if(snapshot.exists()) {
-                snapshot.forEach(child => {
-                    const p = child.val();
-                    const code = child.key;
-                    const typeText = p.discountType === 'percent' ? '%' : 'บาท';
-                    const limitText = p.usageLimit == -1 ? '∞ ไม่จำกัด' : `${p.usedCount || 0} / ${p.usageLimit}`;
-                    const statusHtml = p.isActive 
-                        ? `<span style="background:#28a745; color:white; padding:3px 8px; border-radius:10px; font-size:0.8rem;">เปิดใช้งาน</span>` 
-                        : `<span style="background:#dc3545; color:white; padding:3px 8px; border-radius:10px; font-size:0.8rem;">ปิดใช้งาน</span>`;
-                    
-                    list.innerHTML += `
-                        <tr style="border-bottom: 1px solid #eee;">
-                            <td style="padding: 10px; font-weight: bold; color: #8e44ad;">${code}</td>
-                            <td style="padding: 10px;">${p.discountType === 'percent' ? 'เปอร์เซ็นต์ (%)' : 'ราคาคงที่'}</td>
-                            <td style="padding: 10px; font-weight: bold;">${p.discountValue} ${typeText}</td>
-                            <td style="padding: 10px;">${limitText}</td>
-                            <td style="padding: 10px;">${statusHtml}</td>
-                            <td style="padding: 10px; text-align: center;">
-                                <button class="btn-sm" style="background:#f39c12; color:white;" onclick="openPromoModal('${code}', '${p.discountType}', ${p.discountValue}, ${p.usageLimit}, ${p.isActive})">แก้ไข</button>
-                                <button class="btn-sm" style="background:#e74c3c; color:white;" onclick="deletePromo('${code}')">ลบ</button>
-                            </td>
-                        </tr>
-                    `;
-                });
-            } else {
-                list.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 20px;">ยังไม่มีข้อมูลโค้ดส่วนลด</td></tr>';
-            }
-        });
-    };
+        window.showPage('page-promotions');
+        
+        const list = document.getElementById('promo-list');
+        if(!list) return; // ป้องกัน error ถ้าหา element ไม่เจอ
+
+        // 🌟 1. เพิ่ม Loading State ระหว่างรอข้อมูลจาก Firebase (สไตล์เดียวกับ Dashboard)
+        list.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center p-5 text-primary fw-bold border-0">
+                    <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                    กำลังโหลดข้อมูลโปรโมชั่น...
+                </td>
+            </tr>`;
+        
+        // ดึงข้อมูลโค้ดทั้งหมดแบบ Real-time จาก Firebase
+        onValue(ref(db, 'promotions'), (snapshot) => {
+            list.innerHTML = '';
+            
+            if(snapshot.exists()) {
+                snapshot.forEach(child => {
+                    const p = child.val();
+                    const code = child.key;
+                    const typeText = p.discountType === 'percent' ? '%' : 'บาท';
+                    const limitText = p.usageLimit == -1 ? '∞ ไม่จำกัด' : `${p.usedCount || 0} / ${p.usageLimit}`;
+                    
+                    const statusHtml = p.isActive 
+                        ? `<span class="badge bg-success rounded-pill px-3 py-2 fw-normal">เปิดใช้งาน</span>` 
+                        : `<span class="badge bg-danger rounded-pill px-3 py-2 fw-normal">ปิดใช้งาน</span>`;
+                    
+                    list.innerHTML += `
+                        <tr class="border-bottom align-middle">
+                            <td class="p-3 fw-bold" style="color: #8e44ad;">${code}</td>
+                            <td class="p-3">${p.discountType === 'percent' ? 'เปอร์เซ็นต์ (%)' : 'ราคาคงที่'}</td>
+                            <td class="p-3 fw-bold text-dark">${p.discountValue} ${typeText}</td>
+                            <td class="p-3 text-muted">${limitText}</td>
+                            <td class="p-3">${statusHtml}</td>
+                            <td class="p-3">
+                                <div class="d-flex justify-content-center gap-2">
+                                    <button class="btn btn-sm btn-warning text-white fw-bold px-3 shadow-sm" onclick="openPromoModal('${code}', '${p.discountType}', ${p.discountValue}, ${p.usageLimit}, ${p.isActive})">แก้ไข</button>
+                                    <button class="btn btn-sm btn-danger text-white fw-bold px-3 shadow-sm" onclick="deletePromo('${code}')">ลบ</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } else {
+                // 🌟 2. ปรับหน้าตาตอนไม่มีข้อมูล ให้เป็นกล่องเส้นประ (Dashed Border) สไตล์เดียวกับ Dashboard
+                list.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="p-4 border-0">
+                            <div class="text-center text-muted p-5 bg-white rounded-3 border" style="border-style: dashed !important; border-width: 2px !important;">
+                                <i class="fs-4 d-block mb-2">🎟️</i>
+                                ยังไม่มีข้อมูลโค้ดส่วนลดในระบบ
+                            </div>
+                        </td>
+                    </tr>`;
+            }
+        });
+    };
 
     // 3. ฟังก์ชันเปิด Modal สำหรับสร้าง/แก้ไข
     window.openPromoModal = (code = '', type = 'fixed', value = '', limit = '-1', isActive = true) => {
@@ -2376,110 +2438,132 @@
     let currentDashListener = null;
 
     // โหลดและแสดงข้อมูล "ทุกรอบ" ของรายการที่เลือก
-    window.renderAllRoundsDashboard = () => {
-        const type = document.getElementById('dash-type').value;
-        const itemId = document.getElementById('dash-item').value;
-        const statsContainer = document.getElementById('dash-stats');
+    // โหลดและแสดงข้อมูล "ทุกรอบ" ของรายการที่เลือก
+    window.renderAllRoundsDashboard = () => {
+        const type = document.getElementById('dash-type').value;
+        const itemId = document.getElementById('dash-item').value;
+        const statsContainer = document.getElementById('dash-stats');
 
-        // ยกเลิกการดึงข้อมูลเรื่องเก่า (เพื่อไม่ให้ข้อมูลตีกัน)
-        if (currentDashListener) {
-            currentDashListener(); 
-            currentDashListener = null;
-        }
+        // ยกเลิกการดึงข้อมูลเรื่องเก่า (เพื่อไม่ให้ข้อมูลตีกัน)
+        if (currentDashListener) {
+            currentDashListener(); 
+            currentDashListener = null;
+        }
 
-        if(!itemId) {
-            statsContainer.innerHTML = '<div style="text-align: center; color: #7f8c8d; padding: 40px; background: #fff; border-radius: 8px; border: 2px dashed #ddd;">กรุณาเลือกรายการ เพื่อดูสรุปจำนวนที่นั่งของทุกรอบ</div>';
-            return;
-        }
+        if(!itemId) {
+            statsContainer.innerHTML = `
+                <div class="text-center text-muted p-5 bg-white rounded-3 border" style="border-style: dashed !important; border-width: 2px !important;">
+                    <i class="fs-4 d-block mb-2">📊</i>
+                    กรุณาเลือกรายการ เพื่อดูสรุปจำนวนที่นั่งของทุกรอบ
+                </div>`;
+            return;
+        }
 
-        statsContainer.innerHTML = '<div style="text-align: center; padding: 40px; font-weight:bold; color:#1a73e8;">กำลังโหลดข้อมูลทุกรอบ...</div>';
+        statsContainer.innerHTML = `
+            <div class="text-center p-5 text-primary fw-bold">
+                <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                กำลังโหลดข้อมูลทุกรอบ...
+            </div>`;
 
-        // ดึงข้อมูลภาพยนตร์หรืออีเวนต์นั้นๆ แบบ Realtime
-        currentDashListener = onValue(ref(db, `${type}s/${itemId}`), (snap) => {
-            if(!snap.exists()) {
-                statsContainer.innerHTML = '<div style="text-align: center; color: #e74c3c; padding: 40px;">ไม่พบข้อมูลรายการนี้</div>';
-                return;
-            }
-            
-            const itemData = snap.val();
-            const rounds = itemData.rounds || {};
-            const roundKeys = Object.keys(rounds);
+        // ดึงข้อมูลภาพยนตร์หรืออีเวนต์นั้นๆ แบบ Realtime
+        currentDashListener = onValue(ref(db, `${type}s/${itemId}`), (snap) => {
+            if(!snap.exists()) {
+                statsContainer.innerHTML = '<div class="text-center text-danger p-5 fw-bold">❌ ไม่พบข้อมูลรายการนี้</div>';
+                return;
+            }
+            
+            const itemData = snap.val();
+            const rounds = itemData.rounds || {};
+            const roundKeys = Object.keys(rounds);
 
-            if (roundKeys.length === 0) {
-                statsContainer.innerHTML = '<div style="text-align: center; color: #7f8c8d; padding: 40px; background: #fff; border-radius: 8px; border: 2px dashed #ddd;">รายการนี้ยังไม่มีการสร้างรอบแสดง</div>';
-                return;
-            }
+            if (roundKeys.length === 0) {
+                statsContainer.innerHTML = `
+                    <div class="text-center text-muted p-5 bg-white rounded-3 border" style="border-style: dashed !important; border-width: 2px !important;">
+                        <i class="fs-4 d-block mb-2">⚠️</i>
+                        รายการนี้ยังไม่มีการสร้างรอบแสดง
+                    </div>`;
+                return;
+            }
 
-            let htmlContent = '';
+            let htmlContent = '';
 
-            // เรียงลำดับรอบตามเวลาฉาย (เวลาใกล้สุดขึ้นก่อน)
-            roundKeys.sort((a, b) => {
-                const timeA = rounds[a].config?.showStart || 0;
-                const timeB = rounds[b].config?.showStart || 0;
-                return new Date(timeA) - new Date(timeB);
-            });
+            // เรียงลำดับรอบตามเวลาฉาย (เวลาใกล้สุดขึ้นก่อน)
+            roundKeys.sort((a, b) => {
+                const timeA = rounds[a].config?.showStart || 0;
+                const timeB = rounds[b].config?.showStart || 0;
+                return new Date(timeA) - new Date(timeB);
+            });
 
-            // วนลูปสร้างการ์ดของแต่ละรอบ
-            roundKeys.forEach(roundId => {
-                const roundData = rounds[roundId];
-                const conf = roundData.config || {};
-                const bookings = roundData.bookings || {};
+            // วนลูปสร้างการ์ดของแต่ละรอบ
+            roundKeys.forEach(roundId => {
+                const roundData = rounds[roundId];
+                const conf = roundData.config || {};
+                const bookings = roundData.bookings || {};
 
-                const timeStr = conf.showStart ? new Date(conf.showStart).toLocaleString('th-TH', { dateStyle: 'long', timeStyle: 'short' }) + ' น.' : 'ไม่ระบุเวลา';
-                const locationStr = conf.location || 'ไม่ระบุสถานที่';
+                const timeStr = conf.showStart ? new Date(conf.showStart).toLocaleString('th-TH', { dateStyle: 'long', timeStyle: 'short' }) + ' น.' : 'ไม่ระบุเวลา';
+                const locationStr = conf.location || 'ไม่ระบุสถานที่';
 
-                let totalSeats = 0;
-                let bookedSeats = Object.keys(bookings).length;
+                let totalSeats = 0;
+                let bookedSeats = Object.keys(bookings).length;
 
-                if(type === 'movie') {
-                    const blockedList = conf.blocked ? (Array.isArray(conf.blocked) ? conf.blocked : String(conf.blocked).split(',').map(x=>x.trim()).filter(x=>x)) : [];
-                    totalSeats = (conf.rows * conf.cols) - blockedList.length;
-                } else {
-                    totalSeats = conf.capacity === -1 || conf.capacity === '-1' ? 'ไม่จำกัด' : parseInt(conf.capacity);
-                }
+                if(type === 'movie') {
+                    const blockedList = conf.blocked ? (Array.isArray(conf.blocked) ? conf.blocked : String(conf.blocked).split(',').map(x=>x.trim()).filter(x=>x)) : [];
+                    totalSeats = (conf.rows * conf.cols) - blockedList.length;
+                } else {
+                    totalSeats = conf.capacity === -1 || conf.capacity === '-1' ? 'ไม่จำกัด' : parseInt(conf.capacity);
+                }
 
-                let availableSeats = totalSeats === 'ไม่จำกัด' ? 'ไม่จำกัด' : (totalSeats - bookedSeats);
-                let percentBooked = totalSeats === 'ไม่จำกัด' ? 0 : Math.round((bookedSeats / totalSeats) * 100);
+                let availableSeats = totalSeats === 'ไม่จำกัด' ? 'ไม่จำกัด' : (totalSeats - bookedSeats);
+                let percentBooked = totalSeats === 'ไม่จำกัด' ? 0 : Math.round((bookedSeats / totalSeats) * 100);
 
-                // วาดการ์ด 1 ใบ ต่อ 1 รอบ
-                htmlContent += `
-                    <div style="background:#fff; padding:20px; border-radius:10px; box-shadow:0 4px 6px rgba(0,0,0,0.05); border-left: 5px solid #8e44ad; margin-bottom: 5px;">
-                        <div style="border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 15px; display:flex; justify-content: space-between; align-items:center; flex-wrap: wrap; gap: 10px;">
-                            <h3 style="margin:0; color:#2c3e50; font-size:1.2rem;">🕒 รอบ: ${timeStr}</h3>
-                            <span style="background:#f1f2f6; padding: 5px 15px; border-radius: 20px; font-size: 0.9rem; color:#57606f;">📍 ${locationStr}</span>
-                        </div>
-                        
-                        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:15px; text-align:center;">
-                            <div style="background:#f8f9fa; padding:15px; border-radius:8px;">
-                                <div style="color:#7f8c8d; font-size:0.9rem; margin-bottom:5px;">ความจุทั้งหมด</div>
-                                <div style="font-size:1.8rem; font-weight:bold; color:#2c3e50;">${totalSeats}</div>
-                            </div>
-                            <div style="background:#fcf3f2; padding:15px; border-radius:8px;">
-                                <div style="color:#7f8c8d; font-size:0.9rem; margin-bottom:5px;">จองแล้ว (ที่นั่ง)</div>
-                                <div style="font-size:1.8rem; font-weight:bold; color:#e74c3c;">${bookedSeats}</div>
-                            </div>
-                            <div style="background:#f0fbf4; padding:15px; border-radius:8px;">
-                                <div style="color:#7f8c8d; font-size:0.9rem; margin-bottom:5px;">คงเหลือ</div>
-                                <div style="font-size:1.8rem; font-weight:bold; color:#2ecc71;">${availableSeats}</div>
-                            </div>
-                        </div>
+                // วาดการ์ด 1 ใบ ต่อ 1 รอบ โดยใช้ Bootstrap
+                htmlContent += `
+                    <div class="bg-white p-4 rounded-3 shadow-sm mb-3" style="border-left: 5px solid #8e44ad;">
+                        <div class="border-bottom pb-3 mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <h3 class="m-0 fs-5 text-dark fw-bold">🕒 รอบ: ${timeStr}</h3>
+                            <span class="badge bg-light text-secondary border rounded-pill px-3 py-2 fw-normal fs-6">📍 ${locationStr}</span>
+                        </div>
+                        
+                        <div class="row g-3 text-center">
+                            <div class="col-12 col-sm-4">
+                                <div class="bg-light p-3 rounded-3 h-100">
+                                    <div class="text-muted small mb-1">ความจุทั้งหมด</div>
+                                    <div class="fs-2 fw-bold text-dark">${totalSeats}</div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-4">
+                                <div class="bg-danger bg-opacity-10 p-3 rounded-3 h-100">
+                                    <div class="text-muted small mb-1">จองแล้ว (ที่นั่ง)</div>
+                                    <div class="fs-2 fw-bold text-danger">${bookedSeats}</div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-4">
+                                <div class="bg-success bg-opacity-10 p-3 rounded-3 h-100">
+                                    <div class="text-muted small mb-1">คงเหลือ</div>
+                                    <div class="fs-2 fw-bold text-success">${availableSeats}</div>
+                                </div>
+                            </div>
+                        </div>
 
-                        <div style="margin-top: 20px;">
-                            <div style="display:flex; justify-content: space-between; align-items:center; font-size: 0.9rem; margin-bottom: 5px;">
-                                <span style="color:#7f8c8d; font-weight:bold;">อัตราการจอง</span>
-                                <span style="font-weight:bold; font-size:1.1rem; color:${percentBooked >= 100 ? '#e74c3c' : '#2c3e50'};">${percentBooked}%</span>
-                            </div>
-                            <div style="width:100%; background:#ecf0f1; border-radius:10px; height:12px; overflow:hidden;">
-                                <div style="width:${percentBooked}%; background: ${percentBooked >= 100 ? '#e74c3c' : 'linear-gradient(90deg, #3498db, #2ecc71)'}; height:100%; transition:width 0.8s ease-in-out;"></div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
+                        <div class="mt-4">
+                            <div class="d-flex justify-content-between align-items-center small mb-2">
+                                <span class="text-muted fw-bold">อัตราการจอง</span>
+                                <span class="fw-bold fs-6 ${percentBooked >= 100 ? 'text-danger' : 'text-dark'}">${percentBooked}%</span>
+                            </div>
+                            <div class="progress" style="height: 12px; border-radius: 10px;">
+                                <div class="progress-bar ${percentBooked >= 100 ? 'bg-danger' : ''}" 
+                                     role="progressbar" 
+                                     style="width: ${percentBooked}%; ${percentBooked < 100 ? 'background: linear-gradient(90deg, #3498db, #2ecc71);' : ''} transition: width 0.8s ease-in-out;">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
 
-            statsContainer.innerHTML = htmlContent;
-        });
-    };
+            statsContainer.innerHTML = htmlContent;
+        });
+    };
 </script>
 
 </body>
