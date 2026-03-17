@@ -680,10 +680,31 @@
 
     function updateNavbarUI(isLoggedIn) {
         document.getElementById('main-nav').classList.remove('hidden');
-        if(userRole === 'admin') { ['nav-admin-scan','nav-admin-orders','nav-admin-users','nav-admin-tickets'].forEach(id => document.getElementById(id).classList.remove('hidden')); } 
-        else { ['nav-admin-scan','nav-admin-orders','nav-admin-users','nav-admin-tickets'].forEach(id => document.getElementById(id).classList.add('hidden')); }
-        if(isLoggedIn) { document.getElementById('nav-profile').classList.remove('hidden'); document.getElementById('nav-logout').classList.remove('hidden'); document.getElementById('nav-login').classList.add('hidden'); } 
-        else { document.getElementById('nav-profile').classList.add('hidden'); document.getElementById('nav-logout').classList.add('hidden'); document.getElementById('nav-login').classList.remove('hidden'); }
+        
+        // 🌟 สร้างตัวแปรเก็บ Array ของเมนูแอดมินทั้งหมด รวมถึง 'nav-admin-promos' ด้วย
+        const adminMenus = ['nav-admin-scan', 'nav-admin-orders', 'nav-admin-users', 'nav-admin-tickets', 'nav-admin-promos'];
+
+        if(userRole === 'admin') { 
+            adminMenus.forEach(id => {
+                let el = document.getElementById(id);
+                if(el) el.classList.remove('hidden');
+            }); 
+        } else { 
+            adminMenus.forEach(id => {
+                let el = document.getElementById(id);
+                if(el) el.classList.add('hidden');
+            }); 
+        }
+
+        if(isLoggedIn) { 
+            document.getElementById('nav-profile').classList.remove('hidden'); 
+            document.getElementById('nav-logout').classList.remove('hidden'); 
+            document.getElementById('nav-login').classList.add('hidden'); 
+        } else { 
+            document.getElementById('nav-profile').classList.add('hidden'); 
+            document.getElementById('nav-logout').classList.add('hidden'); 
+            document.getElementById('nav-login').classList.remove('hidden'); 
+        }
     }
 
     // --- Views ---
