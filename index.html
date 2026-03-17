@@ -2176,8 +2176,13 @@
             if(snap.exists()){
                 snap.forEach(child => {
                     const data = child.val();
-                    // ดักจับข้อมูล: ถ้าไม่มี data.title ให้ไปดึง data.name แทน 
-                    const itemName = data.title || data.name || 'ไม่มีชื่อรายการ';
+                    
+                    // 🌟 พิมพ์ข้อมูลออกมาดูใน Console เพื่อหาว่าชื่อฟิลด์คืออะไร
+                    console.log("🔍 ข้อมูลของ " + child.key + " :", data);
+                    
+                    // ลองดักจับชื่อตัวแปรหลายๆ แบบที่คนมักใช้กัน ถ้าไม่เจอจริงๆ ให้แสดง ID รายการแทน
+                    const itemName = data.title || data.name || data.movieName || data.eventName || data.topic || `(รายการ ID: ${child.key})`;
+                    
                     itemSelect.innerHTML += `<option value="${child.key}">${itemName}</option>`;
                 });
             } else {
