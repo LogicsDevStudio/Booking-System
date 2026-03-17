@@ -2154,12 +2154,11 @@
     window.showDashboardAdmin = () => {
         if(userRole !== 'admin') return;
         
-        // ซ่อนทุกหน้า และแสดงหน้าแดชบอร์ด (คุณอาจต้องเปลี่ยนฟังก์ชันนี้ให้ตรงกับระบบเปลี่ยนหน้าของคุณ)
-        document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
-        document.getElementById('page-dashboard').classList.remove('hidden');
+        // เรียกใช้ฟังก์ชันสลับหน้าหลักของระบบ
+        window.showPage('page-dashboard');
         
         // โหลดรายชื่อภาพยนตร์/อีเวนต์เริ่มต้น
-        loadDashItems();
+        window.loadDashItems();
     };
 
     // โหลดรายชื่อภาพยนตร์ หรือ อีเวนต์ มาใส่ใน Dropdown
