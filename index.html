@@ -2165,7 +2165,13 @@
             if(snap.exists()){
                 snap.forEach(child => {
                     const data = child.val();
-                    const itemName = data.title || data.name || data.movieName || data.eventName || data.topic || `(รายการ ID: ${child.key})`;
+                    
+                    // 🌟 ดึงข้อมูลจากกล่อง config ออกมาก่อน
+                    const conf = data.config || {};
+                    
+                    // 🌟 ค้นหาชื่อจาก conf.title (ตามโครงสร้างฐานข้อมูลของคุณ)
+                    const itemName = conf.title || conf.name || conf.topic || `(รายการ ID: ${child.key})`;
+                    
                     itemSelect.innerHTML += `<option value="${child.key}">${itemName}</option>`;
                 });
             } else {
