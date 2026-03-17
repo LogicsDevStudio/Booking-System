@@ -2176,7 +2176,9 @@
             if(snap.exists()){
                 snap.forEach(child => {
                     const data = child.val();
-                    itemSelect.innerHTML += `<option value="${child.key}">${data.title}</option>`;
+                    // ดักจับข้อมูล: ถ้าไม่มี data.title ให้ไปดึง data.name แทน 
+                    const itemName = data.title || data.name || 'ไม่มีชื่อรายการ';
+                    itemSelect.innerHTML += `<option value="${child.key}">${itemName}</option>`;
                 });
             } else {
                 itemSelect.innerHTML = '<option value="">-- ไม่มีข้อมูล --</option>';
