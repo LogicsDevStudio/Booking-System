@@ -557,60 +557,49 @@
             </div>
             
             <div style="display:flex; gap:10px;">
-                <div class="form-group" style="flex:1">
-                    <label>เปิดให้จอง:</label>
-                    <input type="datetime-local" id="rd-book-start" required>
-                </div>
-                <div class="form-group" style="flex:1">
-                    <label>ปิดรับจอง:</label>
-                    <input type="datetime-local" id="rd-book-end" required>
-                </div>
+                <div class="form-group" style="flex:1"><label>เปิดให้จอง:</label><input type="datetime-local" id="rd-book-start" required></div>
+                <div class="form-group" style="flex:1"><label>ปิดรับจอง:</label><input type="datetime-local" id="rd-book-end" required></div>
             </div>
             
             <div style="display:flex; gap:10px;">
-                <div class="form-group" style="flex:1">
-                    <label>เวลาเริ่มแสดง:</label>
-                    <input type="datetime-local" id="rd-show-start" required>
-                </div>
-                <div class="form-group" style="flex:1">
-                    <label>เวลาสิ้นสุด:</label>
-                    <input type="datetime-local" id="rd-show-end" required>
-                </div>
+                <div class="form-group" style="flex:1"><label>เวลาเริ่มแสดง:</label><input type="datetime-local" id="rd-show-start" required></div>
+                <div class="form-group" style="flex:1"><label>เวลาสิ้นสุด:</label><input type="datetime-local" id="rd-show-end" required></div>
             </div>
             
             <div id="rd-movie-fields" class="hidden" style="background:#f9f9f9; padding:10px; border-radius:5px; margin-bottom:15px;">
                 <div style="display:flex; gap:10px;">
-                    <div class="form-group" style="flex:1">
-                        <label>จำนวนแถว (A, B...):</label>
-                        <input type="number" id="rd-rows">
-                    </div>
-                    <div class="form-group" style="flex:1">
-                        <label>จำนวนที่นั่ง/แถว:</label>
-                        <input type="number" id="rd-cols">
-                    </div>
+                    <div class="form-group" style="flex:1"><label>จำนวนแถว (A, B...):</label><input type="number" id="rd-rows"></div>
+                    <div class="form-group" style="flex:1"><label>จำนวนที่นั่ง/แถว:</label><input type="number" id="rd-cols"></div>
                 </div>
-                <div class="form-group">
-                    <label>ปิดที่นั่ง (Blocked ex: A1,A2):</label>
-                    <input type="text" id="rd-blocked">
-                </div>
+                <div class="form-group"><label>ปิดที่นั่ง (Blocked ex: A1,A2):</label><input type="text" id="rd-blocked"></div>
                 
-                <div style="display:flex; gap:10px; margin-top:10px; padding-top:10px; border-top:1px solid #ddd;">
-                    <div class="form-group" style="flex:1">
+                <div style="display:flex; gap:10px; margin-top:10px; padding-top:10px; border-top:1px solid #ddd; flex-wrap: wrap;">
+                    <div class="form-group" style="flex:1; min-width: 100%;">
                         <label>แถวที่นั่ง VIP (เช่น A,B):</label>
                         <input type="text" id="rd-vip-rows" placeholder="A,B" value="A,B" style="text-transform: uppercase;">
                     </div>
-                    <div class="form-group" style="flex:1">
-                        <label>ราคาที่บวกเพิ่มสำหรับ VIP (บาท):</label>
+                    <div class="form-group" style="flex:1; min-width: 200px;">
+                        <label>รูปแบบราคา VIP:</label>
+                        <select id="rd-vip-mode" onchange="toggleVipPriceMode()">
+                            <option value="add">บวกราคาเพิ่ม (จากราคาปกติ)</option>
+                            <option value="ticket">กำหนดตามประเภทบัตรที่มี</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex:1; min-width: 200px;" id="vip-add-section">
+                        <label>ราคาที่บวกเพิ่ม (บาท):</label>
                         <input type="number" id="rd-vip-price" placeholder="100" value="100" min="0">
+                    </div>
+                    <div class="form-group" style="flex:1; min-width: 200px; display:none;" id="vip-ticket-section">
+                        <label>เลือกประเภทบัตร VIP:</label>
+                        <select id="rd-vip-ticket-type">
+                            <option value="">-- กำลังโหลดข้อมูล --</option>
+                        </select>
                     </div>
                 </div>
             </div>
             
             <div id="rd-event-fields" class="hidden" style="background:#f9f9f9; padding:10px; border-radius:5px; margin-bottom:15px;">
-                <div class="form-group">
-                    <label>ความจุ (-1=ไม่จำกัด):</label>
-                    <input type="number" id="rd-cap">
-                </div>
+                <div class="form-group"><label>ความจุ (-1=ไม่จำกัด):</label><input type="number" id="rd-cap"></div>
             </div>
             
             <div class="modal-buttons">
@@ -1298,7 +1287,9 @@
 
     window.backToSchedule = () => { if(tempSeatRef) cancelSelection(); currentRoundId = ''; window.openDetailPage(currentItemId, currentType, false); }
 
-    // 🌟 1. ปรับปรุงระบบ Seat Tiers แยกโซน (A-B เป็น VIP)
+    // =====================================
+    // อัปเดตฟังก์ชันวาดแผนผังที่นั่งให้คำนวณราคาถูกวิธี
+    // =====================================
     window.renderSeatsBase = (conf) => {
         const map = document.getElementById('seat-map'); 
         map.innerHTML = ''; 
@@ -1309,16 +1300,22 @@
         
         const basePrice = parseInt(conf.price) || 0;
         
-        // ดึงการตั้งค่าโซน VIP (ถ้าไม่มีให้ใช้ค่าเริ่มต้นคือ A,B และบวก 100)
+        // อ่านค่าการตั้งค่า VIP
         const vipRowsList = conf.vipRows ? conf.vipRows.split(',').map(x => x.trim().toUpperCase()) : ['A', 'B'];
-        const vipSurcharge = parseInt(conf.vipPriceAdd) !== !isNaN ? parseInt(conf.vipPriceAdd) : 100;
+        const vipMode = conf.vipMode || 'add';
+        const vipSurcharge = parseInt(conf.vipPriceAdd) || 0;
+        const vipTicketPrice = parseInt(conf.vipTicketPrice) || 0;
 
         for(let r=0; r<conf.rows; r++) {
             const rowLabel = String.fromCharCode(65 + r);
-            
-            // เช็คว่าแถวนี้อยู่ในรายชื่อแถว VIP หรือไม่
             const isVIP = vipRowsList.includes(rowLabel); 
-            const seatPrice = isVIP ? basePrice + vipSurcharge : basePrice; 
+            
+            // 🌟 คำนวณราคาที่นั่งตามโหมดที่ Admin เลือก
+            let seatPrice = basePrice;
+            if (isVIP) {
+                if (vipMode === 'add') { seatPrice = basePrice + vipSurcharge; } 
+                else if (vipMode === 'ticket') { seatPrice = vipTicketPrice; }
+            }
 
             for(let c=1; c<=conf.cols; c++) {
                 const seatId = `${rowLabel}${c}`; 
@@ -1328,21 +1325,12 @@
                 seat.innerText = seatId;
                 seat.dataset.price = seatPrice; 
 
-                if(isVIP) { 
-                    seat.style.border = "2px solid #9b59b6"; 
-                    seat.style.color = "#9b59b6"; 
-                }
+                if(isVIP) { seat.style.border = "2px solid #9b59b6"; seat.style.color = "#9b59b6"; }
 
                 if(blockedList.includes(seatId)) { 
-                    seat.classList.add('blocked'); 
-                    seat.classList.remove('available'); 
-                    seat.style.borderColor = "#dc3545"; 
-                    seat.style.color = "#dc3545"; 
+                    seat.classList.add('blocked'); seat.classList.remove('available'); seat.style.borderColor = "#dc3545"; seat.style.color = "#dc3545"; 
                 } else { 
-                    seat.onclick = () => { 
-                        currentSelectedPrice = seatPrice; 
-                        window.selectSeat(seatId); 
-                    } 
+                    seat.onclick = () => { currentSelectedPrice = seatPrice; window.selectSeat(seatId); } 
                 }
                 map.appendChild(seat);
             }
@@ -1351,26 +1339,17 @@
 
     window.updateSeatStatus = (bookings, temps) => {
         const myUid = currentUser ? currentUser.uid : guestId;
-        
-        // ดึงการตั้งค่าโซน VIP
         const vipRowsList = currentRoundConfig.vipRows ? currentRoundConfig.vipRows.split(',').map(x => x.trim().toUpperCase()) : ['A', 'B'];
 
         document.querySelectorAll('.seat').forEach(s => {
             const sid = s.id.replace('seat-', ''); 
             if(s.classList.contains('blocked')) return;
             
-            const rowLabel = sid.charAt(0); // ดึงตัวอักษรแถวมาเช็ค
-            const isVIP = vipRowsList.includes(rowLabel);
+            const isVIP = vipRowsList.includes(sid.charAt(0));
             const seatPrice = parseInt(s.dataset.price) || 0;
 
             s.className = `seat available`; 
-            if(isVIP) { 
-                s.style.border = "2px solid #9b59b6"; 
-                s.style.color = "#9b59b6"; 
-            } else { 
-                s.style.border = ""; 
-                s.style.color = ""; 
-            }
+            if(isVIP) { s.style.border = "2px solid #9b59b6"; s.style.color = "#9b59b6"; } else { s.style.border = ""; s.style.color = ""; }
 
             s.onclick = () => { currentSelectedPrice = seatPrice; window.selectSeat(sid); };
             
@@ -1772,11 +1751,72 @@
     window.deleteCurrentItem = () => { if(userRole !== 'admin') return; if(confirm(`ยืนยันการลบรายการนี้ทิ้งทั้งหมด? (ลบหนัง/อีเวนต์ และรอบทั้งหมดทิ้ง)`)) { remove(ref(db, `${currentType}s/${currentItemId}`)).then(() => { goHome(); }); } }
 
     window.openRoundModal = () => {
-        if(userRole !== 'admin') return;
-        document.getElementById('item-round-modal').classList.add('active'); document.getElementById('rd-id').value = ''; document.getElementById('rd-modal-title').innerText = `เพิ่มรอบใหม่`; document.querySelectorAll('#item-round-modal input:not([type=hidden])').forEach(i => i.value = ''); populateTicketTypeDropdownRound('');
-        if(currentType === 'movie') { document.getElementById('rd-movie-fields').classList.remove('hidden'); document.getElementById('rd-event-fields').classList.add('hidden'); } else { document.getElementById('rd-movie-fields').classList.add('hidden'); document.getElementById('rd-event-fields').classList.remove('hidden'); }
-    }
+        document.getElementById('rd-modal-title').innerText = "เพิ่มรอบใหม่";
+        document.getElementById('rd-id').value = '';
+        document.getElementById('rd-location').value = '';
+        document.getElementById('rd-price').value = '';
+        document.getElementById('rd-book-start').value = '';
+        document.getElementById('rd-book-end').value = '';
+        document.getElementById('rd-show-start').value = '';
+        document.getElementById('rd-show-end').value = '';
+        
+        if (typeof populateTicketTypeDropdownRound === 'function') {
+            populateTicketTypeDropdownRound('');
+        }
+        
+        if(currentType === 'movie') {
+            document.getElementById('rd-movie-fields').classList.remove('hidden');
+            document.getElementById('rd-event-fields').classList.add('hidden');
+            document.getElementById('rd-rows').value = '';
+            document.getElementById('rd-cols').value = '';
+            document.getElementById('rd-blocked').value = '';
+            
+            // 🌟 รีเซ็ตค่า VIP สำหรับการสร้างรอบใหม่ 🌟
+            document.getElementById('rd-vip-rows').value = 'A,B';
+            document.getElementById('rd-vip-mode').value = 'add';
+            document.getElementById('rd-vip-price').value = 100;
+            window.toggleVipPriceMode(); // อัปเดตหน้าจอให้ตรงกับค่าเริ่มต้น
+            
+        } else {
+            document.getElementById('rd-event-fields').classList.remove('hidden');
+            document.getElementById('rd-movie-fields').classList.add('hidden');
+            document.getElementById('rd-cap').value = '';
+        }
+        document.getElementById('item-round-modal').classList.add('active');
+    };
 
+    // =====================================
+    // ฟังก์ชันจัดการ UI ราคาทีั่่นั่ง VIP
+    // =====================================
+    window.toggleVipPriceMode = () => {
+        const mode = document.getElementById('rd-vip-mode').value;
+        if(mode === 'add') {
+            document.getElementById('vip-add-section').style.display = 'block';
+            document.getElementById('vip-ticket-section').style.display = 'none';
+        } else {
+            document.getElementById('vip-add-section').style.display = 'none';
+            document.getElementById('vip-ticket-section').style.display = 'block';
+            window.populateVipTicketTypes(); // โหลดประเภทบัตรจากฐานข้อมูล
+        }
+    };
+
+    window.populateVipTicketTypes = (selectedValue = '') => {
+        onValue(ref(db, 'ticketTypes'), (snapshot) => {
+            const sel = document.getElementById('rd-vip-ticket-type');
+            if(!sel) return;
+            sel.innerHTML = '<option value="">-- เลือกประเภทบัตร --</option>';
+            if(snapshot.exists()) {
+                snapshot.forEach(child => {
+                    const t = child.val();
+                    sel.innerHTML += `<option value="${t.price}" ${selectedValue == t.price ? 'selected' : ''}>${t.name} (฿${t.price})</option>`;
+                });
+            }
+        }, { onlyOnce: true });
+    };
+
+    // =====================================
+    // อัปเดตฟังก์ชัน โหลด / บันทึกข้อมูล
+    // =====================================
     window.editRoundItem = (roundId) => {
         if(userRole !== 'admin') return; 
         window.openRoundModal(); 
@@ -1799,9 +1839,15 @@
             document.getElementById('rd-cols').value = conf.cols || ''; 
             document.getElementById('rd-blocked').value = conf.blocked || ''; 
             
-            // 🌟 เพิ่มการโหลดข้อมูล VIP (ถ้าไม่มีข้อมูลเก่า ให้แสดงค่าเริ่มต้น A,B และ 100)
+            // 🌟 โหลดข้อมูล VIP กลับมาแสดง
             document.getElementById('rd-vip-rows').value = conf.vipRows || 'A,B'; 
+            document.getElementById('rd-vip-mode').value = conf.vipMode || 'add';
             document.getElementById('rd-vip-price').value = conf.vipPriceAdd !== undefined ? conf.vipPriceAdd : 100;
+            
+            window.toggleVipPriceMode(); // สลับ UI ตามโหมดที่บันทึกไว้
+            if(conf.vipMode === 'ticket') {
+                window.populateVipTicketTypes(conf.vipTicketPrice);
+            }
         } else { 
             document.getElementById('rd-cap').value = conf.capacity || ''; 
         }
@@ -1829,9 +1875,11 @@
             payload.cols = parseInt(document.getElementById('rd-cols').value); 
             payload.blocked = document.getElementById('rd-blocked').value; 
             
-            // 🌟 เพิ่มการบันทึกข้อมูล VIP ลงใน Payload
+            // 🌟 บันทึกข้อมูล VIP ลง Database
             payload.vipRows = document.getElementById('rd-vip-rows').value.trim().toUpperCase();
+            payload.vipMode = document.getElementById('rd-vip-mode').value;
             payload.vipPriceAdd = Number(document.getElementById('rd-vip-price').value) || 0;
+            payload.vipTicketPrice = Number(document.getElementById('rd-vip-ticket-type').value) || 0;
         } else { 
             payload.capacity = parseInt(document.getElementById('rd-cap').value); 
         }
@@ -1842,16 +1890,10 @@
             const targetRef = push(ref(db, path)); 
             const saveObj = { config: payload }; 
             if(currentType === 'event') saveObj.currentBooked = 0; 
-            
-            set(targetRef, saveObj).then(() => { 
-                document.getElementById('item-round-modal').classList.remove('active'); 
-            }); 
+            set(targetRef, saveObj).then(() => { document.getElementById('item-round-modal').classList.remove('active'); }); 
         } else { 
             const targetRef = ref(db, `${path}/${rId}/config`); 
-            
-            update(targetRef, payload).then(() => { 
-                document.getElementById('item-round-modal').classList.remove('active'); 
-            }); 
+            update(targetRef, payload).then(() => { document.getElementById('item-round-modal').classList.remove('active'); }); 
         }
     }
 
