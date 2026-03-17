@@ -1210,10 +1210,19 @@
 
     window.backToSchedule = () => { if(tempSeatRef) cancelSelection(); currentRoundId = ''; window.openDetailPage(currentItemId, currentType, false); }
 
+    // 🌟 ตัวแปร Global สำหรับระบบส่วนลด
+    let appliedPromoCode = "";
+    let discountValue = 0;
+
     // 🌟 1. ปรับปรุงระบบ Seat Tiers แยกโซน (A-B เป็น VIP)
-    function renderSeatsBase(conf) {
-        const map = document.getElementById('seat-map'); map.innerHTML = ''; map.style.gridTemplateColumns = `repeat(${conf.cols}, 1fr)`;
-        let blockedList = []; if (conf.blocked) blockedList = Array.isArray(conf.blocked) ? conf.blocked : String(conf.blocked).split(',').map(x => x.trim());
+    window.renderSeatsBase = (conf) => {
+        const map = document.getElementById('seat-map'); 
+        map.innerHTML = ''; 
+        map.style.gridTemplateColumns = `repeat(${conf.cols}, 1fr)`;
+        
+        let blockedList = []; 
+        if (conf.blocked) blockedList = Array.isArray(conf.blocked) ? conf.blocked : String(conf.blocked).split(',').map(x => x.trim());
+        
         const basePrice = parseInt(conf.price) || 0;
 
         for(let r=0; r<conf.rows; r++) {
@@ -1222,29 +1231,52 @@
             const seatPrice = isVIP ? basePrice + 100 : basePrice; // บวกราคา VIP เพิ่ม 100 บาท
 
             for(let c=1; c<=conf.cols; c++) {
-                const seatId = `${rowLabel}${c}`; const seat = document.createElement('div');
-                seat.className = `seat available`; seat.id = `seat-${seatId}`; seat.innerText = seatId;
+                const seatId = `${rowLabel}${c}`; 
+                const seat = document.createElement('div');
+                seat.className = `seat available`; 
+                seat.id = `seat-${seatId}`; 
+                seat.innerText = seatId;
                 seat.dataset.price = seatPrice; // เก็บราคาสุทธิของที่นั่งนั้นๆ
 
                 // ตกแต่งสี VIP พิเศษ
-                if(isVIP) { seat.style.border = "2px solid #9b59b6"; seat.style.color = "#9b59b6"; }
+                if(isVIP) { 
+                    seat.style.border = "2px solid #9b59b6"; 
+                    seat.style.color = "#9b59b6"; 
+                }
 
-                if(blockedList.includes(seatId)) { seat.classList.add('blocked'); seat.classList.remove('available'); seat.style.borderColor = "#dc3545"; seat.style.color = "#dc3545"; } 
-                else { seat.onclick = () => { currentSelectedPrice = seatPrice; window.selectSeat(seatId); } }
+                if(blockedList.includes(seatId)) { 
+                    seat.classList.add('blocked'); 
+                    seat.classList.remove('available'); 
+                    seat.style.borderColor = "#dc3545"; 
+                    seat.style.color = "#dc3545"; 
+                } else { 
+                    seat.onclick = () => { 
+                        currentSelectedPrice = seatPrice; 
+                        window.selectSeat(seatId); 
+                    } 
+                }
                 map.appendChild(seat);
             }
         }
     }
 
-    function updateSeatStatus(bookings, temps) {
+    window.updateSeatStatus = (bookings, temps) => {
         const myUid = currentUser ? currentUser.uid : guestId;
         document.querySelectorAll('.seat').forEach(s => {
-            const sid = s.id.replace('seat-', ''); if(s.classList.contains('blocked')) return;
+            const sid = s.id.replace('seat-', ''); 
+            if(s.classList.contains('blocked')) return;
+            
             const isVIP = (sid.charAt(0) === 'A' || sid.charAt(0) === 'B');
             const seatPrice = parseInt(s.dataset.price) || 0;
 
             s.className = `seat available`; 
-            if(isVIP) { s.style.border = "2px solid #9b59b6"; s.style.color = "#9b59b6"; } else { s.style.border = ""; s.style.color = ""; }
+            if(isVIP) { 
+                s.style.border = "2px solid #9b59b6"; 
+                s.style.color = "#9b59b6"; 
+            } else { 
+                s.style.border = ""; 
+                s.style.color = ""; 
+            }
 
             s.onclick = () => { currentSelectedPrice = seatPrice; window.selectSeat(sid); };
             
@@ -1265,15 +1297,29 @@
         const tempPath = isOldData ? `${currentType}s/${currentItemId}/temp_selections/${seatId}` : `${currentType}s/${currentItemId}/rounds/${currentRoundId}/temp_selections/${seatId}`;
         const tempRef = ref(db, tempPath);
         const userIdToUse = currentUser ? currentUser.uid : guestId;
-        runTransaction(tempRef, (curr) => { if (curr === null || Date.now() - curr.timestamp > 10 * 60 * 1000) return { timestamp: Date.now(), user_uid: userIdToUse }; return; }).then((res) => {
-            if (res.committed) { selectedTarget = seatId; tempSeatRef = tempRef; onDisconnect(tempRef).remove(); window.openBookingModal(`ที่นั่ง: ${seatId} (ราคา ฿${currentSelectedPrice})`); } else alert("ที่นั่งนี้กำลังมีผู้อื่นทำรายการอยู่ครับ");
+        
+        runTransaction(tempRef, (curr) => { 
+            if (curr === null || Date.now() - curr.timestamp > 10 * 60 * 1000) return { timestamp: Date.now(), user_uid: userIdToUse }; 
+            return; 
+        }).then((res) => {
+            if (res.committed) { 
+                selectedTarget = seatId; 
+                tempSeatRef = tempRef; 
+                onDisconnect(tempRef).remove(); 
+                window.openBookingModal(`ที่นั่ง: ${seatId} (ราคา ฿${currentSelectedPrice})`); 
+            } else alert("ที่นั่งนี้กำลังมีผู้อื่นทำรายการอยู่ครับ");
         });
     }
 
     // 🌟 2. แทรก UI และลอจิกโค้ดส่วนลดเข้าไปใน Modal
     window.openBookingModal = (detail) => {
-        document.getElementById('booking-form-section').classList.remove('hidden'); document.getElementById('payment-section').classList.add('hidden'); document.getElementById('inp-slip-url').value = ''; clearInterval(paymentTimerInterval);
-        document.getElementById('modal-subtitle').innerText = detail; const modal = document.getElementById('booking-modal');
+        document.getElementById('booking-form-section').classList.remove('hidden'); 
+        document.getElementById('payment-section').classList.add('hidden'); 
+        document.getElementById('inp-slip-url').value = ''; 
+        clearInterval(paymentTimerInterval);
+        
+        document.getElementById('modal-subtitle').innerText = detail; 
+        const modal = document.getElementById('booking-modal');
         
         // --- ส่วนการสร้างฟอร์มกรอกโค้ดส่วนลดอัตโนมัติ ---
         const proceedBtn = document.querySelector('button[onclick="proceedToPayment()"]');
@@ -1293,15 +1339,22 @@
         }
         
         // Reset state สิทธิ์ส่วนลด
-        appliedPromoCode = ""; discountValue = 0;
+        appliedPromoCode = ""; 
+        discountValue = 0;
         const inpPromo = document.getElementById('inp-promo-code'); if(inpPromo) inpPromo.value = '';
         const msgPromo = document.getElementById('promo-msg'); if(msgPromo) msgPromo.innerText = '';
 
         if(currentUser) {
-            document.getElementById('inp-conf-name').value = userData.name || ''; document.getElementById('inp-conf-phone').value = userData.phone || ''; document.getElementById('inp-conf-email').value = userData.email || currentUser.email; document.getElementById('inp-conf-idcard').value = userData.idCard || '';
+            document.getElementById('inp-conf-name').value = userData?.name || ''; 
+            document.getElementById('inp-conf-phone').value = userData?.phone || ''; 
+            document.getElementById('inp-conf-email').value = userData?.email || currentUser.email; 
+            document.getElementById('inp-conf-idcard').value = userData?.idCard || '';
             ['name','phone','email','idcard'].forEach(k => { const el=document.getElementById(`inp-conf-${k}`); el.readOnly=true; el.style.backgroundColor='#f0f0f0';});
         } else {
-            document.getElementById('inp-conf-name').value = ''; document.getElementById('inp-conf-phone').value = ''; document.getElementById('inp-conf-email').value = ''; document.getElementById('inp-conf-idcard').value = '';
+            document.getElementById('inp-conf-name').value = ''; 
+            document.getElementById('inp-conf-phone').value = ''; 
+            document.getElementById('inp-conf-email').value = ''; 
+            document.getElementById('inp-conf-idcard').value = '';
             ['name','phone','email','idcard'].forEach(k => { const el=document.getElementById(`inp-conf-${k}`); el.readOnly=false; el.style.backgroundColor='#fff'; });
         }
         modal.classList.add('active');
@@ -1341,71 +1394,158 @@
         }).catch(err => console.error(err));
     }
 
-    window.cancelSelection = () => { clearInterval(paymentTimerInterval); document.getElementById('booking-modal').classList.remove('active'); if(currentType === 'movie' && tempSeatRef) { remove(tempSeatRef); onDisconnect(tempSeatRef).cancel(); tempSeatRef = null; selectedTarget = ''; } }
+    window.cancelSelection = () => { 
+        clearInterval(paymentTimerInterval); 
+        document.getElementById('booking-modal').classList.remove('active'); 
+        if(currentType === 'movie' && tempSeatRef) { 
+            remove(tempSeatRef); 
+            onDisconnect(tempSeatRef).cancel(); 
+            tempSeatRef = null; 
+            selectedTarget = ''; 
+        } 
+    }
 
     window.proceedToPayment = () => {
-        const bName = document.getElementById('inp-conf-name').value.trim(); const bPhone = document.getElementById('inp-conf-phone').value.trim(); const bEmail = document.getElementById('inp-conf-email').value.trim();
+        const bName = document.getElementById('inp-conf-name').value.trim(); 
+        const bPhone = document.getElementById('inp-conf-phone').value.trim(); 
+        const bEmail = document.getElementById('inp-conf-email').value.trim();
         if(!bName || !bPhone || !bEmail) { alert("กรุณากรอกข้อมูลให้ครบ"); return; }
+        
         const isOldData = (currentRoundId === 'old-data');
         let existingBookings = {};
-        if (isOldData) existingBookings = allData[currentType + 's'][currentItemId].bookings || {}; else existingBookings = allData[currentType + 's'][currentItemId].rounds[currentRoundId].bookings || {};
-        let isDup = false; Object.values(existingBookings).forEach(b => { if(b.email === bEmail) isDup = true; if(currentUser && b.uid === currentUser.uid && b.uid !== 'guest') isDup = true; });
-        if(isDup) { if(userRole === 'admin') { if(!confirm("บัญชีหรืออีเมลนี้เคยจองรอบนี้แล้ว (Admin) ยืนยันดำเนินการต่อหรือไม่?")) return; } else { alert("❌ คุณได้ทำการจองรอบนี้ไปแล้ว"); return; } }
+        if (isOldData) existingBookings = allData[currentType + 's']?.[currentItemId]?.bookings || {}; 
+        else existingBookings = allData[currentType + 's']?.[currentItemId]?.rounds?.[currentRoundId]?.bookings || {};
+        
+        let isDup = false; 
+        Object.values(existingBookings).forEach(b => { 
+            if(b.email === bEmail) isDup = true; 
+            if(currentUser && b.uid === currentUser.uid && b.uid !== 'guest') isDup = true; 
+        });
+        
+        if(isDup) { 
+            if(userRole === 'admin') { 
+                if(!confirm("บัญชีหรืออีเมลนี้เคยจองรอบนี้แล้ว (Admin) ยืนยันดำเนินการต่อหรือไม่?")) return; 
+            } else { 
+                alert("❌ คุณได้ทำการจองรอบนี้ไปแล้ว"); return; 
+            } 
+        }
         
         // 🌟 คำนวณราคาสุทธิหลังหักส่วนลด
         const finalPrice = Math.max(0, currentSelectedPrice - discountValue);
         
-        if(finalPrice === 0) { processFinalBooking(""); return; } // ถ้าใช้โค้ดลดจนเหลือ 0 บาท ระบบจะให้ผ่านเลย
+        // ถ้าใช้โค้ดลดจนเหลือ 0 บาท หรือราคาเดิมคือ 0 ให้ข้ามขั้นตอนโอนเงินไปเลย
+        if(finalPrice === 0) { 
+            window.processFinalBooking(""); 
+            return; 
+        } 
         
-        document.getElementById('booking-form-section').classList.add('hidden'); document.getElementById('payment-section').classList.remove('hidden'); 
+        document.getElementById('booking-form-section').classList.add('hidden'); 
+        document.getElementById('payment-section').classList.remove('hidden'); 
         document.getElementById('pay-amount').innerText = finalPrice; 
-        document.getElementById('pay-qrcode').src = `https://promptpay.io/${PROMPTPAY_NUMBER}/${finalPrice}.png`;
-        startPaymentTimer(10 * 60); 
+        
+        // แสดง QR Code PromptPay ตามราคาสุทธิ
+        if(typeof PROMPTPAY_NUMBER !== 'undefined') {
+            document.getElementById('pay-qrcode').src = `https://promptpay.io/${PROMPTPAY_NUMBER}/${finalPrice}.png`;
+        }
+        window.startPaymentTimer(10 * 60); 
     }
 
-    function startPaymentTimer(durationInSeconds) {
-        clearInterval(paymentTimerInterval); let timer = durationInSeconds, minutes, seconds; const display = document.getElementById('pay-countdown');
+    window.startPaymentTimer = (durationInSeconds) => {
+        clearInterval(paymentTimerInterval); 
+        let timer = durationInSeconds, minutes, seconds; 
+        const display = document.getElementById('pay-countdown');
         paymentTimerInterval = setInterval(function () {
-            minutes = parseInt(timer / 60, 10); seconds = parseInt(timer % 60, 10); minutes = minutes < 10 ? "0" + minutes : minutes; seconds = seconds < 10 ? "0" + seconds : seconds; display.textContent = minutes + ":" + seconds;
-            if (--timer < 0) { clearInterval(paymentTimerInterval); alert("⏳ หมดเวลาการทำรายการ ที่นั่งของคุณถูกยกเลิกแล้ว"); window.cancelSelection(); }
+            minutes = parseInt(timer / 60, 10); 
+            seconds = parseInt(timer % 60, 10); 
+            minutes = minutes < 10 ? "0" + minutes : minutes; 
+            seconds = seconds < 10 ? "0" + seconds : seconds; 
+            display.textContent = minutes + ":" + seconds;
+            if (--timer < 0) { 
+                clearInterval(paymentTimerInterval); 
+                alert("⏳ หมดเวลาการทำรายการ ที่นั่งของคุณถูกยกเลิกแล้ว"); 
+                window.cancelSelection(); 
+            }
         }, 1000);
     }
 
-    window.confirmPayment = () => { const slipUrl = document.getElementById('inp-slip-url').value.trim(); if(!slipUrl) { alert("⚠️ กรุณาแนบลิ้งค์หลักฐานการโอนเงิน (URL)"); return; } processFinalBooking(slipUrl); }
-    window.payLater = () => { processFinalBooking("", "รอชำระเงิน"); }
+    window.confirmPayment = () => { 
+        const slipUrl = document.getElementById('inp-slip-url').value.trim(); 
+        if(!slipUrl) { alert("⚠️ กรุณาแนบลิ้งค์หลักฐานการโอนเงิน (URL)"); return; } 
+        window.processFinalBooking(slipUrl); 
+    }
 
-    function processFinalBooking(slipUrl, customStatus = null) {
+    window.payLater = () => { window.processFinalBooking("", "รอชำระเงิน"); }
+
+    window.processFinalBooking = (slipUrl, customStatus = null) => {
         clearInterval(paymentTimerInterval);
-        const bName = document.getElementById('inp-conf-name').value.trim(); const bPhone = document.getElementById('inp-conf-phone').value.trim(); const bEmail = document.getElementById('inp-conf-email').value.trim(); const bIdCard = document.getElementById('inp-conf-idcard').value.trim();
-        let status = customStatus; if(!status) status = slipUrl ? 'รอตรวจสอบ' : 'ฟรี';
+        const bName = document.getElementById('inp-conf-name').value.trim(); 
+        const bPhone = document.getElementById('inp-conf-phone').value.trim(); 
+        const bEmail = document.getElementById('inp-conf-email').value.trim(); 
+        const bIdCard = document.getElementById('inp-conf-idcard').value.trim();
         
-        // 🌟 แนบข้อมูลการหักส่วนลดและราคาสุทธิลงฐานข้อมูล
+        let status = customStatus; 
+        if(!status) status = slipUrl ? 'รอตรวจสอบ' : 'ฟรี';
+        
+        // 🌟 คำนวณราคาสุทธิ
         const finalPrice = Math.max(0, currentSelectedPrice - discountValue);
+        
+        // ถ้าส่วนลดหักจนเหลือ 0 บาท ก็ถือว่าชำระแล้ว (หรือเป็นบัตรฟรี)
+        if(finalPrice === 0 && status === 'รอตรวจสอบ') {
+            status = 'ชำระแล้ว';
+        }
+
         const bookingData = { 
-            uid: currentUser ? currentUser.uid : 'guest', name: bName, phone: bPhone, email: bEmail, idCard: bIdCard, 
-            timestamp: Date.now(), slipUrl: slipUrl, paymentStatus: status, isCheckedIn: false,
-            originalPrice: currentSelectedPrice, discount: discountValue, finalPrice: finalPrice, promoCode: appliedPromoCode
+            uid: currentUser ? currentUser.uid : 'guest', 
+            name: bName, 
+            phone: bPhone, 
+            email: bEmail, 
+            idCard: bIdCard, 
+            timestamp: Date.now(), 
+            slipUrl: slipUrl, 
+            paymentStatus: status, 
+            isCheckedIn: false,
+            originalPrice: currentSelectedPrice, 
+            discount: discountValue, 
+            finalPrice: finalPrice, 
+            promoCode: appliedPromoCode || null
         };
 
         // หากมีการใช้ Promo Code จริงๆ ให้ไปบวกยอดการใช้ +1 ใน Firebase
-        if (appliedPromoCode) { runTransaction(ref(db, `promotions/${appliedPromoCode}/usedCount`), (currentCount) => { return (currentCount || 0) + 1; }); }
+        if (appliedPromoCode) { 
+            runTransaction(ref(db, `promotions/${appliedPromoCode}/usedCount`), (currentCount) => { 
+                return (currentCount || 0) + 1; 
+            }); 
+        }
 
         const isOldData = (currentRoundId === 'old-data');
         const basePath = isOldData ? `${currentType}s/${currentItemId}` : `${currentType}s/${currentItemId}/rounds/${currentRoundId}`;
 
         if(currentType === 'movie') {
             set(ref(db, `${basePath}/bookings/${selectedTarget}`), bookingData).then(() => {
-                if(tempSeatRef) remove(tempSeatRef); window.cancelSelection(); 
-                if(status === 'รอชำระเงิน') alert("✅ บันทึกที่นั่งแล้ว กรุณาชำระเงินที่หน้าประวัติ ภายใน 10 นาที"); else alert("✅ การจองสำเร็จ ระบบได้รับข้อมูลของคุณแล้ว"); window.backToSchedule(); 
+                if(tempSeatRef) remove(tempSeatRef); 
+                window.cancelSelection(); 
+                if(status === 'รอชำระเงิน') alert("✅ บันทึกที่นั่งแล้ว กรุณาชำระเงินที่หน้าประวัติ ภายใน 10 นาที"); 
+                else alert("✅ การจองสำเร็จ ระบบได้รับข้อมูลของคุณแล้ว"); 
+                
+                if(typeof window.backToSchedule === 'function') window.backToSchedule(); 
             });
         } else {
             const eventRoundRef = ref(db, basePath);
             runTransaction(eventRoundRef, (data) => {
-                if(data) { const cap = data.config.capacity; if(cap != -1 && (data.currentBooked||0) >= cap) return; data.currentBooked = (data.currentBooked || 0) + 1; } return data;
+                if(data) { 
+                    const cap = data.config.capacity; 
+                    if(cap != -1 && (data.currentBooked||0) >= cap) return; 
+                    data.currentBooked = (data.currentBooked || 0) + 1; 
+                } 
+                return data;
             }).then((res) => {
                 if(res.committed) {
-                    push(ref(db, `${basePath}/bookings`), bookingData); window.cancelSelection(); 
-                    if(status === 'รอชำระเงิน') alert("✅ บันทึกที่นั่งแล้ว กรุณาชำระเงินที่หน้าประวัติ ภายใน 10 นาที"); else alert("✅ การจองสำเร็จ ระบบได้รับข้อมูลของคุณแล้ว"); window.backToSchedule(); 
+                    push(ref(db, `${basePath}/bookings`), bookingData); 
+                    window.cancelSelection(); 
+                    if(status === 'รอชำระเงิน') alert("✅ บันทึกที่นั่งแล้ว กรุณาชำระเงินที่หน้าประวัติ ภายใน 10 นาที"); 
+                    else alert("✅ การจองสำเร็จ ระบบได้รับข้อมูลของคุณแล้ว"); 
+                    
+                    if(typeof window.backToSchedule === 'function') window.backToSchedule(); 
                 } else alert("❌ ขออภัย บัตรเต็มในขณะที่คุณทำรายการ");
             });
         }
