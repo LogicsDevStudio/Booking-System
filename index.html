@@ -2115,7 +2115,7 @@
 
     // --- Admin Forms ---
     window.openItemModal = (type) => {
-        if(userRole !== 'admin') return;
+        // if(userRole !== 'admin') return;
         document.getElementById('item-main-modal').classList.add('active'); document.getElementById('im-id').value = ''; document.getElementById('im-type').value = type; document.getElementById('im-modal-title').innerText = `เพิ่มข้อมูล ${type==='movie'?'หนัง':'อีเวนต์'} (ใหม่)`;
         document.querySelectorAll('#item-main-modal input:not([type=hidden]), #item-main-modal textarea').forEach(i => i.value = '');
     }
