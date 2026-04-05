@@ -249,6 +249,17 @@
             opacity: 1;
             transition: opacity 0.3s ease-in;
         }
+
+        /* ควบคุมขนาดรูปโปสเตอร์ที่ถูกดึงมาใส่ใน #detail-header */
+        #detail-header img {
+            width: 100%;
+            max-width: 300px; /* ปรับขนาดความกว้างสูงสุดของโปสเตอร์ได้ที่นี่ */
+            height: auto;
+            border-radius: 12px;
+            object-fit: cover;
+            margin: 0 auto; /* จัดกึ่งกลาง */
+            display: block;
+        }        
     </style>
 </head>
 <body>
@@ -364,13 +375,10 @@
     </div>
 
     <div id="page-detail" class="hidden">
-        <button class="btn btn-light rounded-pill mb-4 px-4 shadow-sm hover-lift text-secondary fw-bold" onclick="goHome()"><i class="fas fa-arrow-left me-2"></i>ย้อนกลับ</button>
+        <button class="btn btn-light rounded-pill mb-4 px-4 shadow-sm hover-lift text-secondary fw-bold" onclick="goHome()">
+            <i class="fas fa-arrow-left me-2"></i>ย้อนกลับ
+        </button>
         
-        <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
-            <div class="card-body p-4 p-md-5 d-flex flex-column flex-md-row gap-4" id="detail-header">
-                </div>
-        </div>
-
         <div id="admin-panel-detail" class="admin-bar hidden bg-white rounded-4 shadow-sm p-3 mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2 border-start border-4 border-warning">
             <span class="fw-bold text-dark"><i class="fas fa-cogs text-warning me-2"></i>จัดการรอบ (Admin)</span>
             <div class="d-flex gap-2">
@@ -380,38 +388,51 @@
             </div>
         </div>
 
-        <div id="schedule-section" class="bg-white p-4 rounded-4 shadow-sm mb-5">
-            <h4 class="fw-bold mb-4 border-bottom pb-2">เลือกรอบ <span id="schedule-type-text" class="text-primary"></span></h4>
-            <div class="schedule-list d-flex flex-column gap-3" id="schedule-list"></div>
-        </div>
-        
-        <div id="movie-seat-section" class="hidden bg-white p-4 rounded-4 shadow-sm mb-5 text-center">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <button class="btn btn-light rounded-pill fw-bold" onclick="backToSchedule()"><i class="fas fa-chevron-left"></i> เปลี่ยนรอบ</button>
-                <span class="fs-5 fw-bold text-dark">รอบ: <span id="seat-round-time" class="text-primary badge bg-primary bg-opacity-10 py-2 px-3 rounded-pill"></span></span>
+        <div class="row align-items-start">
+            
+            <div class="col-lg-4 mb-4">
+                <div class="card border-0 shadow-sm rounded-4 overflow-hidden sticky-top" style="top: 20px; z-index: 1;">
+                    <div class="card-body p-4 d-flex flex-column gap-3 text-center text-md-start" id="detail-header">
+                        </div>
+                </div>
             </div>
-            
-            <div class="screen py-2 mb-5 mx-auto w-75">หน้าจอภาพยนตร์ / เวที</div>
-            
-            <div class="seat-map" id="seat-map"></div>
-            
-            <div class="d-flex justify-content-center flex-wrap gap-4 mt-5 pt-4 border-top">
-                <div class="d-flex align-items-center gap-2 small fw-bold"><div style="width:16px; height:16px; border-radius:4px; border:2px solid #10b981;"></div> ว่าง (ปกติ)</div>
-                <div class="d-flex align-items-center gap-2 small fw-bold"><div style="width:16px; height:16px; border-radius:4px; border:2px solid #8b5cf6;"></div> ว่าง (VIP)</div>
-                <div class="d-flex align-items-center gap-2 small fw-bold"><div style="width:16px; height:16px; border-radius:4px; background:#f59e0b;"></div> รอชำระเงิน</div>
-                <div class="d-flex align-items-center gap-2 small fw-bold"><div style="width:16px; height:16px; border-radius:4px; background:#ef4444;"></div> จองแล้ว</div>
-            </div>
-        </div>
 
-        <div id="event-booking-section" class="hidden bg-white p-4 rounded-4 shadow-sm mb-5 text-center">
-             <div class="d-flex justify-content-between align-items-center mb-4">
-                <button class="btn btn-light rounded-pill fw-bold" onclick="backToSchedule()"><i class="fas fa-chevron-left"></i> เปลี่ยนรอบ</button>
-                <span class="fs-5 fw-bold text-dark">รอบ: <span id="e-round-time" class="text-danger badge bg-danger bg-opacity-10 py-2 px-3 rounded-pill"></span></span>
-            </div>
-            <div class="card border-0 bg-light rounded-4 p-5 text-center mx-auto" style="max-width: 500px;">
-                <h3 class="fw-bold mb-3">ยืนยันการลงทะเบียน</h3>
-                <p class="fs-5 mb-4 text-secondary">ที่นั่ง/สิทธิ์ คงเหลือ: <br><span id="e-remaining" class="text-danger fw-bold fs-1"></span> / <span id="e-capacity"></span></p>
-                <button id="btn-event-book" class="btn btn-danger btn-lg rounded-pill w-100 fw-bold shadow-sm hover-lift">ดำเนินการจองสิทธิ์</button>
+            <div class="col-lg-8">
+                
+                <div id="schedule-section" class="bg-white p-4 rounded-4 shadow-sm mb-4">
+                    <h4 class="fw-bold mb-4 border-bottom pb-2">เลือกรอบ <span id="schedule-type-text" class="text-primary"></span></h4>
+                    <div class="schedule-list d-flex flex-column gap-3" id="schedule-list"></div>
+                </div>
+                
+                <div id="movie-seat-section" class="hidden bg-white p-4 rounded-4 shadow-sm mb-4 text-center">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <button class="btn btn-light rounded-pill fw-bold" onclick="backToSchedule()"><i class="fas fa-chevron-left"></i> เปลี่ยนรอบ</button>
+                        <span class="fs-5 fw-bold text-dark">รอบ: <span id="seat-round-time" class="text-primary badge bg-primary bg-opacity-10 py-2 px-3 rounded-pill"></span></span>
+                    </div>
+                    
+                    <div class="screen py-2 mb-5 mx-auto w-75">หน้าจอภาพยนตร์ / เวที</div>
+                    
+                    <div class="seat-map" id="seat-map"></div>
+                    
+                    <div class="d-flex justify-content-center flex-wrap gap-4 mt-5 pt-4 border-top">
+                        <div class="d-flex align-items-center gap-2 small fw-bold"><div style="width:16px; height:16px; border-radius:4px; border:2px solid #10b981;"></div> ว่าง (ปกติ)</div>
+                        <div class="d-flex align-items-center gap-2 small fw-bold"><div style="width:16px; height:16px; border-radius:4px; border:2px solid #8b5cf6;"></div> ว่าง (VIP)</div>
+                        <div class="d-flex align-items-center gap-2 small fw-bold"><div style="width:16px; height:16px; border-radius:4px; background:#f59e0b;"></div> รอชำระเงิน</div>
+                        <div class="d-flex align-items-center gap-2 small fw-bold"><div style="width:16px; height:16px; border-radius:4px; background:#ef4444;"></div> จองแล้ว</div>
+                    </div>
+                </div>
+
+                <div id="event-booking-section" class="hidden bg-white p-4 rounded-4 shadow-sm mb-4 text-center">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <button class="btn btn-light rounded-pill fw-bold" onclick="backToSchedule()"><i class="fas fa-chevron-left"></i> เปลี่ยนรอบ</button>
+                        <span class="fs-5 fw-bold text-dark">รอบ: <span id="e-round-time" class="text-danger badge bg-danger bg-opacity-10 py-2 px-3 rounded-pill"></span></span>
+                    </div>
+                    <div class="card border-0 bg-light rounded-4 p-5 text-center mx-auto" style="max-width: 500px;">
+                        <h3 class="fw-bold mb-3">ยืนยันการลงทะเบียน</h3>
+                        <p class="fs-5 mb-4 text-secondary">ที่นั่ง/สิทธิ์ คงเหลือ: <br><span id="e-remaining" class="text-danger fw-bold fs-1"></span> / <span id="e-capacity"></span></p>
+                        <button id="btn-event-book" class="btn btn-danger btn-lg rounded-pill w-100 fw-bold shadow-sm hover-lift">ดำเนินการจองสิทธิ์</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
