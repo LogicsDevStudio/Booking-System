@@ -295,6 +295,55 @@
         #item-main-modal.active {
             display: block; /* หรือ display: flex; ถ้าคุณใช้ flexbox จัดกึ่งกลาง */
         }
+
+        /* 1. ส่วนของพื้นหลังดำๆ (Overlay) และโครงสร้างหลักของ Modal */
+        .modal {
+            display: none; /* ซ่อนไว้เป็นค่าเริ่มต้น */
+            position: fixed; /* บังคับให้ลอยอยู่เหนือหน้าเว็บเสมอ */
+            z-index: 9999; /* ใส่ค่าสูงๆ เพื่อรับประกันว่าจะทับทุกอย่างบนจอ */
+            left: 0;
+            top: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(0, 0, 0, 0.6); /* พื้นหลังสีดำโปร่งใส 60% */
+        }
+
+        /* 2. เมื่อกดปุ่มแล้ว JavaScript เติมคลาส .active ให้เปลี่ยนเป็นแสดงผล */
+        .modal.active {
+            display: flex; /* ใช้ flex เพื่อให้เนื้อหาจัดอยู่กึ่งกลางจอได้ง่ายขึ้น */
+            align-items: center; /* กึ่งกลางแนวตั้ง */
+            justify-content: center; /* กึ่งกลางแนวนอน */
+        }
+
+        /* 3. กล่องเนื้อหาสีขาวตรงกลาง (ฟอร์มของคุณ) */
+        .modal-content {
+            background-color: #fff;
+            padding: 25px;
+            border-radius: 12px; /* ขอบมนนิดๆ ให้ดูทันสมัย */
+            width: 90%;
+            max-width: 500px; /* ขนาดความกว้างสูงสุดของกล่อง */
+            position: relative; /* สำหรับให้ปุ่ม X อ้างอิงตำแหน่ง */
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            
+            /* กรณีฟอร์มยาวเกินหน้าจอ ให้มี Scrollbar ข้างในกล่องแทน */
+            max-height: 90vh; 
+            overflow-y: auto; 
+        }
+
+        /* 4. ปุ่ม (X) สำหรับปิด Modal */
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 28px;
+            font-weight: bold;
+            color: #666;
+            cursor: pointer;
+            line-height: 1;
+        }
+        .close-btn:hover {
+            color: #ff4757; /* เปลี่ยนเป็นสีแดงตอนเอาเมาส์ชี้ */
+        }
     </style>
 </head>
 <body>
