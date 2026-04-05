@@ -2115,9 +2115,25 @@
 
     // --- Admin Forms ---
     window.openItemModal = (type) => {
-        // if(userRole !== 'admin') return;
-        document.getElementById('item-main-modal').classList.add('active'); document.getElementById('im-id').value = ''; document.getElementById('im-type').value = type; document.getElementById('im-modal-title').innerText = `เพิ่มข้อมูล ${type==='movie'?'หนัง':'อีเวนต์'} (ใหม่)`;
-        document.querySelectorAll('#item-main-modal input:not([type=hidden]), #item-main-modal textarea').forEach(i => i.value = '');
+        console.log("กำลังกดปุ่ม:", type); // ดูว่าฟังก์ชันทำงานไหม
+        console.log("สิทธิ์ผู้ใช้ตอนนี้:", userRole);
+
+        if(userRole !== 'admin') {
+            alert("คุณไม่มีสิทธิ์ Admin เปิดไม่ได้!");
+            return;
+        }
+
+        try {
+            document.getElementById('item-main-modal').classList.add('active'); 
+            document.getElementById('im-id').value = ''; 
+            document.getElementById('im-type').value = type; 
+            document.getElementById('im-modal-title').innerText = `เพิ่มข้อมูล ${type==='movie'?'หนัง':'อีเวนต์'} (ใหม่)`;
+            document.querySelectorAll('#item-main-modal input:not([type=hidden]), #item-main-modal textarea').forEach(i => i.value = '');
+            console.log("เปิด Modal สำเร็จ!");
+        } catch (error) {
+            console.error("เกิดข้อผิดพลาด (อาจจะลืมใส่ ID ใน HTML):", error);
+            alert("หา HTML Element ไม่เจอ ลองดูใน Console (F12)");
+        }
     }
 
     window.editCurrentItem = () => {
