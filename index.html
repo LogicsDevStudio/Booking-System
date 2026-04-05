@@ -259,7 +259,22 @@
             object-fit: cover;
             margin: 0 auto; /* จัดกึ่งกลาง */
             display: block;
-        }        
+        }
+
+        /* เพิ่มคลาสสำหรับเอฟเฟกต์ของการ์ดเมื่อเอาเมาส์ชี้ */
+        .custom-card-hover {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .custom-card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+        }
+        .custom-card-hover .img-hover-zoom {
+            transition: transform 0.5s ease;
+        }
+        .custom-card-hover:hover .img-hover-zoom {
+            transform: scale(1.05);
+        }
     </style>
 </head>
 <body>
@@ -1266,179 +1281,197 @@
     window.applyFilters = () => { window.renderHomeList(); };
 
     window.renderHomeList = () => {
-        const gridList = document.getElementById('items-grid');
-        if(!gridList) return;
-        gridList.innerHTML = '';
+        const gridList = document.getElementById('items-grid');
+        if(!gridList) return;
+        gridList.innerHTML = '';
 
-        const adminPanel = document.getElementById('admin-panel-home');
-        if(adminPanel) {
-            if(userRole === 'admin') adminPanel.classList.remove('hidden', 'd-none');
-            else adminPanel.classList.add('hidden', 'd-none');
-        }
+        const adminPanel = document.getElementById('admin-panel-home');
+        if(adminPanel) {
+            if(userRole === 'admin') adminPanel.classList.remove('hidden', 'd-none');
+            else adminPanel.classList.add('hidden', 'd-none');
+        }
 
-        buildBannerSlider(); 
+        buildBannerSlider(); 
 
-        const locSelect = document.getElementById('filter-location');
-        const filterLocation = locSelect ? locSelect.value : '';
-        const filterSort = document.getElementById('filter-sort') ? document.getElementById('filter-sort').value : 'closest';
+        const locSelect = document.getElementById('filter-location');
+        const filterLocation = locSelect ? locSelect.value : '';
+        const filterSort = document.getElementById('filter-sort') ? document.getElementById('filter-sort').value : 'closest';
 
-        const allLocations = new Set();
-        let allItemsList = [];
+        const allLocations = new Set();
+        let allItemsList = [];
 
-        const processItems = (dataObj, type) => {
-            if (!dataObj) return;
-            Object.entries(dataObj).forEach(([id, item]) => {
-                
-                if (item.info) {
-                    let minPrice = parseFloat(item.info.price) || 0;
-                    let earliestStart = Infinity;
-                    let validRoundCount = 0;
-                    
-                    const mainLoc = item.info.location ? item.info.location.trim() : 'ไม่ระบุสถานที่';
-                    if (mainLoc && mainLoc !== 'ไม่ระบุสถานที่') allLocations.add(mainLoc);
+        const processItems = (dataObj, type) => {
+            if (!dataObj) return;
+            Object.entries(dataObj).forEach(([id, item]) => {
+                
+                if (item.info) {
+                    let minPrice = parseFloat(item.info.price) || 0;
+                    let earliestStart = Infinity;
+                    let validRoundCount = 0;
+                    
+                    const mainLoc = item.info.location ? item.info.location.trim() : 'ไม่ระบุสถานที่';
+                    if (mainLoc && mainLoc !== 'ไม่ระบุสถานที่') allLocations.add(mainLoc);
 
-                    if (item.rounds) {
-                        Object.values(item.rounds).forEach(r => {
-                            if(!r.config) return;
-                            
-                            const loc = r.config.location ? r.config.location.trim() : 'ไม่ระบุสถานที่';
-                            if (loc && loc !== 'ไม่ระบุสถานที่') allLocations.add(loc);
+                    if (item.rounds) {
+                        Object.values(item.rounds).forEach(r => {
+                            if(!r.config) return;
+                            
+                            const loc = r.config.location ? r.config.location.trim() : 'ไม่ระบุสถานที่';
+                            if (loc && loc !== 'ไม่ระบุสถานที่') allLocations.add(loc);
 
-                            // ถ้ามีการค้นหา แล้วรอบนี้ไม่ตรง และสถานที่หลักก็ไม่ตรง ให้ข้ามรอบนี้ไป
-                            if (filterLocation && loc !== filterLocation && mainLoc !== filterLocation) return;
-                            
-                            validRoundCount++;
-                            
-                            const p = parseFloat(r.config.price);
-                            if(!isNaN(p) && (p < minPrice || minPrice === 0)) minPrice = p;
-                            
-                            const t = new Date(r.config.showStart).getTime();
-                            if(!isNaN(t) && t > 0 && t < earliestStart) earliestStart = t;
-                        });
-                    }
+                            // ถ้ามีการค้นหา แล้วรอบนี้ไม่ตรง และสถานที่หลักก็ไม่ตรง ให้ข้ามรอบนี้ไป
+                            if (filterLocation && loc !== filterLocation && mainLoc !== filterLocation) return;
+                            
+                            validRoundCount++;
+                            
+                            const p = parseFloat(r.config.price);
+                            if(!isNaN(p) && (p < minPrice || minPrice === 0)) minPrice = p;
+                            
+                            const t = new Date(r.config.showStart).getTime();
+                            if(!isNaN(t) && t > 0 && t < earliestStart) earliestStart = t;
+                        });
+                    }
 
-                    // ถ้ากำลังกรองสถานที่ แต่เรื่องนี้ไม่มีรอบที่ตรงกับสถานที่นั้นเลย และสถานที่หลักก็ไม่ตรง
-                    if (filterLocation !== '' && mainLoc !== filterLocation && validRoundCount === 0) {
-                        return; // ไม่ต้องนำมาแสดง
-                    }
+                    // ถ้ากำลังกรองสถานที่ แต่เรื่องนี้ไม่มีรอบที่ตรงกับสถานที่นั้นเลย และสถานที่หลักก็ไม่ตรง
+                    if (filterLocation !== '' && mainLoc !== filterLocation && validRoundCount === 0) {
+                        return; // ไม่ต้องนำมาแสดง
+                    }
 
-                    // สำหรับ User ทั่วไป ถ้าเรื่องไหนยังไม่มีรอบ (0 รอบ) ให้ซ่อนไปเลย
-                    const totalRounds = item.rounds ? Object.keys(item.rounds).length : 0;
-                    if (userRole !== 'admin' && totalRounds === 0) {
-                        return;
-                    }
+                    // สำหรับ User ทั่วไป ถ้าเรื่องไหนยังไม่มีรอบ (0 รอบ) ให้ซ่อนไปเลย
+                    const totalRounds = item.rounds ? Object.keys(item.rounds).length : 0;
+                    if (userRole !== 'admin' && totalRounds === 0) {
+                        return;
+                    }
 
-                    allItemsList.push({
-                        id: id,
-                        type: type,
-                        info: item.info,
-                        roundCount: totalRounds,
-                        minPrice: minPrice,
-                        earliestStart: earliestStart === Infinity ? Number.MAX_SAFE_INTEGER : earliestStart,
-                        displayLocation: mainLoc
-                    });
-                }
-                else if (item.config) {
-                    const loc = item.config.location ? item.config.location.trim() : 'ไม่ระบุสถานที่';
-                    if (loc && loc !== 'ไม่ระบุสถานที่') allLocations.add(loc);
-                    
-                    if (filterLocation !== '' && loc !== filterLocation) return;
-                    
-                    const p = parseFloat(item.config.price) || 0;
-                    const t = new Date(item.config.start).getTime();
-                    
-                    allItemsList.push({
-                        id: id,
-                        type: type,
-                        info: item.config,
-                        roundCount: 1, 
-                        minPrice: p,
-                        earliestStart: isNaN(t) ? Number.MAX_SAFE_INTEGER : t,
-                        displayLocation: loc
-                    });
-                }
-            });
-        };
+                    allItemsList.push({
+                        id: id,
+                        type: type,
+                        info: item.info,
+                        roundCount: totalRounds,
+                        minPrice: minPrice,
+                        earliestStart: earliestStart === Infinity ? Number.MAX_SAFE_INTEGER : earliestStart,
+                        displayLocation: mainLoc
+                    });
+                }
+                else if (item.config) {
+                    const loc = item.config.location ? item.config.location.trim() : 'ไม่ระบุสถานที่';
+                    if (loc && loc !== 'ไม่ระบุสถานที่') allLocations.add(loc);
+                    
+                    if (filterLocation !== '' && loc !== filterLocation) return;
+                    
+                    const p = parseFloat(item.config.price) || 0;
+                    const t = new Date(item.config.start).getTime();
+                    
+                    allItemsList.push({
+                        id: id,
+                        type: type,
+                        info: item.config,
+                        roundCount: 1, 
+                        minPrice: p,
+                        earliestStart: isNaN(t) ? Number.MAX_SAFE_INTEGER : t,
+                        displayLocation: loc
+                    });
+                }
+            });
+        };
 
-        if (currentHomeTab === 'movie') processItems(allData.movies, 'movie');
-        else processItems(allData.events, 'event');
+        if (currentHomeTab === 'movie') processItems(allData.movies, 'movie');
+        else processItems(allData.events, 'event');
 
-        // อัปเดต Dropdown (เก็บค่าเดิมไว้)
-        if(locSelect) {
-            locSelect.innerHTML = '<option value="">-- ดูทุกสถานที่ --</option>';
-            Array.from(allLocations).sort().forEach(loc => {
-                const opt = document.createElement('option');
-                opt.value = loc; opt.innerText = loc;
-                if(loc === filterLocation) opt.selected = true;
-                locSelect.appendChild(opt);
-            });
-            // ถ้ามีของเก่าที่ไม่มี Location เลย ให้แสดงตัวเลือกไม่ระบุสถานที่ด้วย
-            const optNone = document.createElement('option');
-            optNone.value = 'ไม่ระบุสถานที่'; optNone.innerText = 'ไม่ระบุสถานที่';
-            if(filterLocation === 'ไม่ระบุสถานที่') optNone.selected = true;
-            locSelect.appendChild(optNone);
-        }
+        // อัปเดต Dropdown (เก็บค่าเดิมไว้)
+        if(locSelect) {
+            locSelect.innerHTML = '<option value="">-- ดูทุกสถานที่ --</option>';
+            Array.from(allLocations).sort().forEach(loc => {
+                const opt = document.createElement('option');
+                opt.value = loc; opt.innerText = loc;
+                if(loc === filterLocation) opt.selected = true;
+                locSelect.appendChild(opt);
+            });
+            // ถ้ามีของเก่าที่ไม่มี Location เลย ให้แสดงตัวเลือกไม่ระบุสถานที่ด้วย
+            const optNone = document.createElement('option');
+            optNone.value = 'ไม่ระบุสถานที่'; optNone.innerText = 'ไม่ระบุสถานที่';
+            if(filterLocation === 'ไม่ระบุสถานที่') optNone.selected = true;
+            locSelect.appendChild(optNone);
+        }
 
-        // จัดเรียง
-        allItemsList.sort((a, b) => {
-            if (filterSort === 'closest') return a.earliestStart - b.earliestStart;
-            if (filterSort === 'newest') {
-                const aT = a.earliestStart === Number.MAX_SAFE_INTEGER ? 0 : a.earliestStart;
-                const bT = b.earliestStart === Number.MAX_SAFE_INTEGER ? 0 : b.earliestStart;
-                return bT - aT;
-            }
-            if (filterSort === 'priceAsc') return a.minPrice - b.minPrice;
-            if (filterSort === 'priceDesc') return b.minPrice - a.minPrice;
-            return 0;
-        });
+        // จัดเรียง
+        allItemsList.sort((a, b) => {
+            if (filterSort === 'closest') return a.earliestStart - b.earliestStart;
+            if (filterSort === 'newest') {
+                const aT = a.earliestStart === Number.MAX_SAFE_INTEGER ? 0 : a.earliestStart;
+                const bT = b.earliestStart === Number.MAX_SAFE_INTEGER ? 0 : b.earliestStart;
+                return bT - aT;
+            }
+            if (filterSort === 'priceAsc') return a.minPrice - b.minPrice;
+            if (filterSort === 'priceDesc') return b.minPrice - a.minPrice;
+            return 0;
+        });
 
-        if(allItemsList.length === 0) {
-            const txt = currentHomeTab === 'movie' ? 'ภาพยนตร์' : 'อีเวนต์';
-            // 🌟 ปรับหน้าตาตอนค้นหาไม่เจอข้อมูลให้ใช้กล่องเส้นประ สไตล์เดียวกับระบบหลังบ้าน
-            gridList.innerHTML = `
-                <div style="grid-column: 1/-1;" class="text-center bg-light p-5 rounded-3 border" style="border-style: dashed !important; border-width: 2px !important;">
-                    <i class="fs-1 text-muted d-block mb-3">🔍</i>
-                    <h5 class="text-muted fw-bold">ไม่พบ${txt}ที่ตรงกับเงื่อนไขการค้นหา</h5>
-                    <p class="text-secondary small mb-0">ลองเปลี่ยนตัวกรอง หรือค้นหาสถานที่อื่นดูนะ</p>
-                </div>`;
-        } else {
-            allItemsList.forEach(item => {
-                const div = document.createElement('div');
-                // 🌟 ปรับคลาสของการ์ดให้ใช้ Bootstrap ลบสไตล์เดิมออกและทำ Card Layout ให้เป็นระเบียบ
-                div.className = 'card h-100 shadow-sm border-0 position-relative cursor-pointer';
-                div.onclick = () => openDetailPage(item.id, item.type);
-                // ปรับให้เมื่อชี้เม้าส์แล้วมีเคอร์เซอร์แบบปุ่มกด
-                div.style.cursor = 'pointer'; 
-                
-                const imgUrl = item.info.image || 'https://via.placeholder.com/300x400';
-                const tagText = item.type === 'movie' ? '🎬 ภาพยนตร์' : '🎤 อีเวนต์';
-                const tagClass = item.type === 'movie' ? 'bg-primary' : 'bg-success';
-                
-                let dateText = item.info.showDates || 'ดูรอบฉายด้านใน';
-                if(!item.info.showDates && item.info.start) {
-                    dateText = new Date(item.info.start).toLocaleDateString('th-TH');
-                }
-                
-                // 🌟 จัด Layout ข้อมูลในการ์ดด้วย Bootstrap Utilities (Card-body, mt-auto ฯลฯ)
-                div.innerHTML = `
-                    <div class="position-relative">
-                        <img src="${imgUrl}" alt="${item.info.title}" class="card-img-top object-fit-cover" style="height: 280px;">
-                        <span class="badge ${tagClass} position-absolute top-0 end-0 m-2 px-3 py-2 rounded-pill shadow-sm">${tagText}</span>
+        if(allItemsList.length === 0) {
+            const txt = currentHomeTab === 'movie' ? 'ภาพยนตร์' : 'อีเวนต์';
+            // 🌟 ปรับ UI หน้า Empty State ให้ดูสวยและเป็นมิตรมากขึ้น
+            gridList.innerHTML = `
+                <div style="grid-column: 1/-1;" class="text-center py-5">
+                    <div class="bg-light p-5 rounded-4 mx-auto" style="border: 2px dashed #cbd5e1; max-width: 500px;">
+                        <i class="fas fa-search fa-3x text-secondary mb-3 opacity-50"></i>
+                        <h5 class="text-dark fw-bold mb-2">ไม่พบ${txt}ที่ตรงกับเงื่อนไข</h5>
+                        <p class="text-muted small mb-0">ลองเปลี่ยนตัวกรอง หรือค้นหาสถานที่อื่นดูนะครับ</p>
                     </div>
-                    <div class="card-body d-flex flex-column p-3">
-                        <h5 class="card-title fw-bold text-dark mb-3">${item.info.title}</h5>
-                        <p class="card-text small text-muted mb-1">📅 วันที่: <span class="fw-bold text-dark">${dateText}</span></p>
-                        <p class="card-text small text-muted mb-2">📍 สถานที่: <span class="fw-bold text-dark">${item.displayLocation}</span></p>
-                        <p class="card-text text-danger fw-bold fs-5 mb-3 mt-1">เริ่มต้น ฿${item.minPrice}</p>
-                        <div class="mt-auto pt-2 border-top">
-                            <p class="card-text small text-muted mb-0">มีเปิดให้จอง <strong class="text-dark">${item.roundCount}</strong> รอบ</p>
+                </div>`;
+        } else {
+            allItemsList.forEach(item => {
+                const div = document.createElement('div');
+                // 🌟 เพิ่มคลาส custom-card-hover และปรับกล่องให้ดูนุ่มนวลขึ้น
+                div.className = 'card h-100 shadow-sm border-0 position-relative custom-card-hover rounded-4 overflow-hidden';
+                div.style.cursor = 'pointer'; 
+                div.onclick = () => openDetailPage(item.id, item.type);
+                
+                const imgUrl = item.info.image || 'https://via.placeholder.com/300x400';
+                const tagText = item.type === 'movie' ? '<i class="fas fa-film me-1"></i> ภาพยนตร์' : '<i class="fas fa-microphone-alt me-1"></i> อีเวนต์';
+                const tagClass = item.type === 'movie' ? 'bg-primary' : 'bg-success';
+                
+                let dateText = item.info.showDates || 'ดูรอบฉายด้านใน';
+                if(!item.info.showDates && item.info.start) {
+                    dateText = new Date(item.info.start).toLocaleDateString('th-TH');
+                }
+                
+                // 🌟 จัด Layout ข้อมูลในการ์ดใหม่ เปลี่ยน Emoji เป็น Icon จัดวางราคาและรอบให้เป็นสัดส่วน
+                div.innerHTML = `
+                    <div class="position-relative overflow-hidden">
+                        <img src="${imgUrl}" alt="${item.info.title}" class="card-img-top object-fit-cover img-hover-zoom w-100" style="height: 280px;">
+                        <div class="position-absolute top-0 start-0 w-100 h-100" style="background: linear-gradient(to bottom, rgba(0,0,0,0.2) 0%, transparent 30%); pointer-events: none;"></div>
+                        <span class="badge ${tagClass} position-absolute top-0 end-0 m-3 px-3 py-2 rounded-pill shadow-sm fs-6">${tagText}</span>
+                    </div>
+                    
+                    <div class="card-body d-flex flex-column p-4">
+                        <h5 class="card-title fw-bold text-dark mb-3 line-clamp-2">${item.info.title}</h5>
+                        
+                        <div class="d-flex flex-column gap-2 mb-3">
+                            <div class="d-flex align-items-start gap-2 small text-secondary">
+                                <i class="fas fa-calendar-alt mt-1 text-primary w-15px text-center"></i>
+                                <span>${dateText}</span>
+                            </div>
+                            <div class="d-flex align-items-start gap-2 small text-secondary">
+                                <i class="fas fa-map-marker-alt mt-1 text-danger w-15px text-center"></i>
+                                <span>${item.displayLocation}</span>
+                            </div>
+                        </div>
+
+                        <div class="mt-auto border-top pt-3 d-flex justify-content-between align-items-end">
+                            <div>
+                                <span class="d-block small text-muted mb-1" style="font-size: 0.75rem;">เริ่มต้น</span>
+                                <span class="text-danger fw-bold fs-5">฿${item.minPrice.toLocaleString()}</span>
+                            </div>
+                            <div class="badge bg-light text-dark border px-2 py-1 rounded-3">
+                                <i class="fas fa-ticket-alt text-warning me-1"></i> ${item.roundCount} รอบ
+                            </div>
                         </div>
                     </div>
-                `;
-                gridList.appendChild(div);
-            });
-        }
-    }
+                `;
+                gridList.appendChild(div);
+            });
+        }
+    }
 
 
     // 🌟 --- ระบบหน้ารายละเอียด (Detail Page) --- 🌟
